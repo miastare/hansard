@@ -1,88 +1,147 @@
+"""
+Drop-in replacement for your Hansard interaction detector.
+Adds chair-aware filtering and broader regex support.
+    • Skip analysing turns by the Speaker / Deputy Speaker
+    • Ignore any “Order!” etc. uttered by the chair when scanning ± window
+    • Catch more variants of “Will the Minister give way…?”
+    • Catch “I will certainly give way / I give way to …”
+Each contribution dict must now carry:
+    "speaker"  : <unique MP ID or name>,
+    "body"     : <plain-text contribution>,
+    "is_chair" : True if Speaker or Deputy Speaker, else False
+"""
 import re
+from typing import List, Dict
 
-# Define pattern lists based on common Hansard markup conventions
+# ---------------- Pattern library ---------------------------------- #
 INTERRUPTION_REQUEST_PATTERNS = [
-    # “Will the (right) hon. Gentleman/Lady/Member give way?”
-    r"\bwill (?:the )?(?:rt\.?|right)?\s*hon(?:ou?rable)?\.?\s*(?:gentleman|lady|member)\b.*?\bgive way",
-    r"\bwill you give way\b",
-    # “On a point of order” is a formal way to interrupt
+    # classical + broader “give way” formulas
+    r"will (?:my |the )?(?:rt\.?|right)?\s*hon(?:ou?rable)?\.?\s*"
+    r"(?:friend|gentleman|lady|member|minister)\b.*?\bgive way",
+    r"will you give way",
+    # points of order
     r"\bon a point of order\b",
-    # Speaker physically stands: “rose—”
-    r"\brose—",
+    # editors’ stage direction when a Member rises
+    r"\brose—\b",
 ]
 
-# Patterns for the speaker ACCEPTING or DECLINING an interruption
 ACCEPT_PATTERNS = [
-    r"\bi (?:will|shall|’ll|'ll|am happy to|am content to|gladly) give way\b",
+    # allow up to three filler words between modal and “give way”
+    r"\bi (?:will|shall|’ll|'ll|am happy to|am content to|gladly)"
+    r"(?:\s+\w+){0,3}\s+give way\b",
     r"\bgive way, of course\b",
+    r"\bi (?:am|’m|'m) (?:perfectly )?prepared to give way\b",
+    r"\bi give way to\b",  # “I give way to the hon. Lady…”
 ]
 DECLINE_PATTERNS = [
     r"\bi (?:will|shall|’ll|'ll) not give way\b",
     r"\bi (?:cannot|can't|won't) give way\b",
     r"\bi am not giving way\b",
+    r"\bi (?:am|'m|’m) afraid i am not giving way\b",
 ]
 
-# Mid‑speech audience reactions
 HECKLE_PATTERNS = [
-    r"\(interruption[^\)]*\)",
-    r"\(hon\.? members?: [^\)]*\)",
-    r"\(laughter[^\)]*\)",
-    r"\(groans?[^\)]*\)",
-    r"\b(order!|shame!|resign!)\b",
+    r"\(.*?interruption.*?\)",
+    r"\(hon\.? members?: [^\)]*?\)",
+    r"\(laughter[^\)]*?\)",
+    r"\(groans?[^\)]*?\)",
+    # standalone “Order!” or “Order.” but not “in order to…”
+    r"(?:(?<=^)|(?<=\())Order[!\.]",
+    r"\bshame[!,\.]",
+    r"\bresign[!,\.]",
 ]
 
 APPLAUSE_PATTERNS = [
     r"\(hon\.? members?: hear, hear\.?\)",
     r"\(hear, hear\.?\)",
-    r"\(cheers?[^\)]*\)",
-    r"\(applause[^\)]*\)",
+    r"\(cheers?[^\)]*?\)",
+    r"\(applause[^\)]*?\)",
 ]
 
-def detect_parliamentary_interactions(
-    contribution_text: str,
-    prev_texts: list[str] | None = None,
-    n: int = 5,
-) -> dict[str, bool]:
+# Pre-compile for speed (case-insensitive, dot matches newline)
+FLAGS = re.I | re.S
+INTERRUPTION_REQUEST_REGEXES = [re.compile(p, FLAGS) for p in INTERRUPTION_REQUEST_PATTERNS]
+ACCEPT_REGEXES = [re.compile(p, FLAGS) for p in ACCEPT_PATTERNS]
+DECLINE_REGEXES = [re.compile(p, FLAGS) for p in DECLINE_PATTERNS]
+HECKLE_REGEXES = [re.compile(p, FLAGS) for p in HECKLE_PATTERNS]
+APPLAUSE_REGEXES = [re.compile(p, FLAGS) for p in APPLAUSE_PATTERNS]
+
+# keys for convenience when zeroing out chair turns
+_RETURN_KEYS = (
+    "interrupted_other",
+    "were_interrupted",
+    "accepted_interruption",
+    "declined_interruption",
+    "was_heckled",
+    "received_applause",
+)
+
+
+# ---------------- Core detector ------------------------------------ #
+def assess_parliamentary_turn(
+    contributions: List[Dict],
+    idx: int,
+    window: int = 5,
+    chair_key: str = "is_chair",
+) -> Dict[str, bool]:
     """
-    Given the text of one Hansard contribution and up to *n*
-    preceding contributions, return best‑guess booleans for:
-        - proper_interruption   – someone formally tried to intervene
-        - accepted_interruption – the speaker actually **gave way**
-        - heckled               – negative/noisy interjection mid‑speech
-        - applause              – positive approval mid‑speech
+    Analyse a ±window slice centred on contributions[idx].
+    Skips turns where contributions[*][chair_key] is True.
 
-    The function relies purely on regex heuristics tuned on ~20
-    Commons debates from 2024‑25.  It should work on raw Hansard
-    JSON (`contribution['body']`) or on the plain‑text column output
-    by the UK Parliament API.
+    Returns a dict with the six boolean flags listed in _RETURN_KEYS.
     """
-    prev_texts = prev_texts or []
-    # Trim to the n contributions immediately before the current speech
-    window = prev_texts[-n:]
+    cur = contributions[idx]
 
-    lc_contrib = contribution_text.lower()
+    # if the current turn is the Speaker/Deputy we short-circuit
+    if cur.get(chair_key):
+        return {k: False for k in _RETURN_KEYS}
 
-    # --- a) Was there a *formal* request to intervene? ------------------
-    proper_interruption = any(
-        re.search(pattern, txt.lower()) for txt in window for pattern in INTERRUPTION_REQUEST_PATTERNS
+    cur_speaker = cur["speaker"]
+    cur_body = cur["body"]
+
+    # Collect windows, filtering out chair contributions
+    start = max(0, idx - window)
+    end = min(len(contributions), idx + window + 1)
+    prev_cons = [
+        c for c in contributions[start:idx] if not c.get(chair_key)
+    ]
+    next_cons = [
+        c for c in contributions[idx + 1 : end] if not c.get(chair_key)
+    ]
+
+    # --- 1) Did THEY try to interrupt someone else? --------------------
+    interrupted_other = any(r.search(cur_body) for r in INTERRUPTION_REQUEST_REGEXES)
+
+    # --- 2) Were THEY interrupted by someone else? ---------------------
+    were_interrupted = any(
+        r.search(c["body"]) for c in prev_cons + next_cons
+        if c["speaker"] != cur_speaker
+        for r in INTERRUPTION_REQUEST_REGEXES
     )
 
-    # --- b) Did the speaker accept the request? -------------------------
-    accepted = any(re.search(pat, lc_contrib) for pat in ACCEPT_PATTERNS)
-    declined = any(re.search(pat, lc_contrib) for pat in DECLINE_PATTERNS)
-    accepted_interruption = accepted and not declined
+    # --- 3) Acceptance / refusal of interruption -----------------------
+    own_follow_ups = [
+        c["body"] for c in next_cons if c["speaker"] == cur_speaker
+    ][:window]
+    accept_texts = [cur_body] + own_follow_ups
 
-    # --- c) Heckling -----------------------------------------------------
-    heckled = any(re.search(pat, lc_contrib) for pat in HECKLE_PATTERNS)
+    accepted_interruption = any(
+        r.search(txt) for txt in accept_texts for r in ACCEPT_REGEXES
+    )
+    declined_interruption = (
+        any(r.search(txt) for txt in accept_texts for r in DECLINE_REGEXES)
+        and not accepted_interruption
+    )
 
-    # --- d) Applause / “Hear, hear” -------------------------------------
-    applause = any(re.search(pat, lc_contrib) for pat in APPLAUSE_PATTERNS)
+    # --- 4) Heckling & applause inside the speech ----------------------
+    was_heckled = any(r.search(cur_body) for r in HECKLE_REGEXES)
+    received_applause = any(r.search(cur_body) for r in APPLAUSE_REGEXES)
 
     return {
-        "proper_interruption": proper_interruption,
+        "interrupted_other": interrupted_other,
+        "were_interrupted": were_interrupted,
         "accepted_interruption": accepted_interruption,
-        "heckled": heckled,
-        "applause": applause,
+        "declined_interruption": declined_interruption,
+        "was_heckled": was_heckled,
+        "received_applause": received_applause,
     }
-
-
