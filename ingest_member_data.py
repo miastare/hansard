@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 import requests
-from requests import HTTPError
+from utils import safe_concat_dataframes
 
 try:
     from tqdm import tqdm  # progress bar
@@ -45,7 +45,13 @@ _SESSION = requests.Session()
 _SESSION.headers.update({"Accept": "application/json"})
 _ID_SWEEP_MAX = 5_500   # per user request – known upper bound June 2025
 
-
+#these are rare cases where former lords were elected as MPs.
+#the latestHouseMembership field for them will have details of their commons membership, so we hard-code their peerage type
+LORDS_TO_COMMONS = {
+    "Mr Tony Benn":          "Hereditary peer",   # Viscount Stansgate – disclaimed 1963
+    "Sir Max Aitken":     "Hereditary peer",   # briefly 2nd Baron Beaverbrook in June 1964 – disclaimed after 3 days
+    "Antony Lambton":     "Hereditary peer",   # 6th Earl of Durham – disclaimed Feb 1970 to stay an MP
+}
 # ---------------------------------------------------------------------------
 #  Narrow helpers – interests & focus (as in previous version)
 # ---------------------------------------------------------------------------
@@ -229,8 +235,16 @@ def _build_member_record(stub: Dict[str, Any]) -> Tuple[Dict[str, Any], pd.DataF
     else:
         latest_party = None
 
+    name = stub["nameDisplayAs"]
+    if (curr_house == 2) or (name in LORDS_TO_COMMONS): #lords
+        peer_type = stub["latestHouseMembership"]["membershipFrom"]
+        if name in LORDS_TO_COMMONS:
+            peer_type = LORDS_TO_COMMONS[name]
+    else:
+        peer_type = None
+
     record: Dict[str, Any] = {
-        "name": stub["nameDisplayAs"],
+        "name": name,
         "current_house": curr_house,
         "past_house": past_house,
         "joining_date_current_house": join_curr,
@@ -245,7 +259,7 @@ def _build_member_record(stub: Dict[str, Any]) -> Tuple[Dict[str, Any], pd.DataF
         "oppositionPostsRaw": bio.get("oppositionPosts", []),
         "otherPostsRaw": bio.get("otherPosts", []),
         "committeeMembershipsRaw" : bio.get("committeeMemberships", []),
-        "representationsRaw" : bio.get("representations", []),#history of which constituencies they have represented, ad at what times.
+        "representationsRaw" : bio.get("representations", []),#history of which constituencies they have represented, and at what times.
         "gender": stub.get("gender"),
         "nContributions": contribs,
         "focus": focus_dict,
@@ -254,6 +268,7 @@ def _build_member_record(stub: Dict[str, Any]) -> Tuple[Dict[str, Any], pd.DataF
             "n_rows": len(interest_df),
             "categories": sorted(interest_df["category"].unique()),
         },
+        "peer_type" : peer_type #for lords, tells us what type of peer they are. For people who have never been in the house of lords, it is None
     }
 
     return record, interest_df
@@ -291,7 +306,7 @@ for s in tqdm(stubs, desc="Enriching HISTORICAL members"):
 
 combined = {**current_data, **historical_data}
 
-with open("uk_parliament.pkl", "wb") as fh:
+with open("./output/uk_parliament.pkl", "wb") as fh:
     pickle.dump(combined, fh)
 
 interest_frames = [
@@ -299,9 +314,10 @@ interest_frames = [
     if not df.empty and not df.isna().all(axis=None)
 ]
 if interest_frames:
-    pd.concat(interest_frames, ignore_index=True).to_csv("all_interest_df.csv", index=False)
+    interest_df = safe_concat_dataframes(interest_frames)
+    interest_df.to_csv("./output/all_interest_df.csv", index=False)
 
-print(f"✅  Saved {len(combined):,} member records → uk_parliament.pkl")
+print(f"✅  Saved {len(combined):,} member records → ./output/uk_parliament.pkl")
 
 
 

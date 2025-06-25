@@ -134,6 +134,7 @@ def member_snapshot(member_id: int | None, ref_dt: date) -> Dict[str, Any]:
         ),
         None,
     )
+    peer_type = rec["peer_type"]  # for lords, this means e.g. hereditary, bishop etc.
 
     return {
         "name": rec.get("name") or rec.get("listAs"),
@@ -146,6 +147,8 @@ def member_snapshot(member_id: int | None, ref_dt: date) -> Dict[str, Any]:
         "government_posts": names_at(ref_dt, rec.get("governmentPostsRaw"), "name"),
         "opposition_posts": names_at(ref_dt, rec.get("oppositionPostsRaw"), "name"),
         "committees": names_at(ref_dt, rec.get("committeeMembershipsRaw"), "committee"),
+        "peer_type" : peer_type,
+        "member_id" : member_id
     }
 
 # ─────────────────────────── PARSER ─────────────────────────────
@@ -205,8 +208,8 @@ def process_year(year: int) -> None:
 
     if oral_qs:
         df = pd.DataFrame(oral_qs)
-        df.to_csv(f"oral_questions_{year}.csv", index=False)
-        df.to_pickle(f"oral_questions_{year}.pkl")
+        df.to_csv(f"./output/oral_questions_{year}.csv", index=False)
+        df.to_pickle(f"./output/oral_questions_{year}.pkl")
 
     gc.collect()
     print(f"[done] {year}: {len(oral_qs)} oral questions")

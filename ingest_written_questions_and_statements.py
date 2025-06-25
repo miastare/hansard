@@ -70,11 +70,19 @@ def member_record(member_id: int) -> Dict[str, Any]:
         return {}
 
 # ───────────────────────── Utilities ───────────────────────
-
-def jget(url: str, **params) -> dict:
-    r = sess.get(url, params=params, timeout=30)
-    r.raise_for_status()
-    return r.json()
+import time
+def jget(url: str, retries: int = 3, delay: float = 1.0, **params) -> dict:
+    for attempt in range(retries):
+        try:
+            r = sess.get(url, params=params, timeout=30)
+            r.raise_for_status()
+            return r.json()
+        except (requests.RequestException, ValueError) as e:
+            print(f"error for url: {url}")
+            if attempt < retries - 1:
+                time.sleep(delay)
+            else:
+                raise
 
 
 def approx_word_count(text: str) -> int:
@@ -123,6 +131,7 @@ def member_snapshot(member_id: int, ref_dt: date) -> Dict[str, Any]:
 
     constituency = next((r.get("name") or r.get("memberFrom") for r in rec.get("representationsRaw", []) if _active_on(ref_dt, r.get("startDate"), r.get("endDate"))), None)
 
+    peer_type = rec["peer_type"] #for lords, this means e.g. hereditary, bishop etc.
     gov_posts = _pluck_names(rec.get("governmentPostsRaw"), "name", ref_dt)
     opp_posts = _pluck_names(rec.get("oppositionPostsRaw"), "name", ref_dt)
     committees = _pluck_names(rec.get("committeeMembershipsRaw"), "committee", ref_dt)
@@ -139,6 +148,8 @@ def member_snapshot(member_id: int, ref_dt: date) -> Dict[str, Any]:
         "n_opposition_posts": len(opp_posts),
         "committees": _string_joiner(committees),
         "n_committees": len(committees),
+        "peer_type" : peer_type,
+        "member_id" : member_id
     }
 
 
@@ -165,7 +176,7 @@ def parse_question(itm: Dict[str, Any]) -> Dict[str, Any]:
         "uin": q["uin"],
         "house": q["house"],
         "value": q["questionText"],
-        "n_char" : q["questionText"],
+        "n_char" : len(q["questionText"]),
         "n_words_guess": approx_word_count(q["questionText"]),
         "date_tabled": q["dateTabled"],
         "date_for_answer": q.get("dateForAnswer"),
@@ -177,6 +188,7 @@ def parse_question(itm: Dict[str, Any]) -> Dict[str, Any]:
         "answer_is_correction": q.get("answerIsCorrection"),
         "answer_text": q.get("answerText"),
         "answer_wordcount": approx_word_count(q.get("answerText", "")),
+        "answer_text_nchar" : len(q.get("answerText", "")),
         "date_answered": q.get("dateAnswered"),
         "date_answer_corrected": q.get("dateAnswerCorrected"),
         "date_holding_answer": q.get("dateHoldingAnswer"),
@@ -197,24 +209,32 @@ def parse_statement(itm: Dict[str, Any]) -> Dict[str, Any]:
     sdt = _to_date(s["dateMade"])
     member_id = s.get("memberId")
     snapshot = member_snapshot(member_id, sdt) if member_id else {}
+    linked_statements = s.get('linkedStatements')
+    if linked_statements:
+        linked_statements_joined = _string_joiner([str(l["linkedStatementId"]) for l in linked_statements])
+    else:
+        linked_statements_joined = ''
 
+    detail_url = f"https://questions-statements-api.parliament.uk/api/writtenstatements/statements/{sdt}/{s['uin']}"
+    detail_js = requests.get(detail_url).json()['value']
+    value = detail_js['text']
     record: Dict[str, Any] = {
         "id": s["id"],
         "uin": s["uin"],
         "house": s.get("house"),
         "title": s.get("title"),
-        "value": s.get("text"),
-        "n_char" : len(s.get("text", 0)),
-        "n_words_guess": approx_word_count(s.get("text", "")),
+        "value" : value,
         "date_made": s.get("dateMade"),
         "answering_body": s.get("answeringBodyName"),
         "notice_number": s.get("noticeNumber"),
         "has_attachments": s.get("hasAttachments"),
         "has_linked_statements": s.get("hasLinkedStatements"),
-        "linked_statement_ids": _string_joiner([str(l["linkedStatementId"]) for l in s.get("linkedStatements", [])]),
+        "linked_statement_ids": linked_statements_joined,
         "attachments_summary": _attachments_summary(s.get("attachments", [])),
-        "url_api": f"https://questions-statements-api.parliament.uk/api/writtenstatements/statements/{sdt}/{s['uin']}",
+        "url_api": detail_url,
     }
+
+
     return snapshot | record
 
 
@@ -252,43 +272,42 @@ def iter_statements(start: str, end: str):
         skip += TAKE
 
 
-# ───────────────────── per‑year harvesting ─────────────────
 
-def process_year(year: int):
+first_year = int(START_DATE[:4])
+last_year  = int(END_DATE[:4])
+
+for year in range(first_year, last_year + 1):
     y_start = f"{year}-01-01"
-    y_end   = f"{year}-12-31"
+    y_end = f"{year}-12-31"
 
     questions: List[Dict[str, Any]] = []
     statements: List[Dict[str, Any]] = []
 
     # ---- questions ----
+    iteration = 0
     for itm in iter_questions(y_start, y_end):
+        iteration += 1
         questions.append(parse_question(itm))
-
+        if iteration % 100 == 0:
+            print(f"appended question; iteration {iteration}")
 
     # ---- statements ----
+    iteration = 0
     for itm in iter_statements(y_start, y_end):
+        iteration += 1
         statements.append(parse_statement(itm))
-
+        if iteration % 100 == 0:
+            print(f"appended statement; iteration {iteration}")
     # ---------- write year files ---------------------------
     if questions:
         q_df = pd.DataFrame(questions)
-        q_df.to_csv(f"written_questions_{year}.csv", index=False)
-        q_df.to_pickle(f"written_questions_{year}.pkl")
+        q_df.to_csv(f"./output/written_questions_{year}.csv", index=False)
+        q_df.to_pickle(f"./output/written_questions_{year}.pkl")
 
     if statements:
         s_df = pd.DataFrame(statements)
-        s_df.to_csv(f"written_statements_{year}.csv", index=False)
-        s_df.to_pickle(f"written_statements_{year}.pkl")
+        s_df.to_csv(f"./output/written_statements_{year}.csv", index=False)
+        s_df.to_pickle(f"./output/written_statements_{year}.pkl")
 
     gc.collect()
     print(f"\n[{year}] done – {len(questions)} questions, {len(statements)} statements\n")
-
-
-# ────────────────────────── CLI ───────────────────────────
-if __name__ == "__main__":
-    first_year = int(START_DATE[:4])
-    last_year  = int(END_DATE[:4])
-
-    for yr in range(first_year, last_year + 1):
-        process_year(yr)
