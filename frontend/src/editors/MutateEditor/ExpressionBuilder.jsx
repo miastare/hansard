@@ -3,12 +3,16 @@ import Modal from './Modal';
 import { getOperatorInfo, getCompatibleOperators, getTypeFromValue } from '../../utils/ExpressionUtils';
 
 export default function ExpressionBuilder({ expr, onChange, availableColumns }) {
-  console.log(`EXPRESSION BUILDER: ===== NEW RENDER =====`);
-  console.log(`EXPRESSION BUILDER: Received props`);
-  console.log(`EXPRESSION BUILDER: expr:`, expr);
+  console.log('EXPRESSION BUILDER: === RENDERING ===');
+  console.log('EXPRESSION BUILDER: expr:', expr);
   console.log('EXPRESSION BUILDER: availableColumns:', availableColumns);
   console.log('EXPRESSION BUILDER: availableColumns type:', typeof availableColumns);
   console.log('EXPRESSION BUILDER: availableColumns Array.isArray:', Array.isArray(availableColumns));
+  console.log('EXPRESSION BUILDER: availableColumns length:', availableColumns?.length);
+  if (availableColumns && Array.isArray(availableColumns)) {
+    console.log('EXPRESSION BUILDER: availableColumns column names:', availableColumns.map(col => col?.name));
+    console.log('EXPRESSION BUILDER: availableColumns details:', JSON.stringify(availableColumns, null, 2));
+  }
 
   const [showModal, setShowModal] = useState(false);
   const [editingArgIndex, setEditingArgIndex] = useState(null);
@@ -196,10 +200,10 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
               Column:
             </label>
-            <select
-              value={expr.columnName || ''}
+            <select 
+              value={expr.columnName || ''} 
               onChange={(e) => {
-                console.log(`EXPRESSION BUILDER: Column selected:`, e.target.value);
+                console.log('EXPRESSION BUILDER: Column dropdown changed to:', e.target.value);
                 onChange({ ...expr, columnName: e.target.value })
               }}
               style={{ 
@@ -211,14 +215,12 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
               }}
             >
               <option value="">Select column</option>
-              {availableColumns?.map((col, idx) => {
-                console.log(`EXPRESSION BUILDER: Rendering option for column:`, col);
+              {availableColumns && Array.isArray(availableColumns) ? availableColumns.map(col => {
+                console.log('EXPRESSION BUILDER: Rendering option for column:', col);
                 return (
-                  <option key={idx} value={col.name}>
-                    {col.name} ({col.dtype})
-                  </option>
+                  <option key={col.name} value={col.name}>{col.name} ({col.dtype})</option>
                 );
-              })}
+              }) : null}
             </select>
           </div>
           <button 

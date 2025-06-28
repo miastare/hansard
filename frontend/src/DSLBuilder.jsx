@@ -164,9 +164,19 @@ export default function DSLBuilder() {
           const availableInputs = getAvailableInputs(index);
           console.log(`DSL BUILDER: === RENDERING STEP ${index} ===`);
           console.log(`DSL BUILDER: Step ${index} (${step.op}), availableInputs:`, availableInputs);
+          console.log(`DSL BUILDER: Step ${index} details:`, step);
           console.log(`DSL BUILDER: tableSchemas:`, tableSchemas);
           console.log(`DSL BUILDER: tableSchemas keys:`, Object.keys(tableSchemas || {}));
-          console.log(`DSL BUILDER: requestSchema:`, requestSchema);
+          console.log(`DSL BUILDER: tableSchemas values:`, Object.values(tableSchemas || {}));
+          console.log(`DSL BUILDER: requestSchema function:`, typeof requestSchema);
+          
+          // Log specific schema for this step if it's a mutate step
+          if (step.op === 'mutate' && step.input) {
+            const inputStep = availableInputs.find(inp => inp.id === step.input);
+            if (inputStep && inputStep.table && tableSchemas) {
+              console.log(`DSL BUILDER: Schema for step ${index} input table ${inputStep.table}:`, tableSchemas[inputStep.table]);
+            }
+          }
 
           return (
             <StepCard
