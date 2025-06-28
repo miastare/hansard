@@ -165,7 +165,7 @@ export default function DSLBuilder() {
               index={index}
               onUpdate={updateStep}
               onRemove={removeStep}
-              availableInputs={steps.slice(0, index)}
+              availableInputs={getAvailableInputs(index)}
               tableSchemas={tableSchemas || {}}
               requestSchema={requestSchema || (() => {})}
             />

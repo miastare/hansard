@@ -39,17 +39,20 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
           />
         );
       case 'mutate':
-          // Assuming availableInputs contains the schema
-          const schema = availableInputs; 
           const updateStep = (updatedStep) => {
             onUpdate(index, updatedStep);
           };
+          // Format availableInputs properly for MutateEditor
+          const formattedInputs = availableInputs.map(inputStep => ({
+            id: inputStep.id,
+            op: inputStep.op,
+            table: inputStep.table // Include table for source steps
+          }));
           return (
             <MutateEditor
               step={step}
               onChange={updateStep}
-              schema={schema}
-              availableInputs={availableInputs}
+              availableInputs={formattedInputs}
               tableSchemas={tableSchemas}
             />
           );
