@@ -9,6 +9,12 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
   const handleTypeChange = (newType) => {
     if (newType === 'constant') {
       onChange({ type: 'constant', valueType: 'int64', value: 0 });
+    } else if (newType === 'column') {
+      const firstColumn = availableColumns?.[0];
+      onChange({ 
+        type: 'column', 
+        columnName: firstColumn ? firstColumn.name : '' 
+      });
     } else {
       onChange({ type: 'dynamic', operator: 'add', args: [
         { type: 'constant', valueType: 'int64', value: 0 },
@@ -147,6 +153,17 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
             Constant
             <span style={{ fontSize: '12px', color: '#666', marginLeft: '5px' }}>
               (Fixed value)
+            </span>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <input
+              type="radio"
+              checked={expr.type === 'column'}
+              onChange={() => handleTypeChange('column')}
+            />
+            Existing Column
+            <span style={{ fontSize: '12px', color: '#666', marginLeft: '5px' }}>
+              (Reference column)
             </span>
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
