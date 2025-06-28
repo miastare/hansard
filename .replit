@@ -19,3 +19,7 @@ args = "cd frontend && npm install && npm start"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 app.py"
+
+[[ports]]
+localPort = 4005
+externalPort = 80
