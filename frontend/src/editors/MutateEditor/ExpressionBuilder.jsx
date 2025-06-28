@@ -278,7 +278,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
       {expr.type === 'dynamic' && (
         <div>
