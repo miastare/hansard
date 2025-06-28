@@ -1,12 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import Expr from './Expr';
 
-export default function MutateEditor({ step, onChange, schema }) {
+export default function MutateEditor({ step, onChange, schema, availableInputs }) {
   const [cols, setCols] = useState(step.cols || {});
 
   const updateStep = useCallback((newCols) => {
     setCols(newCols);
     onChange({ ...step, cols: newCols });
+  }, [step, onChange]);
+
+  const updateInput = useCallback((newInput) => {
+    onChange({ ...step, input: newInput });
   }, [step, onChange]);
 
   const addColumn = () => {
@@ -37,6 +41,30 @@ export default function MutateEditor({ step, onChange, schema }) {
   return (
     <div>
       <h4>Mutate Columns</h4>
+      
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+          Input step:
+        </label>
+        <select 
+          value={step.input || ''} 
+          onChange={(e) => updateInput(e.target.value)}
+          style={{ 
+            width: '100%', 
+            padding: '8px', 
+            border: '1px solid #ccc', 
+            borderRadius: '4px' 
+          }}
+        >
+          <option value="">Select input</option>
+          {availableInputs?.map(input => (
+            <option key={input.id} value={input.id}>
+              {input.id} ({input.op})
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
         <strong>Available columns:</strong>
         <div style={{ marginTop: '5px', fontSize: '0.9em', color: '#666' }}>

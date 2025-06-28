@@ -22,7 +22,7 @@ export default function StepCard({
       case 'filter':
         return <FilterEditor step={step} onChange={onUpdate} schema={schema} />;
       case 'mutate':
-        return <MutateEditor step={step} onChange={onUpdate} schema={schema} />;
+        return <MutateEditor step={step} onChange={onUpdate} schema={schema} availableInputs={availableInputs} />;
       case 'aggregate':
         return (
           <div>
