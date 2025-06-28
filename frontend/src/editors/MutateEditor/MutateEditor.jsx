@@ -171,7 +171,7 @@ export default function MutateEditor({ step, onChange, schema, availableInputs, 
             <ExpressionBuilder 
               expr={expr} 
               onChange={(newExpr) => updateColumnExpr(name, newExpr)}
-              availableColumns={currentSchema}
+              availableColumns={currentSchema || []}
             />
           </div>
 
