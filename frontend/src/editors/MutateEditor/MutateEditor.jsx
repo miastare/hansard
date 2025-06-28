@@ -1,9 +1,27 @@
 
 import React, { useState, useCallback } from 'react';
 import ExpressionBuilder from './ExpressionBuilder';
+import { deriveSchema } from '../../utils/DeriveSchema';
 
-export default function MutateEditor({ step, onChange, schema, availableInputs }) {
+export default function MutateEditor({ step, onChange, schema, availableInputs, tableSchemas }) {
   const [cols, setCols] = useState(step.cols || {});
+
+  // Get schema from the selected input step
+  const getAvailableColumns = () => {
+    if (!step.input || !availableInputs) return [];
+    
+    const inputStep = availableInputs.find(input => input.id === step.input);
+    if (!inputStep) return [];
+    
+    // For source steps, get schema from tableSchemas
+    if (inputStep.op === 'source') {
+      const tableName = inputStep.table;
+      return tableSchemas?.[tableName] || [];
+    }
+    
+    // For other steps, use the passed schema
+    return schema || [];
+  };
 
   const updateStep = useCallback((newCols) => {
     setCols(newCols);
@@ -144,7 +162,7 @@ export default function MutateEditor({ step, onChange, schema, availableInputs }
             <ExpressionBuilder 
               expr={expr} 
               onChange={(newExpr) => updateColumnExpr(name, newExpr)}
-              availableColumns={schema || []}
+              availableColumns={getAvailableColumns()}
             />
           </div>
 

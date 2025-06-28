@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { getOperatorInfo, getCompatibleOperators, getTypeFromValue } from '../../utils/ExpressionUtils';
@@ -30,11 +29,11 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
   const handleOperatorChange = (newOperator) => {
     const opInfo = getOperatorInfo(newOperator);
     const newArgs = [];
-    
+
     for (let i = 0; i < opInfo.minArgs; i++) {
       newArgs.push({ type: 'constant', valueType: 'int64', value: 0 });
     }
-    
+
     onChange({ ...expr, operator: newOperator, args: newArgs });
   };
 
@@ -83,38 +82,42 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
+  const setExprType = (type) => {
+    if (type === 'constant') {
+      onChange({ type: 'constant', valueType: 'int64', value: 0 });
+    } else if (type === 'column') {
+      const firstColumn = availableColumns?.[0];
+      onChange({ 
+        type: 'column', 
+        columnName: firstColumn ? firstColumn.name : '' 
+      });
+    } else if (type === 'dynamic') {
+      setShowModal(true);
+    }
+  };
+
   if (!expr) {
     return (
-      <div style={{ padding: '20px', border: '2px dashed #ddd', borderRadius: '8px', textAlign: 'center' }}>
-        <button
-          onClick={() => handleTypeChange('constant')}
-          style={{
-            padding: '10px 20px',
-            margin: '5px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
-        >
-          Add Constant
-        </button>
-        <button
-          onClick={() => handleTypeChange('dynamic')}
-          style={{
-            padding: '10px 20px',
-            margin: '5px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
-        >
-          Add Dynamic Expression
-        </button>
-      </div>
+        <div style={{ padding: '20px', border: '2px dashed #ddd', borderRadius: '8px', textAlign: 'center' }}>
+          <button 
+            onClick={() => setExprType('constant')}
+            style={{ padding: '10px 20px', margin: '5px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+          >
+            Add Constant
+          </button>
+          <button 
+            onClick={() => setExprType('column')}
+            style={{ padding: '10px 20px', margin: '5px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+          >
+            Existing Column
+          </button>
+          <button 
+            onClick={() => setExprType('dynamic')}
+            style={{ padding: '10px 20px', margin: '5px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+          >
+            Add Dynamic Expression
+          </button>
+        </div>
     );
   }
 
@@ -160,7 +163,42 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
         </div>
       </div>
 
-      {expr.type === 'constant' && (
+      {expr.type === 'column' ? (
+        <div style={{ padding: '15px', border: '2px solid #6c757d', borderRadius: '8px', backgroundColor: '#f8f9fa' }}>
+          <div style={{ marginBottom: '10px', fontWeight: 'bold', color: '#495057' }}>
+            Column Reference
+          </div>
+          <div style={{ marginBottom: '10px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
+              Column:
+            </label>
+            <select
+              value={expr.columnName || ''}
+              onChange={(e) => onChange({ ...expr, columnName: e.target.value })}
+              style={{ 
+                width: '100%', 
+                padding: '8px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
+            >
+              <option value="">Select column</option>
+              {availableColumns?.map(col => (
+                <option key={col.name} value={col.name}>
+                  {col.name} ({col.dtype})
+                </option>
+              ))}
+            </select>
+          </div>
+          <button 
+            onClick={() => onChange(null)}
+            style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}
+          >
+            Remove
+          </button>
+        </div>
+      ) : expr.type === 'constant' ? (
         <div>
           <div style={{ marginBottom: '15px' }}>
             <label style={{ 

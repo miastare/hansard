@@ -85,7 +85,10 @@ export default function DSLBuilder() {
   };
 
   const getAvailableInputs = useCallback((currentIndex) => {
-    return steps.slice(0, currentIndex).map(step => step.id || `step_${step.op}_${currentIndex}`);
+    return steps.slice(0, currentIndex).map(step => ({
+      id: step.id || `step_${step.op}_${currentIndex}`,
+      op: step.op
+    }));
   }, [steps]);
 
   const getDerivedSchema = useCallback((stepId) => {
@@ -162,7 +165,7 @@ export default function DSLBuilder() {
               index={index}
               onUpdate={updateStep}
               onRemove={removeStep}
-              availableInputs={getAvailableInputs(index)}
+              availableInputs={steps.slice(0, index)}
               tableSchemas={tableSchemas || {}}
               requestSchema={requestSchema || (() => {})}
             />

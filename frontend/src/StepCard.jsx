@@ -42,7 +42,7 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
         return (
           <MutateEditor
             step={step}
-            onUpdate={handleUpdate}
+            onChange={(updatedStep) => onUpdate(index, updatedStep)}
             availableInputs={availableInputs || []}
             tableSchemas={tableSchemas || {}}
           />
