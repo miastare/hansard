@@ -87,7 +87,8 @@ export default function DSLBuilder() {
   const getAvailableInputs = useCallback((currentIndex) => {
     return steps.slice(0, currentIndex).map(step => ({
       id: step.id || `step_${step.op}_${currentIndex}`,
-      op: step.op
+      op: step.op,
+      table: step.table // Include table for source steps
     }));
   }, [steps]);
 
@@ -155,7 +156,6 @@ export default function DSLBuilder() {
       <div className={styles.main}>
         <h2>DSL Pipeline Builder</h2>
         {steps.map((step, index) => {
-          const schema = deriveSchema(step, steps, tableSchemas);
           const availableInputs = getAvailableInputs(index);
 
           return (
@@ -165,7 +165,7 @@ export default function DSLBuilder() {
               index={index}
               onUpdate={updateStep}
               onRemove={removeStep}
-              availableInputs={getAvailableInputs(index)}
+              availableInputs={availableInputs}
               tableSchemas={tableSchemas || {}}
               requestSchema={requestSchema || (() => {})}
             />

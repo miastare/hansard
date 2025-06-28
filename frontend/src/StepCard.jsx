@@ -43,16 +43,12 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
             onUpdate(index, updatedStep);
           };
           // Format availableInputs properly for MutateEditor
-          const formattedInputs = availableInputs.map(inputStep => ({
-            id: inputStep.id,
-            op: inputStep.op,
-            table: inputStep.table // Include table for source steps
-          }));
+          const formattedInputs = availableInputs || [];
           return (
             <MutateEditor
               step={step}
               onChange={updateStep}
-              availableInputs={formattedInputs}
+              availableInputs={availableInputs}
               tableSchemas={tableSchemas}
             />
           );
