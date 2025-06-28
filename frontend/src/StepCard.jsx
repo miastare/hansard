@@ -77,18 +77,22 @@ const renderEditor = () => {
       console.log(`STEP CARD: Input step op:`, inputStep.op);
       console.log(`STEP CARD: Input step table:`, inputStep.table);
 
-      if (inputStep.op === 'source' && inputStep.table && tableSchemas) {
-        inputSchema = tableSchemas[inputStep.table];
-        console.log(`STEP CARD: Got source schema for table ${inputStep.table}:`, inputSchema);
-        console.log(`STEP CARD: Schema type:`, typeof inputSchema, `Array.isArray:`, Array.isArray(inputSchema));
-        console.log(`STEP CARD: Schema length:`, inputSchema?.length);
-        console.log(`STEP CARD: Schema contents:`, JSON.stringify(inputSchema, null, 2));
+      if ('source' === inputStep.op && inputStep.table && tableSchemas) {
+          const schemaWrapper = tableSchemas[inputStep.table];
+          console.log(`STEP CARD: Got schema wrapper for table ${inputStep.table}:`, schemaWrapper);
+          console.log(`STEP CARD: Schema wrapper type:`, typeof schemaWrapper, `has cols:`, !!schemaWrapper?.cols);
 
-        if (inputSchema && Array.isArray(inputSchema)) {
-          console.log(`STEP CARD: Schema column names:`, inputSchema.map(col => col.name));
-          console.log(`STEP CARD: Schema column types:`, inputSchema.map(col => col.dtype));
-        }
-      } else {
+          inputSchema = schemaWrapper?.cols || schemaWrapper;
+          console.log(`STEP CARD: Extracted schema:`, inputSchema);
+          console.log(`STEP CARD: Schema type:`, typeof inputSchema, `Array.isArray:`, Array.isArray(inputSchema));
+          console.log(`STEP CARD: Schema length:`, inputSchema?.length);
+          console.log(`STEP CARD: Schema contents:`, JSON.stringify(inputSchema, null, 2));
+
+          if (inputSchema && Array.isArray(inputSchema)) {
+            console.log(`STEP CARD: Schema column names:`, inputSchema.map(col => col.name));
+            console.log(`STEP CARD: Schema column types:`, inputSchema.map(col => col.dtype));
+          }
+        } else {
         console.log(`STEP CARD: Cannot get schema - source conditions not met`);
         console.log(`STEP CARD: inputStep.op === 'source':`, inputStep.op === 'source');
         console.log(`STEP CARD: inputStep.table exists:`, !!inputStep.table);

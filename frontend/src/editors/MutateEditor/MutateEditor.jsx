@@ -43,8 +43,13 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
     console.log(`MUTATE EDITOR: tableSchemas[inputStep.table] exists:`, !!(tableSchemas && inputStep.table && tableSchemas[inputStep.table]));
 
     if (inputStep.table && tableSchemas && tableSchemas[inputStep.table]) {
-      const schema = tableSchemas[inputStep.table];
-      console.log(`MUTATE EDITOR: Found schema for table ${inputStep.table}:`, schema);
+      const schemaWrapper = tableSchemas[inputStep.table];
+      console.log(`MUTATE EDITOR: Found schema wrapper for table ${inputStep.table}:`, schemaWrapper);
+      console.log(`MUTATE EDITOR: Schema wrapper type:`, typeof schemaWrapper);
+      console.log(`MUTATE EDITOR: Schema wrapper has cols:`, !!schemaWrapper.cols);
+      
+      const schema = schemaWrapper.cols || schemaWrapper;
+      console.log(`MUTATE EDITOR: Extracted schema:`, schema);
       console.log(`MUTATE EDITOR: Schema type:`, typeof schema);
       console.log(`MUTATE EDITOR: Schema Array.isArray:`, Array.isArray(schema));
       console.log(`MUTATE EDITOR: Schema length:`, schema?.length);
