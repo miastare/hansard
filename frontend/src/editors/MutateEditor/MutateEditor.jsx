@@ -1,79 +1,131 @@
-import React, { Fragment } from "react";
-import Expr, { newBlankExpr } from "./Expr";
+import React, { useState, useCallback } from 'react';
+import Expr from './Expr';
 
-export default function MutateEditor({
-  value, onChange, cols, stepIds, currentIdx
-}) {
-  const set = patch => onChange({ ...value, ...patch });
+export default function MutateEditor({ step, onChange, schema }) {
+  const [cols, setCols] = useState(step.cols || {});
 
-  // when adding a column, embed a stable _rowId so React keys never change
-  const addCol = () => {
-    const rowId = Date.now().toString(36);
-    set({
-      cols: {
-        ...(value.cols || {}),
-        [`col_${rowId}`]: { _rowId: rowId, ...newBlankExpr(cols) }
-      }
-    });
+  const updateStep = useCallback((newCols) => {
+    setCols(newCols);
+    onChange({ ...step, cols: newCols });
+  }, [step, onChange]);
+
+  const addColumn = () => {
+    const newName = `new_col_${Object.keys(cols).length + 1}`;
+    const newCols = { ...cols, [newName]: { const: 0 } };
+    updateStep(newCols);
   };
 
-  // convert object → array so we can attach the stable key
-  const rows = Object.entries(value.cols || {}).map(([name, expr]) => ({
-    key: expr._rowId || name,                // stable key
-    name,
-    expr
-  }));
+  const updateColumnName = (oldName, newName) => {
+    if (oldName === newName) return;
+    const newCols = { ...cols };
+    newCols[newName] = newCols[oldName];
+    delete newCols[oldName];
+    updateStep(newCols);
+  };
+
+  const updateColumnExpr = (name, expr) => {
+    const newCols = { ...cols, [name]: expr };
+    updateStep(newCols);
+  };
+
+  const removeColumn = (name) => {
+    const newCols = { ...cols };
+    delete newCols[name];
+    updateStep(newCols);
+  };
 
   return (
-    <Fragment>
-      <label>
-        input&nbsp;
-        <select
-          value={value.input || ""}
-          onChange={e => set({ input: e.target.value })}
-        >
-          {stepIds
-            .filter((id, idx) => idx < currentIdx)  /* earlier steps only */
-            .map(id => (
-              <option key={id}>{id}</option>
-            ))}
-        </select>
-      </label>
+    <div>
+      <h4>Mutate Columns</h4>
+      <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+        <strong>Available columns:</strong>
+        <div style={{ marginTop: '5px', fontSize: '0.9em', color: '#666' }}>
+          {schema && schema.length > 0 ? (
+            schema.map(col => (
+              <span key={col.name} style={{ 
+                display: 'inline-block', 
+                margin: '2px 8px 2px 0', 
+                padding: '2px 6px', 
+                backgroundColor: '#e9ecef', 
+                borderRadius: '3px',
+                fontSize: '0.85em'
+              }}>
+                {col.name} ({col.dtype})
+              </span>
+            ))
+          ) : (
+            <em>No schema available</em>
+          )}
+        </div>
+      </div>
 
-      {rows.map(({ key, name, expr }) => (
-        <div
-          key={key}
-          style={{ display: "flex", gap: 6, margin: "4px 0" }}
-        >
-          <input
-            value={name}
-            onChange={e => {
-              const { [name]: _, ...rest } = value.cols;
-              // keep the same expr object so _rowId survives rename
-              rest[e.target.value] = expr;
-              set({ cols: rest });
-            }}
-          />
-          =
-          <Expr
-            expr={expr}
-            cols={cols}
-            onChange={nv =>
-              set({ cols: { ...value.cols, [name]: { ...nv, _rowId: key } } })
-            }
-          />
-          <button
-            onClick={() => {
-              const { [name]: _, ...rest } = value.cols;
-              set({ cols: rest });
+      {Object.entries(cols).map(([name, expr]) => (
+        <div key={name} style={{ 
+          marginBottom: '15px', 
+          border: '1px solid #ddd', 
+          padding: '15px',
+          borderRadius: '6px',
+          backgroundColor: '#fff'
+        }}>
+          <div style={{ marginBottom: '10px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Column name:
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => updateColumnName(name, e.target.value)}
+              placeholder="Column name"
+              style={{ 
+                padding: '8px', 
+                border: '1px solid #ccc', 
+                borderRadius: '4px',
+                width: '200px'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '10px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Expression:
+            </label>
+            <Expr 
+              expr={expr} 
+              onChange={(newExpr) => updateColumnExpr(name, newExpr)}
+              schema={schema}
+            />
+          </div>
+
+          <button 
+            onClick={() => removeColumn(name)} 
+            style={{ 
+              padding: '6px 12px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
             }}
           >
-            🗑
+            Remove Column
           </button>
         </div>
       ))}
 
-      <button onClick={addCol}>+ column</button>
-    </Fragment>
+      <button 
+        onClick={addColumn}
+        style={{
+          padding: '10px 20px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '14px'
+        }}
+      >
+        Add Column
+      </button>
+    </div>
   );
 }

@@ -38,5 +38,6 @@ def preview(table: str):
     return df.to_dict(orient="records")
 
 if __name__ == '__main__':
-    app.run(debug=False, host='localhost', port=4005)
+    app.config['DFS'] = dfs
+    app.run(debug=False, host='0.0.0.0', port=4005)
 
