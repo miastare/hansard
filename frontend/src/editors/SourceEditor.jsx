@@ -14,9 +14,11 @@ export default function SourceEditor({ step, onChange, tableSchemas, requestSche
   const [previewData, setPreviewData] = useState(null);
 
   const updateStep = useCallback((newTable) => {
+    console.log(`SOURCE EDITOR: Table changed to:`, newTable);
     setTable(newTable);
     onChange({ ...step, table: newTable });
     if (newTable && requestSchema) {
+      console.log(`SOURCE EDITOR: Requesting schema for:`, newTable);
       requestSchema(newTable);
     }
   }, [step, onChange, requestSchema]);

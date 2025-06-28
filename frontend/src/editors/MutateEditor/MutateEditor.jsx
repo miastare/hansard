@@ -6,31 +6,52 @@ import { deriveSchema } from '../../utils/DeriveSchema';
 export default function MutateEditor({ step, onChange, schema, availableInputs, tableSchemas }) {
   const [cols, setCols] = useState(step.cols || {});
 
+  console.log(`MUTATE EDITOR: Rendered with props:`);
+  console.log(`MUTATE EDITOR: step:`, step);
+  console.log(`MUTATE EDITOR: availableInputs:`, availableInputs);
+  console.log(`MUTATE EDITOR: tableSchemas:`, tableSchemas);
+  console.log(`MUTATE EDITOR: schema:`, schema);
+
   // Get schema from the selected input step
   const getAvailableColumns = () => {
-    if (!step.input) return [];
+    console.log(`GET AVAILABLE COLUMNS: step.input:`, step.input);
+    if (!step.input) {
+      console.log(`GET AVAILABLE COLUMNS: No input selected, returning empty array`);
+      return [];
+    }
     
     const inputStep = availableInputs.find(input => input.id === step.input);
-    if (!inputStep) return [];
+    console.log(`GET AVAILABLE COLUMNS: Found inputStep:`, inputStep);
+    if (!inputStep) {
+      console.log(`GET AVAILABLE COLUMNS: No matching input step found`);
+      return [];
+    }
     
     // For source steps, get schema from tableSchemas
     if (inputStep.op === 'source') {
       const tableName = inputStep.table;
+      console.log(`GET AVAILABLE COLUMNS: Source step, table name:`, tableName);
       const tableSchema = tableSchemas?.[tableName];
+      console.log(`GET AVAILABLE COLUMNS: Table schema from cache:`, tableSchema);
       if (tableSchema && Array.isArray(tableSchema)) {
-        return tableSchema.map(col => ({
+        const mappedSchema = tableSchema.map(col => ({
           ...col,
           dtype: col.dtype === 'object' ? 'str' : col.dtype
         }));
+        console.log(`GET AVAILABLE COLUMNS: Returning mapped schema:`, mappedSchema);
+        return mappedSchema;
       }
+      console.log(`GET AVAILABLE COLUMNS: No table schema found or not array`);
       return [];
     }
     
     // For other steps, use the passed schema
+    console.log(`GET AVAILABLE COLUMNS: Non-source step, using passed schema:`, schema);
     return schema || [];
   };
 
   const currentSchema = getAvailableColumns();
+  console.log(`MUTATE EDITOR: Current schema:`, currentSchema);
 
   const updateStep = useCallback((newCols) => {
     setCols(newCols);
@@ -38,6 +59,7 @@ export default function MutateEditor({ step, onChange, schema, availableInputs, 
   }, [step, onChange]);
 
   const updateInput = useCallback((newInput) => {
+    console.log(`MUTATE EDITOR: Input changed to:`, newInput);
     onChange({ ...step, input: newInput });
   }, [step, onChange]);
 

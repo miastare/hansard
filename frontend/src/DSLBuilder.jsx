@@ -157,6 +157,8 @@ export default function DSLBuilder() {
         <h2>DSL Pipeline Builder</h2>
         {steps.map((step, index) => {
           const availableInputs = getAvailableInputs(index);
+          console.log(`DSL BUILDER: Step ${index} (${step.op}), availableInputs:`, availableInputs);
+          console.log(`DSL BUILDER: tableSchemas:`, tableSchemas);
 
           return (
             <StepCard

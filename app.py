@@ -23,11 +23,15 @@ def serve():
 
 @app.get("/api/schema/<table>")
 def schema(table: str):
+    print(f"BACKEND: Schema requested for table: {table}")
     if table not in dfs:
+        print(f"BACKEND: Table {table} not found in dfs")
         abort(404)
     df = dfs[table]
-    # jsonify:  [{"name":"interest","dtype":"object"}, …]
-    return {"cols": [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]}
+    schema_data = [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]
+    result = {"cols": schema_data}
+    print(f"BACKEND: Returning schema for {table}: {result}")
+    return result
 
 @app.get("/api/preview/<table>")
 def preview(table: str):

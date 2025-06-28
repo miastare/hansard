@@ -44,6 +44,9 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
           };
           // Format availableInputs properly for MutateEditor
           const formattedInputs = availableInputs || [];
+          console.log(`STEP CARD: Mutate editor - step:`, step);
+          console.log(`STEP CARD: Mutate editor - availableInputs:`, availableInputs);
+          console.log(`STEP CARD: Mutate editor - tableSchemas:`, tableSchemas);
           return (
             <MutateEditor
               step={step}
