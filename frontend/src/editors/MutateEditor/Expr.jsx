@@ -36,9 +36,9 @@ const getExprType = (expr, cols) => {
 /* Get available operators based on input type */
 const getAvailableOps = (inputType) => {
   if (inputType === "object" || inputType.includes("str")) return STR_OPS;
-  if (inputType === "bool") return BOOL_OPS.filter(op => op !== "not");
+  if (inputType === "bool") return BOOL_OPS;
   if (inputType.includes("int") || inputType.includes("float")) return NUM_OPS;
-  return NUM_OPS; // default
+  return [...NUM_OPS, ...STR_OPS, ...BOOL_OPS]; // show all for unknown types
 };
 
 /* ------------------------------------------------------------------ Expr UI */
@@ -48,7 +48,7 @@ export default function Expr({ expr, cols, onChange }) {
   /* leaf toggles – user can flip between VAR / CONST quickly */
   if (kind === "var")
     return (
-      <div style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+      <div style={{ display: "inline-flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
         <select 
           value={expr.var || ""} 
           onChange={e => onChange(VAR(e.target.value))}
@@ -70,17 +70,38 @@ export default function Expr({ expr, cols, onChange }) {
         >
           →const
         </button>
+        {expr.var && (
+          <select
+            onChange={e => {
+              const op = e.target.value;
+              const colType = getExprType(expr, cols);
+              if (STR_OPS.includes(op)) {
+                onChange({ op, args: [expr] });
+              } else if (BOOL_OPS.includes(op) && op === "not") {
+                onChange({ op, args: [expr] });
+              } else {
+                onChange({ op, args: [expr, CONST(0)] });
+              }
+            }}
+            style={{ fontSize: "12px" }}
+          >
+            <option value="">Apply operation...</option>
+            {getAvailableOps(getExprType(expr, cols)).map(op => 
+              <option key={op} value={op}>{op}</option>
+            )}
+          </select>
+        )}
       </div>
     );
 
   if (kind === "const")
     return (
-      <div style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+      <div style={{ display: "inline-flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
         <input
           style={{ width: 80 }}
-          type="number"
+          type={typeof expr.const === "string" ? "text" : "number"}
           value={expr.const}
-          onChange={e => onChange(CONST(Number(e.target.value)))}
+          onChange={e => onChange(CONST(typeof expr.const === "string" ? e.target.value : Number(e.target.value)))}
         />
         <button 
           onClick={() => onChange(VAR(cols[0]?.name || ""))}
@@ -95,13 +116,27 @@ export default function Expr({ expr, cols, onChange }) {
         >
           →col
         </button>
+        <button 
+          onClick={() => onChange(CONST(typeof expr.const === "string" ? 0 : "text"))}
+          style={{ 
+            padding: "2px 6px", 
+            fontSize: "12px", 
+            backgroundColor: "#f0f0f0", 
+            border: "1px solid #ccc", 
+            borderRadius: "3px",
+            cursor: "pointer"
+          }}
+        >
+          {typeof expr.const === "string" ? "→num" : "→text"}
+        </button>
       </div>
     );
 
   /* 2-ary numeric ---------------------------------------------------------- */
   if (kind === "num")
     return (
-      <span style={{ display:"inline-flex", gap:4, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display:"inline-flex", gap:4, alignItems: "center", flexWrap: "wrap", 
+                    border: "1px solid #ddd", padding: "4px", borderRadius: "4px" }}>
         <Expr expr={expr.args[0]} cols={cols}
               onChange={a => onChange({ ...expr, args:[a,expr.args[1]] })}/>
         <select value={expr.op}
@@ -110,13 +145,31 @@ export default function Expr({ expr, cols, onChange }) {
         </select>
         <Expr expr={expr.args[1]} cols={cols}
               onChange={b => onChange({ ...expr, args:[expr.args[0],b] })}/>
-      </span>
+        <button
+          onClick={() => {
+            const resultType = getExprType(expr, cols);
+            const availableOps = getAvailableOps(resultType);
+            if (availableOps.length > 0) {
+              const newOp = availableOps[0];
+              if (STR_OPS.includes(newOp)) {
+                onChange({ op: newOp, args: [expr] });
+              } else {
+                onChange({ op: newOp, args: [expr, CONST(0)] });
+              }
+            }
+          }}
+          style={{ padding: "2px 6px", fontSize: "11px", backgroundColor: "#e3f2fd" }}
+        >
+          +op
+        </button>
+      </div>
     );
 
   /* boolean ("and/or/not") -------------------------------------------------- */
   if (kind === "bool" && expr.op !== "not")
     return (
-      <span style={{ display:"inline-flex", gap:4, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display:"inline-flex", gap:4, alignItems: "center", flexWrap: "wrap",
+                    border: "1px solid #ddd", padding: "4px", borderRadius: "4px" }}>
         <Expr expr={expr.args[0]} cols={cols}
               onChange={a => onChange({ ...expr, args:[a,expr.args[1]] })}/>
         <select value={expr.op}
@@ -125,13 +178,24 @@ export default function Expr({ expr, cols, onChange }) {
         </select>
         <Expr expr={expr.args[1]} cols={cols}
               onChange={b => onChange({ ...expr, args:[expr.args[0],b] })}/>
-      </span>
+      </div>
+    );
+
+  if (kind === "bool" && expr.op === "not")
+    return (
+      <div style={{ display:"inline-flex", gap:4, alignItems: "center", flexWrap: "wrap",
+                    border: "1px solid #ddd", padding: "4px", borderRadius: "4px" }}>
+        <span>NOT</span>
+        <Expr expr={expr.args[0]} cols={cols}
+              onChange={a => onChange({ ...expr, args:[a] })}/>
+      </div>
     );
 
   /* string unary ops -------------------------------------------------------- */
   if (kind === "str")
     return (
-      <span style={{ display:"inline-flex", gap:4, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display:"inline-flex", gap:4, alignItems: "center", flexWrap: "wrap",
+                    border: "1px solid #ddd", padding: "4px", borderRadius: "4px" }}>
         <select value={expr.op}
                 onChange={e => onChange({ ...expr, op:e.target.value })}>
           {STR_OPS.map(o => <option key={o} value={o}>{o}</option>)}
@@ -139,8 +203,19 @@ export default function Expr({ expr, cols, onChange }) {
         (
         <Expr expr={expr.args[0]} cols={cols}
               onChange={a => onChange({ ...expr, args:[a] })}/>
+        {(expr.op === "icontains" || expr.op === "regex") && (
+          <>
+            ,&nbsp;
+            <input
+              type="text"
+              placeholder="search text"
+              style={{ width: 100 }}
+              onChange={e => onChange({ ...expr, args: [expr.args[0], CONST(e.target.value)] })}
+            />
+          </>
+        )}
         )
-      </span>
+      </div>
     );
 
   /* CASE WHEN ladder (nested IF-ELSE) -------------------------------------- */

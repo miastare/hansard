@@ -15,10 +15,10 @@ export default function MutateEditor({ step, onChange, schema, availableInputs }
 
   const addColumn = () => {
     const newName = `new_col_${Object.keys(cols).length + 1}`;
-    // Create a better default expression based on available columns
+    // Create a proper default expression
     const defaultExpr = schema && schema.length > 0 
       ? { op: "add", args: [{ var: schema[0].name }, { const: 0 }] }
-      : { const: 0 };
+      : { var: schema && schema.length > 0 ? schema[0].name : "" };
     const newCols = { ...cols, [newName]: defaultExpr };
     updateStep(newCols);
   };
