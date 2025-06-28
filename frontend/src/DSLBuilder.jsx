@@ -85,11 +85,13 @@ export default function DSLBuilder() {
   };
 
   const getAvailableInputs = useCallback((currentIndex) => {
-    return steps.slice(0, currentIndex).map(step => ({
-      id: step.id || `step_${step.op}_${currentIndex}`,
+    const availableInputs = steps.slice(0, currentIndex).map((step, idx) => ({
+      id: step.id || `step_${step.op}_${idx}`,
       op: step.op,
       table: step.table // Include table for source steps
     }));
+    console.log(`DSL BUILDER: getAvailableInputs for index ${currentIndex}:`, availableInputs);
+    return availableInputs;
   }, [steps]);
 
   const getDerivedSchema = useCallback((stepId) => {

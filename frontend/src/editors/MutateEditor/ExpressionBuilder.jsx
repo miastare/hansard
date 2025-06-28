@@ -3,6 +3,12 @@ import Modal from './Modal';
 import { getOperatorInfo, getCompatibleOperators, getTypeFromValue } from '../../utils/ExpressionUtils';
 
 export default function ExpressionBuilder({ expr, onChange, availableColumns }) {
+  console.log(`EXPRESSION BUILDER: ===== NEW RENDER =====`);
+  console.log(`EXPRESSION BUILDER: Received props`);
+  console.log(`EXPRESSION BUILDER: expr:`, expr);
+  console.log(`EXPRESSION BUILDER: availableColumns:`, availableColumns);
+  console.log(`EXPRESSION BUILDER: availableColumns.length:`, availableColumns?.length);
+
   const [showModal, setShowModal] = useState(false);
   const [editingArgIndex, setEditingArgIndex] = useState(null);
 
@@ -191,7 +197,10 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
             </label>
             <select
               value={expr.columnName || ''}
-              onChange={(e) => onChange({ ...expr, columnName: e.target.value })}
+              onChange={(e) => {
+                console.log(`EXPRESSION BUILDER: Column selected:`, e.target.value);
+                onChange({ ...expr, columnName: e.target.value })
+              }}
               style={{ 
                 width: '100%', 
                 padding: '8px', 
@@ -201,11 +210,14 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
               }}
             >
               <option value="">Select column</option>
-              {availableColumns?.map(col => (
-                <option key={col.name} value={col.name}>
-                  {col.name} ({col.dtype})
-                </option>
-              ))}
+              {availableColumns?.map((col, idx) => {
+                console.log(`EXPRESSION BUILDER: Rendering option for column:`, col);
+                return (
+                  <option key={idx} value={col.name}>
+                    {col.name} ({col.dtype})
+                  </option>
+                );
+              })}
             </select>
           </div>
           <button 
@@ -297,7 +309,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
         </div>
       ) : null}
 
-      
+
 
       {expr.type === 'dynamic' && (
         <div>

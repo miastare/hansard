@@ -18,15 +18,22 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
     onUpdate(index, { ...step, [field]: value });
   };
 
-  const renderEditor = () => {
+const renderEditor = () => {
+    console.log(`STEP CARD: Rendering editor for step ${index}, op: ${step.op}`);
+    console.log(`STEP CARD: availableInputs:`, availableInputs);
+    console.log(`STEP CARD: tableSchemas:`, tableSchemas);
+    console.log(`STEP CARD: step.input:`, step.input);
+
     switch (step.op) {
       case 'source':
         return (
           <SourceEditor
             step={step}
-            onUpdate={handleUpdate}
-            tableSchemas={tableSchemas || {}}
-            requestSchema={requestSchema || (() => {})}
+            onChange={(updatedStep) => {
+              console.log(`STEP CARD: SourceEditor onChange called with:`, updatedStep);
+              onUpdate(index, updatedStep);
+            }}
+            requestSchema={requestSchema}
           />
         );
       case 'filter':
@@ -39,22 +46,35 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
           />
         );
       case 'mutate':
-          const updateStep = (updatedStep) => {
-            onUpdate(index, updatedStep);
-          };
-          // Format availableInputs properly for MutateEditor
-          const formattedInputs = availableInputs || [];
-          console.log(`STEP CARD: Mutate editor - step:`, step);
-          console.log(`STEP CARD: Mutate editor - availableInputs:`, availableInputs);
-          console.log(`STEP CARD: Mutate editor - tableSchemas:`, tableSchemas);
-          return (
-            <MutateEditor
-              step={step}
-              onChange={updateStep}
-              availableInputs={availableInputs}
-              tableSchemas={tableSchemas}
-            />
-          );
+        const updateStep = (updatedStep) => {
+          console.log(`STEP CARD: MutateEditor onChange called with:`, updatedStep);
+          onUpdate(index, updatedStep);
+        };
+
+        // Find the schema for the input step
+        let inputSchema = null;
+        if (step.input && availableInputs) {
+          console.log(`STEP CARD: Looking for input schema for input: ${step.input}`);
+          const inputStep = availableInputs.find(inp => inp.id === step.input);
+          console.log(`STEP CARD: Found input step:`, inputStep);
+
+          if (inputStep && inputStep.table && tableSchemas[inputStep.table]) {
+            inputSchema = tableSchemas[inputStep.table];
+            console.log(`STEP CARD: Found schema for table ${inputStep.table}:`, inputSchema);
+          } else {
+            console.log(`STEP CARD: No schema found - inputStep:`, inputStep, `tableSchemas:`, tableSchemas);
+          }
+        }
+
+        return (
+          <MutateEditor
+            step={step}
+            onChange={updateStep}
+            availableInputs={availableInputs}
+            tableSchemas={tableSchemas}
+            inputSchema={inputSchema}
+          />
+        );
       case 'aggregate':
         return (
           <div>

@@ -1,57 +1,45 @@
-
 import React, { useState, useCallback } from 'react';
 import ExpressionBuilder from './ExpressionBuilder';
 import { deriveSchema } from '../../utils/DeriveSchema';
 
-export default function MutateEditor({ step, onChange, schema, availableInputs, tableSchemas }) {
-  const [cols, setCols] = useState(step.cols || {});
-
-  console.log(`MUTATE EDITOR: Rendered with props:`);
-  console.log(`MUTATE EDITOR: step:`, step);
+export default function MutateEditor({ step, onChange, availableInputs, tableSchemas, inputSchema }) {
+  console.log(`MUTATE EDITOR: Received props - step:`, step);
   console.log(`MUTATE EDITOR: availableInputs:`, availableInputs);
   console.log(`MUTATE EDITOR: tableSchemas:`, tableSchemas);
-  console.log(`MUTATE EDITOR: schema:`, schema);
+  console.log(`MUTATE EDITOR: inputSchema prop:`, inputSchema);
 
-  // Get schema from the selected input step
-  const getAvailableColumns = () => {
-    console.log(`GET AVAILABLE COLUMNS: step.input:`, step.input);
-    if (!step.input) {
-      console.log(`GET AVAILABLE COLUMNS: No input selected, returning empty array`);
+  const [cols, setCols] = useState(step.cols || {});
+
+  // Get schema for the selected input
+  const getInputSchema = () => {
+    console.log(`MUTATE EDITOR: getInputSchema called`);
+    console.log(`MUTATE EDITOR: step.input:`, step.input);
+    console.log(`MUTATE EDITOR: availableInputs:`, availableInputs);
+
+    if (!step.input || !availableInputs) {
+      console.log(`MUTATE EDITOR: No input or availableInputs`);
       return [];
     }
-    
-    const inputStep = availableInputs.find(input => input.id === step.input);
-    console.log(`GET AVAILABLE COLUMNS: Found inputStep:`, inputStep);
+
+    const inputStep = availableInputs.find(inp => inp.id === step.input);
+    console.log(`MUTATE EDITOR: Found inputStep:`, inputStep);
+
     if (!inputStep) {
-      console.log(`GET AVAILABLE COLUMNS: No matching input step found`);
+      console.log(`MUTATE EDITOR: No inputStep found`);
       return [];
     }
-    
-    // For source steps, get schema from tableSchemas
-    if (inputStep.op === 'source') {
-      const tableName = inputStep.table;
-      console.log(`GET AVAILABLE COLUMNS: Source step, table name:`, tableName);
-      const tableSchema = tableSchemas?.[tableName];
-      console.log(`GET AVAILABLE COLUMNS: Table schema from cache:`, tableSchema);
-      if (tableSchema && Array.isArray(tableSchema)) {
-        const mappedSchema = tableSchema.map(col => ({
-          ...col,
-          dtype: col.dtype === 'object' ? 'str' : col.dtype
-        }));
-        console.log(`GET AVAILABLE COLUMNS: Returning mapped schema:`, mappedSchema);
-        return mappedSchema;
-      }
-      console.log(`GET AVAILABLE COLUMNS: No table schema found or not array`);
-      return [];
+
+    if (inputStep.table && tableSchemas[inputStep.table]) {
+      console.log(`MUTATE EDITOR: Found schema for table ${inputStep.table}:`, tableSchemas[inputStep.table]);
+      return tableSchemas[inputStep.table];
     }
-    
-    // For other steps, use the passed schema
-    console.log(`GET AVAILABLE COLUMNS: Non-source step, using passed schema:`, schema);
-    return schema || [];
+
+    console.log(`MUTATE EDITOR: No schema found for inputStep`);
+    return [];
   };
 
-  const currentSchema = getAvailableColumns();
-  console.log(`MUTATE EDITOR: Current schema:`, currentSchema);
+  const schema = inputSchema || getInputSchema();
+  console.log(`MUTATE EDITOR: Final computed schema:`, schema);
 
   const updateStep = useCallback((newCols) => {
     setCols(newCols);
@@ -92,7 +80,7 @@ export default function MutateEditor({ step, onChange, schema, availableInputs, 
   return (
     <div>
       <h4>Mutate Columns</h4>
-      
+
       <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
           Input step:
@@ -126,8 +114,8 @@ export default function MutateEditor({ step, onChange, schema, availableInputs, 
       }}>
         <strong style={{ fontSize: '14px', color: '#495057' }}>Available columns:</strong>
         <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
-          {currentSchema && currentSchema.length > 0 ? (
-            currentSchema.map(col => (
+          {schema && schema.length > 0 ? (
+            schema.map(col => (
               <span key={col.name} style={{ 
                 display: 'inline-block', 
                 margin: '3px 8px 3px 0', 
@@ -193,7 +181,7 @@ export default function MutateEditor({ step, onChange, schema, availableInputs, 
             <ExpressionBuilder 
               expr={expr} 
               onChange={(newExpr) => updateColumnExpr(name, newExpr)}
-              availableColumns={currentSchema || []}
+              availableColumns={schema || []}
             />
           </div>
 

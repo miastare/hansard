@@ -10,6 +10,10 @@ const AVAILABLE_TABLES = [
 ];
 
 export default function SourceEditor({ step, onChange, tableSchemas, requestSchema }) {
+  console.log(`SOURCE EDITOR: ===== RENDERING =====`);
+  console.log(`SOURCE EDITOR: Rendering with step:`, step);
+  console.log(`SOURCE EDITOR: requestSchema function:`, requestSchema);
+
   const [table, setTable] = useState(step.table || '');
   const [previewData, setPreviewData] = useState(null);
 
@@ -20,6 +24,8 @@ export default function SourceEditor({ step, onChange, tableSchemas, requestSche
     if (newTable && requestSchema) {
       console.log(`SOURCE EDITOR: Requesting schema for:`, newTable);
       requestSchema(newTable);
+    } else {
+      console.log(`SOURCE EDITOR: Not requesting schema - table:`, newTable, `requestSchema:`, requestSchema);
     }
   }, [step, onChange, requestSchema]);
 
