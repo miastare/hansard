@@ -9,14 +9,17 @@ const AVAILABLE_TABLES = [
   'member_party_history'
 ];
 
-export default function SourceEditor({ step, onChange, tableSchemas }) {
+export default function SourceEditor({ step, onChange, tableSchemas, requestSchema }) {
   const [table, setTable] = useState(step.table || '');
   const [previewData, setPreviewData] = useState(null);
 
   const updateStep = useCallback((newTable) => {
     setTable(newTable);
     onChange({ ...step, table: newTable });
-  }, [step, onChange]);
+    if (newTable && requestSchema) {
+      requestSchema(newTable);
+    }
+  }, [step, onChange, requestSchema]);
 
   // Fetch preview data when table changes
   useEffect(() => {

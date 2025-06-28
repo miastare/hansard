@@ -10,7 +10,7 @@ export default function DSLBuilder() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { tableSchemas } = useSchemaCache();
+  const [tableSchemas, requestSchema] = useSchemaCache();
 
   const addStep = useCallback((op) => {
     const newStep = {
@@ -154,6 +154,7 @@ export default function DSLBuilder() {
               index={index}
               schema={schema}
               tableSchemas={tableSchemas}
+              requestSchema={requestSchema}
               availableInputs={availableInputs}
               onUpdate={(updatedStep) => updateStep(index, updatedStep)}
               onRemove={() => removeStep(index)}

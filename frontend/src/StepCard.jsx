@@ -17,7 +17,7 @@ export default function StepCard({
   const renderEditor = () => {
     switch (step.op) {
       case 'source':
-        return <SourceEditor step={step} onChange={onUpdate} tableSchemas={tableSchemas} />;
+        return <SourceEditor step={step} onChange={onUpdate} tableSchemas={tableSchemas} requestSchema={requestSchema} />;
       case 'filter':
         return <FilterEditor step={step} onChange={onUpdate} schema={schema} />;
       case 'mutate':
