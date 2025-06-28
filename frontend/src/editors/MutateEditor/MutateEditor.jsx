@@ -49,9 +49,8 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   console.log('MUTATE EDITOR: currentSchema length:', currentSchema.length);
   console.log('MUTATE EDITOR: currentSchema contents:', JSON.stringify(currentSchema, null, 2));
 
-  const { input, cols } = step;
-  console.log('MUTATE EDITOR: step.input:', input);
-  console.log('MUTATE EDITOR: step.cols:', cols);
+  console.log('MUTATE EDITOR: step.input:', step.input);
+  console.log('MUTATE EDITOR: step.cols:', step.cols);
 
   const updateStep = useCallback((newCols) => {
     setCols(newCols);
