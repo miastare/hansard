@@ -85,6 +85,9 @@ export default function DSLBuilder() {
   };
 
   const getAvailableInputs = useCallback((currentIndex) => {
+    console.log(`DSL BUILDER: getAvailableInputs called for index ${currentIndex}`);
+    console.log(`DSL BUILDER: steps.slice(0, ${currentIndex}):`, steps.slice(0, currentIndex));
+    
     const availableInputs = steps.slice(0, currentIndex).map((step, idx) => ({
       id: step.id || `step_${step.op}_${idx}`,
       op: step.op,
@@ -159,8 +162,11 @@ export default function DSLBuilder() {
         <h2>DSL Pipeline Builder</h2>
         {steps.map((step, index) => {
           const availableInputs = getAvailableInputs(index);
+          console.log(`DSL BUILDER: === RENDERING STEP ${index} ===`);
           console.log(`DSL BUILDER: Step ${index} (${step.op}), availableInputs:`, availableInputs);
           console.log(`DSL BUILDER: tableSchemas:`, tableSchemas);
+          console.log(`DSL BUILDER: tableSchemas keys:`, Object.keys(tableSchemas || {}));
+          console.log(`DSL BUILDER: requestSchema:`, requestSchema);
 
           return (
             <StepCard

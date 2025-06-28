@@ -3,10 +3,11 @@ import ExpressionBuilder from './ExpressionBuilder';
 import { deriveSchema } from '../../utils/DeriveSchema';
 
 export default function MutateEditor({ step, onChange, availableInputs, tableSchemas, inputSchema }) {
-  console.log(`MUTATE EDITOR: Received props - step:`, step);
-  console.log(`MUTATE EDITOR: availableInputs:`, availableInputs);
-  console.log(`MUTATE EDITOR: tableSchemas:`, tableSchemas);
-  console.log(`MUTATE EDITOR: inputSchema prop:`, inputSchema);
+  console.log('MUTATE EDITOR: === RENDERING ===');
+  console.log('MUTATE EDITOR: step:', step);
+  console.log('MUTATE EDITOR: availableInputs:', availableInputs);
+  console.log('MUTATE EDITOR: tableSchemas:', tableSchemas);
+  console.log('MUTATE EDITOR: inputSchema prop:', inputSchema);
 
   const [cols, setCols] = useState(step.cols || {});
 
@@ -40,6 +41,17 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
 
   const schema = inputSchema || getInputSchema();
   console.log(`MUTATE EDITOR: Final computed schema:`, schema);
+  console.log('MUTATE EDITOR: schema type:', typeof schema);
+  console.log('MUTATE EDITOR: schema Array.isArray:', Array.isArray(schema));
+
+  const currentSchema = schema || [];
+  console.log('MUTATE EDITOR: currentSchema after fallback:', currentSchema);
+  console.log('MUTATE EDITOR: currentSchema length:', currentSchema.length);
+  console.log('MUTATE EDITOR: currentSchema contents:', JSON.stringify(currentSchema, null, 2));
+
+  const { input, cols } = step;
+  console.log('MUTATE EDITOR: step.input:', input);
+  console.log('MUTATE EDITOR: step.cols:', cols);
 
   const updateStep = useCallback((newCols) => {
     setCols(newCols);
@@ -114,8 +126,8 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       }}>
         <strong style={{ fontSize: '14px', color: '#495057' }}>Available columns:</strong>
         <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
-          {schema && schema.length > 0 ? (
-            schema.map(col => (
+          {currentSchema && currentSchema.length > 0 ? (
+            currentSchema.map(col => (
               <span key={col.name} style={{ 
                 display: 'inline-block', 
                 margin: '3px 8px 3px 0', 
@@ -180,8 +192,11 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
             </label>
             <ExpressionBuilder 
               expr={expr} 
-              onChange={(newExpr) => updateColumnExpr(name, newExpr)}
-              availableColumns={schema || []}
+              onChange={(newExpr) => {
+                console.log('MUTATE EDITOR: updateColumnExpr called with:', name, newExpr);
+                updateColumnExpr(name, newExpr);
+              }}
+              availableColumns={currentSchema || []}
             />
           </div>
 

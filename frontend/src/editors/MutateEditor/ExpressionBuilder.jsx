@@ -6,8 +6,9 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
   console.log(`EXPRESSION BUILDER: ===== NEW RENDER =====`);
   console.log(`EXPRESSION BUILDER: Received props`);
   console.log(`EXPRESSION BUILDER: expr:`, expr);
-  console.log(`EXPRESSION BUILDER: availableColumns:`, availableColumns);
-  console.log(`EXPRESSION BUILDER: availableColumns.length:`, availableColumns?.length);
+  console.log('EXPRESSION BUILDER: availableColumns:', availableColumns);
+  console.log('EXPRESSION BUILDER: availableColumns type:', typeof availableColumns);
+  console.log('EXPRESSION BUILDER: availableColumns Array.isArray:', Array.isArray(availableColumns));
 
   const [showModal, setShowModal] = useState(false);
   const [editingArgIndex, setEditingArgIndex] = useState(null);

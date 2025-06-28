@@ -23,6 +23,7 @@ const renderEditor = () => {
     console.log(`STEP CARD: availableInputs:`, availableInputs);
     console.log(`STEP CARD: tableSchemas:`, tableSchemas);
     console.log(`STEP CARD: step.input:`, step.input);
+    console.log(`STEP CARD: requestSchema function:`, requestSchema);
 
     switch (step.op) {
       case 'source':
@@ -51,28 +52,32 @@ const renderEditor = () => {
           onUpdate(index, updatedStep);
         };
 
-        // Find the schema for the input step
+        // Get schema for this step's input
         let inputSchema = null;
         if (step.input && availableInputs) {
-          console.log(`STEP CARD: Looking for input schema for input: ${step.input}`);
-          const inputStep = availableInputs.find(inp => inp.id === step.input);
-          console.log(`STEP CARD: Found input step:`, inputStep);
+          const inputStep = availableInputs.find(input => input.id === step.input);
+          console.log(`STEP CARD: Looking for input step with id ${step.input}, found:`, inputStep);
 
-          if (inputStep && inputStep.table && tableSchemas[inputStep.table]) {
-            inputSchema = tableSchemas[inputStep.table];
-            console.log(`STEP CARD: Found schema for table ${inputStep.table}:`, inputSchema);
-          } else {
-            console.log(`STEP CARD: No schema found - inputStep:`, inputStep, `tableSchemas:`, tableSchemas);
+          if (inputStep) {
+            if (inputStep.op === 'source' && inputStep.table && tableSchemas) {
+              inputSchema = tableSchemas[inputStep.table];
+              console.log(`STEP CARD: Got source schema for table ${inputStep.table}:`, inputSchema);
+            }
+            // For non-source steps, we'd need to derive the schema
+            // This is a simplified approach - in reality you'd want to derive schemas
           }
         }
 
+        console.log(`STEP CARD: Final inputSchema for step ${index}:`, inputSchema);
+        console.log(`STEP CARD: About to render editor with inputSchema:`, inputSchema);
+        console.log(`STEP CARD: Passing inputSchema to MutateEditor:`, inputSchema);
         return (
-          <MutateEditor
-            step={step}
-            onChange={updateStep}
+          <MutateEditor 
+            step={step} 
+            onChange={updateStep} 
             availableInputs={availableInputs}
             tableSchemas={tableSchemas}
-            inputSchema={inputSchema}
+            inputSchema={inputSchema || []}
           />
         );
       case 'aggregate':
