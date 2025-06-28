@@ -84,10 +84,18 @@ export default function DSLBuilder() {
     setError(null);
   };
 
-  // Get available step inputs for dropdowns
-  const getAvailableInputs = (currentIndex) => {
-    return steps.slice(0, currentIndex).map(step => ({ id: step.id, op: step.op }));
-  };
+  const getAvailableInputs = useCallback((currentIndex) => {
+    return steps.slice(0, currentIndex).map(step => step.id || `step_${step.op}_${currentIndex}`);
+  }, [steps]);
+
+  const getDerivedSchema = useCallback((stepId) => {
+    const stepIndex = steps.findIndex(s => s.id === stepId);
+    if (stepIndex === -1) return null;
+
+    const step = steps[stepIndex];
+    const availableInputs = getAvailableInputs(stepIndex);
+    return deriveSchema(step, availableInputs, tableSchemas || {});
+  }, [steps, tableSchemas]);
 
   return (
     <div className={styles.container}>
@@ -149,17 +157,14 @@ export default function DSLBuilder() {
 
           return (
             <StepCard
-              key={`${step.id}-${index}`}
+              key={step.id || index}
               step={step}
               index={index}
-              schema={schema}
-              tableSchemas={tableSchemas}
-              requestSchema={requestSchema}
-              availableInputs={availableInputs}
-              onUpdate={(updatedStep) => updateStep(index, updatedStep)}
-              onRemove={() => removeStep(index)}
-              onMoveUp={index > 0 ? () => moveStep(index, index - 1) : null}
-              onMoveDown={index < steps.length - 1 ? () => moveStep(index, index + 1) : null}
+              onUpdate={updateStep}
+              onRemove={removeStep}
+              availableInputs={getAvailableInputs(index)}
+              tableSchemas={tableSchemas || {}}
+              requestSchema={requestSchema || (() => {})}
             />
           );
         })}
