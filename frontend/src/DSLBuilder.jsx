@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import StepCard from './StepCard';
-import { deriveSchema } from './utils/DeriveSchema';
+import deriveSchema from './utils/DeriveSchema';
 import useSchemaCache from './hooks/useSchemaCache';
 import generateId from './utils/GenerateId';
 import styles from './DSLBuilder.module.css';

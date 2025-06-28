@@ -39,5 +39,5 @@ def preview(table: str):
 
 if __name__ == '__main__':
     app.config['DFS'] = dfs
-    app.run(debug=False, host='0.0.0.0', port=4005)5)
+    app.run(debug=False, host='0.0.0.0', port=4005)
 
