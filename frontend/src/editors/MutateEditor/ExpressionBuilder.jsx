@@ -297,6 +297,32 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
         </div>
       ) : null}
 
+      {expr.type === 'column' && (
+        <div style={{ marginTop: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '6px', backgroundColor: '#f8f9fa' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
+            Column:
+          </label>
+          <select
+            value={expr.columnName || ''}
+            onChange={(e) => onChange({ ...expr, columnName: e.target.value })}
+            style={{ 
+              width: '100%', 
+              padding: '8px', 
+              border: '1px solid #ccc', 
+              borderRadius: '4px',
+              fontSize: '14px'
+            }}
+          >
+            <option value="">Select column</option>
+            {availableColumns?.map(col => (
+              <option key={col.name} value={col.name}>
+                {col.name} ({col.dtype})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {expr.type === 'dynamic' && (
         <div>
           <div style={{ marginBottom: '15px' }}>

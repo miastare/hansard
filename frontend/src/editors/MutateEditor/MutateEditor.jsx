@@ -23,6 +23,8 @@ export default function MutateEditor({ step, onChange, schema, availableInputs, 
     return schema || [];
   };
 
+  const currentSchema = getAvailableColumns();
+
   const updateStep = useCallback((newCols) => {
     setCols(newCols);
     onChange({ ...step, cols: newCols });
@@ -95,8 +97,8 @@ export default function MutateEditor({ step, onChange, schema, availableInputs, 
       }}>
         <strong style={{ fontSize: '14px', color: '#495057' }}>Available columns:</strong>
         <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
-          {schema && schema.length > 0 ? (
-            schema.map(col => (
+          {currentSchema && currentSchema.length > 0 ? (
+            currentSchema.map(col => (
               <span key={col.name} style={{ 
                 display: 'inline-block', 
                 margin: '3px 8px 3px 0', 
@@ -162,7 +164,7 @@ export default function MutateEditor({ step, onChange, schema, availableInputs, 
             <ExpressionBuilder 
               expr={expr} 
               onChange={(newExpr) => updateColumnExpr(name, newExpr)}
-              availableColumns={getAvailableColumns()}
+              availableColumns={currentSchema}
             />
           </div>
 

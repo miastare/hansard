@@ -39,14 +39,20 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
           />
         );
       case 'mutate':
-        return (
-          <MutateEditor
-            step={step}
-            onChange={(updatedStep) => onUpdate(index, updatedStep)}
-            availableInputs={availableInputs || []}
-            tableSchemas={tableSchemas || {}}
-          />
-        );
+          // Assuming availableInputs contains the schema
+          const schema = availableInputs; 
+          const updateStep = (updatedStep) => {
+            onUpdate(index, updatedStep);
+          };
+          return (
+            <MutateEditor
+              step={step}
+              onChange={updateStep}
+              schema={schema}
+              availableInputs={availableInputs}
+              tableSchemas={tableSchemas}
+            />
+          );
       case 'aggregate':
         return (
           <div>
