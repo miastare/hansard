@@ -48,7 +48,7 @@ sess = requests.Session()
 sess.headers.update({"User-Agent": "Mozilla/5.0"})
 
 # Pre‑fetched Members index for speed (same structure used by debates script)
-with open("uk_parliament.pkl", "rb") as fh:
+with open("./output/uk_parliament.pkl", "rb") as fh:
     MEMBER_LOOKUP_DATA: Dict[int, Dict[str, Any]] = pickle.load(fh)
 
 # ---------- helper: fetch & cache missing member records -------------

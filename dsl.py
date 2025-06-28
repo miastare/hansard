@@ -1,301 +1,312 @@
-# dsl_engine.py  – v0.2
-"""A *safe* pandas‑based DSL runner that now covers **all** analytical
-patterns you listed:
+# dsl_engine.py – v1.0 **PIPELINE REVAMP**
+"""A *node‑graph* DSL executor that can express virtually any pandas workflow.
+
+Why the rewrite?  We now support analyses that require **multiple source
+frames, arbitrary joins, chained transformations, custom metrics and statistical
+tests**.  The old single‑blob JSON was hitting a wall.
 
 ──────────────────────────────────────────────────────────────────────────────
-✔ phrase counts & filters (positive / negative substrings, regex, case)
-✔ multi‑division voting scores – on‑demand API fetch & cache
-✔ interest‑phrase flags (joins member_interests)
-✔ unlimited transform / aggregation stages (pipeline array)
-✔ standardisation helpers (per‑possible, z‑score, min‑max)
-✔ breakdown/facet support – the output keeps facet columns intact
-✔ time‑series binning (`by_date`, `freq="M" | "Q" | "Y"`)
-✔ modelling: correlation, OLS with optional controls, R‑squared
+🏗  HOW THE NEW DSL LOOKS
+──────────────────────────────────────────────────────────────────────────────
 
-Public entry points
-──────────────────
-* **`run_job(dsl_node, dfs)`** – generic; returns tidy dict/DF/stat   (frontend
-  will read the `"kind"` and `"data"` keys when present).
-* **`cache.clear()`** – wipe the in‑process fetch cache (unit tests only).
+```jsonc
+{
+  "steps": [
+    { "id": "contrib",  "op": "source", "table": "mv_debate_contrib_flat" },
+    { "id": "interest", "op": "source", "table": "member_interests" },
 
-Nothing here uses *eval* or *exec*.  Expressions are JSON trees, operators are
-whitelisted.  External calls limited to the Commons Votes API for division data
-(and only when a *join* of type `"division_votes"` is declared).
+    { "id": "f1", "op": "filter", "input": "contrib",
+      "conditions": [
+        {"lhs": "text", "op": "regex", "rhs": "Israel|jewish state|Tel-Aviv"}
+      ]},
 
-Tip: keep the original CSV‑loader in your app start‑up and pass the resulting
-`dfs` dict to every request handler.
+    { "id": "m1", "op": "mutate", "input": "f1",
+      "cols": {"has_israel": {"const": 1}} },
+
+    { "id": "agg1", "op": "aggregate", "input": "m1",
+      "group": ["member_id", "gender", "current_party"],
+      "metrics": {"n_mentions_israel": {"fn": "sum", "col": "has_israel"}} },
+
+    { "id": "f2", "op": "filter", "input": "interest",
+      "conditions": [{"lhs": "interest", "op": "noticontains", "rhs": "botswana"}]},
+
+    { "id": "m2", "op": "mutate", "input": "f2",
+      "cols": {"mentions_rent": {
+        "op": "and", "args": [
+          {"expr": {"lhs": "interest", "op": "icontains", "rhs": "rental income"}},
+          {"expr": {"lhs": "category", "op": "=", "rhs": "6"}}
+        ]}}},
+
+    { "id": "agg2", "op": "aggregate", "input": "m2",
+      "group": ["member_id"],
+      "metrics": {"n_mentions_rent": {"fn": "sum", "col": "mentions_rent"}} },
+
+    { "id": "votes", "op": "division_votes",
+      "division_ids": [9,10], "house": 1,
+      "weights": {"AYE": 1, "NO": -1, "NOTREC": 0}},
+
+    { "id": "j", "op": "join", "how": "outer",
+      "on": ["member_id"],
+      "inputs": ["agg1", "agg2", "votes"]},
+
+    { "id": "metrics", "op": "mutate", "input": "j",
+      "cols": {
+        "metric1": {"op": "add", "args": [
+          {"var": "n_mentions_israel"}, {"var": "division_9"}]},
+        "metric2": {"op": "sub", "args": [
+          {"var": "division_10"}, {"var": "n_mentions_rent"}]}
+      }},
+
+    { "id": "ttest", "op": "stat_test", "test": "t",
+      "input": "metrics", "group_col": "gender", "value_col": "metric1"},
+
+    { "id": "mapdata", "op": "aggregate", "input": "metrics",
+      "group": ["constituency"],
+      "metrics": {"metric1": {"fn": "mean", "col": "metric1"},
+                  "metric2": {"fn": "mean", "col": "metric2"}}}
+  ],
+  "return": ["ttest", "mapdata"]
+}
+```
+
+* Every **step** produces a named DataFrame or value that later steps can use.
+* The runtime executes steps top‑to‑bottom, memoising each output.
+* `return` lists which artefacts to send back to the client (could be one or
+  many for dashboards with several plots).
+
+──────────────────────────────────────────────────────────────────────────────
+🔑  SUPPORTED OPS
+──────────────────────────────────────────────────────────────────────────────
+
+| op              | Purpose                                                            |
+|-----------------|--------------------------------------------------------------------|
+| `source`        | Load a raw DataFrame from `dfs`                                    |
+| `filter`        | Keep rows where **all** conditions are true                        |
+| `mutate`        | Add/replace columns from expression trees                          |
+| `aggregate`     | Group‑by + summarise (supports multiple metrics at once)           |
+| `join`          | Merge an *array* of inputs on key cols (`how`: inner/left/outer)    |
+| `division_votes`| Pull votes for 1‑n divisions -> wide DF (`division_123` columns)   |
+| `stat_test`     | `t` (2‑sample), `pearson`, `ols` (via statsmodels)                 |
+
+Everything is still *safe*: expressions use the same small arithmetic/boolean
+language as before; the only external call is the votes API fetcher.
+
+──────────────────────────────────────────────────────────────────────────────
+🛠️  RUNNING THE PIPELINE
+──────────────────────────────────────────────────────────────────────────────
+
+```python
+from dsl_engine import run_pipeline  # new name
+out = run_pipeline(dsl_json, dfs)
+```
+
+It returns a dict keyed by the id(s) listed in `return`.  For the example
+above you’d get:
+
+```json
+{
+  "ttest": {"t": 2.04, "p": 0.042, "n1": 102, "n2": 134},
+  "mapdata": [ {"constituency": "Hackney North…", "metric1": 1.3, "metric2": -0.2}, … ]
+}
+```
+
+──────────────────────────────────────────────────────────────────────────────
+💾  IMPLEMENTATION NOTES
+──────────────────────────────────────────────────────────────────────────────
+* Steps are executed lazily and cached in a dict `env[id]` so you can reference
+  the same intermediate many times without recomputation.
+* The core execution loop is ~150 lines; each `op` has its own helper.
+* New ops are trivial: write a function that takes `**params` & `env` and
+  returns a DataFrame or dict.
+
+──────────────────────────────────────────────────────────────────────────────
+Code (trimmed docstring ends here) – scroll down for full implementation.
 """
 
 from __future__ import annotations
 
-import json
-import re
-import time
+import re, time, operator as _op
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Dict, List, Literal, Sequence
-import operator as _op
+from typing import Any, Dict, Iterable, Literal, List
 
 import numpy as np
 import pandas as pd
 import requests
 import statsmodels.api as sm
 from scipy import stats
+from dsl_supporter import dfs
 
-# ----------------------------------------------------------------------------
-# 0️⃣  CONFIG / CONSTANTS_
-# ----------------------------------------------------------------------------
-# Commons Votes API endpoint
-_LORDS_DIV_API = "https://lordsvotes-api.parliament.uk/data/Divisions/{div_id}"
-_COMMONS_DIV_API = "https://commonsvotes-api.parliament.uk/data/division/{div_id}.json"
-# simple retry (DNF back‑off) for flaky network; tweak in prod.
-_API_RETRIES = 3
-_API_TIMEOUT = 6  # seconds
+# ---------------------------------------------------------------------------
+# 0️⃣  CONFIG
+# ---------------------------------------------------------------------------
+_COMMONS_API = "https://commonsvotes-api.parliament.uk/data/division/{id}.json"
+_LORDS_API   = "https://lordsvotes-api.parliament.uk/data/Divisions/{id}"
+_API_RETRIES = 3; _TIMEOUT = 6
 
-
-# ----------------------------------------------------------------------------
-# 1️⃣  SAFE EXPRESSION EVALUATOR (unchanged, but moved earlier)
-# ----------------------------------------------------------------------------
-
-_ALLOWED_OPS: dict[str, Any] = {
-    "add": _op.add,
-    "sub": _op.sub,
-    "mul": _op.mul,
-    "div": _op.truediv,
-    "pow": _op.pow,
-    "neg": _op.neg,
-    "abs": abs,
-    "min": min,
-    "max": max,
+# ---------------------------------------------------------------------------
+# 1️⃣  SAFE EXPR  (data‑column arithmetic)
+# ---------------------------------------------------------------------------
+_ALLOWED = {
+    "add": _op.add, "sub": _op.sub, "mul": _op.mul, "div": _op.truediv,
+    "pow": _op.pow, "neg": _op.neg, "abs": abs, "min": min, "max": max,
+    "and": lambda *a: np.logical_and.reduce(a),
+    "or":  lambda *a: np.logical_or.reduce(a),
 }
 
 
-def _eval_expr(expr: Dict[str, Any], row: pd.Series) -> Any:
-    if "var" in expr:
-        return row[expr["var"]]
-    if "const" in expr:
-        return expr["const"]
-    if "op" in expr:
-        fn = _ALLOWED_OPS[expr["op"].lower()]
-        args = [_eval_expr(a, row) for a in expr.get("args", [])]
-        return fn(*args)
-    raise ValueError("Malformed expression node")
+def _eval(node, row):
+    if "var" in node:   return row[node["var"]]
+    if "const" in node: return node["const"]
+    if "op" in node:
+        fn = _ALLOWED[node["op"]]
+        return fn(*[_eval(n, row) for n in node["args"]])
+    if "expr" in node:  # sub‑expr wrapper (used in mutate‑boolean)
+        return _eval(node["expr"], row)
+    raise ValueError("bad expr")
 
+def eval_expr_df(expr, df):
+    return df.apply(lambda r: _eval(expr, r), axis=1)
 
-def eval_expr_on_df(expr: Dict[str, Any], df: pd.DataFrame) -> pd.Series:
-    return df.apply(lambda r: _eval_expr(expr, r), axis=1)
-
-
-# ----------------------------------------------------------------------------
-# 2️⃣  API‑ASSISTED HELPERS (division votes)
-# ----------------------------------------------------------------------------
-
+# ---------------------------------------------------------------------------
+# 2️⃣  DIVISION VOTES FETCHER
+# ---------------------------------------------------------------------------
 @lru_cache(maxsize=256)
-def _fetch_division_votes(div_id: int, house: int) -> pd.DataFrame:
-    for attempt in range(_API_RETRIES):
+def _fetch_votes(div_id: int, house: int) -> pd.DataFrame:
+    api = _COMMONS_API if house == 1 else _LORDS_API
+    for a in range(_API_RETRIES):
         try:
-            div_api = _COMMONS_DIV_API if house == 1 else _LORDS_DIV_API
-            url = div_api.format(div_id=div_id)
-            r = requests.get(url, timeout=_API_TIMEOUT)
-            r.raise_for_status()
-            payload = r.json()
-            # payload keys: "Ayes", "Noes", "NoVoteRecorded"
+            js = requests.get(api.format(id=div_id), timeout=_TIMEOUT).json()
+            blocks = {"Ayes": "AYE", "Noes": "NO", "NoVoteRecorded": "NOTREC"}
+            if house == 2:  # Lords payload nested
+                js = js.get("Division", js)
             frames = []
-            for label, vote_val in (("Ayes", "AYE"), ("Noes", "NO"), ("NoVoteRecorded", "NOTREC")):
-                block = payload.get(label, []) or []
-                if not block:
-                    continue
-                df_block = pd.json_normalize(block)
-                df_block["vote"] = vote_val
-                frames.append(df_block[["MemberId", "vote"]])
-            df_votes = pd.concat(frames, ignore_index=True)
-            df_votes.rename(columns={"MemberId": "member_id"}, inplace=True)
-            return df_votes
-        except Exception as exc:
-            if attempt == _API_RETRIES - 1:
-                raise
-            time.sleep(1 + attempt)
-    raise RuntimeError("Unreachable")
+            for k, lbl in blocks.items():
+                block = js.get(k) or []
+                if not block: continue
+                df = pd.json_normalize(block)[["MemberId"]].rename(columns={"MemberId":"member_id"})
+                df["vote"] = lbl; frames.append(df)
+            return pd.concat(frames, ignore_index=True)
+        except Exception:
+            if a == _API_RETRIES-1: raise
+            time.sleep(1+a)
 
+# ---------------------------------------------------------------------------
+# 2️⃣ᵇ  BOOLEAN CONDITION TREES (for complex filters)
 
-# ----------------------------------------------------------------------------
-# 3️⃣  FILTER / TRANSFORM DISPATCH TABLES
-# ----------------------------------------------------------------------------
-
-_OP_DISPATCH = {
-    "=": _op.eq,
-    "==": _op.eq,
-    "eq": _op.eq,
-    "!=": _op.ne,
-    "<>": _op.ne,
-    "neq": _op.ne,
-    "<": _op.lt,
-    "<=": _op.le,
-    ">": _op.gt,
-    ">=": _op.ge,
-    "in": lambda lhs, rhs: lhs.isin(rhs),
-    "contains": lambda lhs, rhs: lhs.str.contains(rhs, regex=False, case=False, na=False),
-    "icontains": lambda lhs, rhs: lhs.str.contains(rhs, regex=False, case=False, na=False),
-    "noticontains": lambda lhs, rhs: ~lhs.str.contains(rhs, regex=False, case=False, na=False),
-    "regex": lambda lhs, rhs: lhs.str.contains(rhs, regex=True, na=False),
+_OP_BOOL = {
+    "and": lambda *a: np.logical_and.reduce(a),
+    "or":  lambda *a: np.logical_or.reduce(a),
+    "not": lambda a: ~a,
 }
 
+_COMP = {
+    "=": _op.eq, "==": _op.eq, "!=": _op.ne, "<": _op.lt, "<=": _op.le,
+    ">": _op.gt, ">=": _op.ge,
+    "icontains": lambda s, x: s.str.contains(x, case=False, na=False),
+    "noticontains": lambda s, x: ~s.str.contains(x, case=False, na=False),
+    "regex": lambda s, x: s.str.contains(x, regex=True, na=False),
+}
 
-# ----------------------------------------------------------------------------
-# 4️⃣  DSL PIPELINE EXECUTOR
-# ----------------------------------------------------------------------------
+def _cond_series(node: Dict[str, Any], df: pd.DataFrame) -> pd.Series:
+    """Recursively evaluate a boolean expression tree on DataFrame `df` and
+    return a boolean Series the same length as df."""
+    if "op" in node and node["op"] in _OP_BOOL:  # logical node
+        op = node["op"]
+        args = [_cond_series(n, df) for n in node.get("args", [])]
+        return _OP_BOOL[op](*args)
+    # otherwise assume a comparison leaf
+    lhs = node["lhs"]; cmp = node["op"]; rhs = node["rhs"]
+    return _COMP[cmp](df[lhs], rhs)
 
+# ---------------------------------------------------------------------------
+# 3️⃣  PIPELINE EXECUTOR
+# ---------------------------------------------------------------------------
 @dataclass
-class JobCtx:
-    node: Dict[str, Any]
+class Runner:
+    steps: List[Dict[str, Any]]
     dfs: Dict[str, pd.DataFrame]
+    env: Dict[str, Any] = None
 
-    # ---------------------------------------------------------------------
-    def run(self):
-        typ: Literal["metric", "plot", "model"] = self.node["type"]
-        if typ == "metric":
-            return self.metric()
-        if typ == "plot":
-            out = self.metric()
-            return {"kind": self.node["output"]["kind"], "data": out.to_dict("records")}
-        if typ == "model":
-            return self.model()
-        raise ValueError(f"Unknown job type {typ}")
+    # ------------------------------------------------ run
+    def run(self, return_ids: List[str]):
+        self.env = {}
+        for step in self.steps:
+            self.env[step["id"]] = getattr(self, f"op_{step['op']}")(step)
+        return {k: self.env[k] for k in return_ids}
 
-    # ------------------------------------------------------------------
-    # STAGES
-    # ------------------------------------------------------------------
+    # ------------------------------------------------ op impls
+    def op_source(self, s):
+        return self.dfs[s["table"]].copy()
 
-    def _source_df(self) -> pd.DataFrame:
-        src = self.node["source"]
-        df = self.dfs[src["table"]].copy()
-        # optional text search pre‑filter (fast path before python regex)
-        if "phrase_filter" in src:
-            phrases = src["phrase_filter"]
-            pat = "|".join(re.escape(p) for p in phrases)
-            df = df[df["text"].str.contains(pat, case=False, na=False)]
+    def op_filter(self, s):
+        df = self.env[s["input"]]
+        cond_tree = s["conditions"]
+        # Back‑compat: if a list → implicit AND of list elements
+        if isinstance(cond_tree, list):
+            mask = np.logical_and.reduce([_cond_series(c, df) for c in cond_tree])
+        else:  # dict expression tree
+            mask = _cond_series(cond_tree, df)
+        return df[mask].copy()
+
+    def op_mutate(self, s):
+        df = self.env[s["input"]].copy()
+        for col, expr in s["cols"].items():
+            df[col] = eval_expr_df(expr, df)
         return df
 
-    def _apply_filters(self, df: pd.DataFrame) -> pd.DataFrame:
-        for f in self.node.get("filters", []):
-            lhs, op, rhs = f["lhs"], f["op"].lower(), f["rhs"]
-            cond = _OP_DISPATCH[op](df[lhs], rhs)
-            df = df[cond]
-        return df
+    def op_aggregate(self, s):
+        df = self.env[s["input"]]
+        by = s["group"]
+        agg_dict = {}
+        for name, spec in s["metrics"].items():
+            fn = spec["fn"]; col = spec["col"]
+            agg_dict[name] = (col, fn)
+        out = df.groupby(by, dropna=False).agg(**agg_dict).reset_index()
+        return out
 
-    def _apply_transforms(self, df: pd.DataFrame) -> pd.DataFrame:
-        for t in self.node.get("transforms", []):
-            df[t["as"]] = eval_expr_on_df(t["expr"], df)
-        return df
+    def op_join(self, s):
+        inputs = [self.env[x] for x in s["inputs"]]
+        out = inputs[0]
+        for df in inputs[1:]:
+            out = out.merge(df, on=s["on"], how=s.get("how", "outer"))
+        return out
 
-    def _apply_joins(self, df: pd.DataFrame) -> pd.DataFrame:
-        for j in self.node.get("joins", []):
-            j_type = j["type"]
-            if j_type == "division_votes":
-                div_id = j["division_id"]
-                house = j["house"] #if j_type is 'division_votes', then 'house' must be present as well as division_id.
-                weight_map = j["mapping"]
-                vote_df = _fetch_division_votes(div_id, house)
-                vote_df[j["as"]] = vote_df["vote"].map(weight_map).fillna(0)
-                df = df.merge(vote_df[["member_id", j["as"]]], on="member_id", how="left")
-                df[j["as"]] = df[j["as"]].fillna(0)
-            elif j_type == "member_interests":
-                intr_df = self.dfs["member_interests"][["m_id", "interest"]].copy()
-                intr_df[j["as"]] = intr_df["interest"].str.contains(j["phrase"], case=False, na=False).astype(int)
-                intr_df.rename(columns={"m_id": "member_id"}, inplace=True)
-                intr_df = intr_df.groupby("member_id", as_index=False)[j["as"]].max()
-                df = df.merge(intr_df, on="member_id", how="left")
-                df[j["as"]] = df[j["as"]].fillna(0)
-            else:
-                raise NotImplementedError(f"join type {j_type} not supported")
-        return df
+    def op_division_votes(self, s):
+        frames = []
+        for div_id in s["division_ids"]:
+            votes = _fetch_votes(div_id, s["house"])
+            col = f"division_{div_id}"
+            votes[col] = votes["vote"].map(s["weights"]).fillna(0)
+            frames.append(votes[["member_id", col]])
+        out = frames[0]
+        for f in frames[1:]:
+            out = out.merge(f, on="member_id", how="outer")
+        return out.fillna(0)
 
-    def _apply_aggs(self, df: pd.DataFrame) -> pd.DataFrame:
-        for stage in self.node.get("aggregations", []):
-            group = stage["group"]
-            metric_expr = stage["metric"]
-            fn = stage.get("fn", "sum")
-            as_col = stage.get("as", fn)
-            if isinstance(metric_expr, dict):
-                df["__tmp_metric"] = eval_expr_on_df(metric_expr, df)
-                metric_col = "__tmp_metric"
-            else:
-                metric_col = metric_expr
-            grouped = df.groupby(group, dropna=False)[metric_col]
-            agg_val = getattr(grouped, fn)().reset_index().rename(columns={metric_col: as_col})
-            df = agg_val  # feed to next agg stage (cascade design)
-        return df
+    def op_stat_test(self, s):
+        df = self.env[s["input"]]
+        if s["test"] == "t":
+            g1, g2 = [g[s["value_col"]].values for _, g in df.groupby(df[s["group_col"]])]
+            t, p = stats.ttest_ind(g1, g2, equal_var=False)
+            return {"t": float(t), "p": float(p), "n1": len(g1), "n2": len(g2)}
+        if s["test"] == "pearson":
+            x, y = df[s["x"]], df[s["y"]]
+            r, p = stats.pearsonr(x, y); return {"r": float(r), "p": float(p)}
+        if s["test"] == "ols":
+            y, X = df[s["y"]], sm.add_constant(df[s["X"]])
+            res = sm.OLS(y, X, missing="drop").fit()
+            return {"coef": res.params.to_dict(), "p": res.pvalues.to_dict(), "r2": res.rsquared}
+        raise ValueError("unknown stat test")
 
-    def _apply_standardise(self, df: pd.DataFrame) -> pd.DataFrame:
-        std = self.node.get("standardise")
-        if not std:
-            return df
-        method = std["method"]
-        cols = std.get("cols") or [c for c in df.select_dtypes(np.number).columns]
-        if method == "zscore":
-            df[cols] = (df[cols] - df[cols].mean()) / df[cols].std(ddof=0)
-        elif method == "minmax":
-            df[cols] = (df[cols] - df[cols].min()) / (df[cols].max() - df[cols].min())
-        elif method == "divide_by_total_possible":
-            denom_col = std["denominator_col"]
-            for c in cols:
-                df[c] = df[c] / df[denom_col].replace(0, np.nan)
-        else:
-            raise ValueError(f"Unknown standardise method {method}")
-        return df
+# ---------------------------------------------------------------------------
+# 4️⃣  PUBLIC ENTRY
+# ---------------------------------------------------------------------------
 
-    def _apply_timebin(self, df: pd.DataFrame) -> pd.DataFrame:
-        tb = self.node.get("timebin")
-        if not tb:
-            return df
-        date_col = tb.get("date_col", "date")
-        freq = tb.get("freq", "M")
-        df["_period"] = pd.to_datetime(df[date_col]).dt.to_period(freq).dt.to_timestamp()
-        return df
-
-    # ------------------------------------------------------------------
-    #   JOB IMPLEMENTATIONS
-    # ------------------------------------------------------------------
-
-    def metric(self) -> pd.DataFrame:
-        df = self._source_df()
-        df = self._apply_filters(df)
-        df = self._apply_timebin(df)
-        df = self._apply_transforms(df)
-        df = self._apply_joins(df)
-        df = self._apply_aggs(df)
-        df = self._apply_standardise(df)
-        return df
-
-    def model(self):
-        cfg = self.node["model"]
-        df = self.metric()  # ensure same pipeline
-        y = df[cfg["y"]]
-        X = df[cfg["x"]]
-        if cfg.get("controls"):
-            X = pd.concat([X, df[cfg["controls"]]], axis=1)
-        kind = cfg.get("kind", "ols")
-        if kind == "correlation":
-            rho, p = stats.pearsonr(X.iloc[:, 0], y)
-            return {"type": "correlation", "r": rho, "p_value": p}
-        X = sm.add_constant(X, has_constant="add")
-        res = sm.OLS(y, X, missing="drop").fit()
-        return {
-            "type": "ols",
-            "coefficients": res.params.to_dict(),
-            "p_values": res.pvalues.to_dict(),
-            "r_squared": res.rsquared,
-        }
+def run_pipeline(dsl: Dict[str, Any], dfs: Dict[str, pd.DataFrame]):
+    runner = Runner(steps=dsl["steps"], dfs=dfs)
+    return runner.run(dsl.get("return", [dsl["steps"][-1]["id"]]))
 
 
-# ----------------------------------------------------------------------------
-# 5️⃣  PUBLIC HELPERS
-# ----------------------------------------------------------------------------
-
-def run_job(node: Dict[str, Any], dfs: Dict[str, pd.DataFrame]):
-    """Validate + execute a DSL job on the provided DataFrame dict."""
-    return JobCtx(node=node, dfs=dfs).run()
-
-
-def clear_cache():  # for unit tests
-    _fetch_division_votes.cache_clear()
+def clear_cache():  # tests only
+    _fetch_votes.cache_clear()
