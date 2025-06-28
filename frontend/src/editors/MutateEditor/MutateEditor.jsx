@@ -8,7 +8,7 @@ export default function MutateEditor({ step, onChange, schema, availableInputs, 
 
   // Get schema from the selected input step
   const getAvailableColumns = () => {
-    if (!step.input || !availableInputs) return [];
+    if (!step.input) return [];
     
     const inputStep = availableInputs.find(input => input.id === step.input);
     if (!inputStep) return [];
@@ -16,7 +16,14 @@ export default function MutateEditor({ step, onChange, schema, availableInputs, 
     // For source steps, get schema from tableSchemas
     if (inputStep.op === 'source') {
       const tableName = inputStep.table;
-      return tableSchemas?.[tableName] || [];
+      const tableSchema = tableSchemas?.[tableName];
+      if (tableSchema && Array.isArray(tableSchema)) {
+        return tableSchema.map(col => ({
+          ...col,
+          dtype: col.dtype === 'object' ? 'str' : col.dtype
+        }));
+      }
+      return [];
     }
     
     // For other steps, use the passed schema
