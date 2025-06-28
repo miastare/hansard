@@ -8,6 +8,7 @@ export default function StepCard({
   index, 
   schema, 
   tableSchemas,
+  requestSchema,
   availableInputs,
   onUpdate, 
   onRemove,
