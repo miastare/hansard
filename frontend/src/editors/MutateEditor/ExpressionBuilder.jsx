@@ -21,7 +21,8 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
     if (newType === 'constant') {
       onChange({ type: 'constant', valueType: 'int64', value: 0 });
     } else if (newType === 'column') {
-      const firstColumn = availableColumns?.[0];
+      const safeColumns = availableColumns || [];
+      const firstColumn = safeColumns[0];
       onChange({ 
         type: 'column', 
         columnName: firstColumn ? firstColumn.name : '' 
@@ -103,7 +104,8 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
     if (type === 'constant') {
       onChange({ type: 'constant', valueType: 'int64', value: 0 });
     } else if (type === 'column') {
-      const firstColumn = availableColumns?.[0];
+      const safeColumns = availableColumns || [];
+      const firstColumn = safeColumns[0];
       onChange({ 
         type: 'column', 
         columnName: firstColumn ? firstColumn.name : '' 
@@ -336,7 +338,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
                 minWidth: '150px'
               }}
             >
-              {getCompatibleOperators(availableColumns).map(op => (
+              {getCompatibleOperators(availableColumns || []).map(op => (
                 <option key={op} value={op}>{op}</option>
               ))}
             </select>

@@ -1,4 +1,3 @@
-
 // Operator definitions with type constraints and argument counts
 const OPERATORS = {
   // Numeric operators
@@ -51,7 +50,7 @@ const OPERATORS = {
     outputType: 'float64',
     description: 'Absolute value'
   },
-  
+
   // Boolean operators
   and: { 
     minArgs: 2, 
@@ -74,7 +73,7 @@ const OPERATORS = {
     outputType: 'bool',
     description: 'Logical NOT'
   },
-  
+
   // Comparison operators
   eq: { 
     minArgs: 2, 
@@ -118,7 +117,7 @@ const OPERATORS = {
     outputType: 'bool',
     description: 'Greater than or equal'
   },
-  
+
   // String operators
   len: { 
     minArgs: 1, 
@@ -155,7 +154,7 @@ const OPERATORS = {
     outputType: 'bool',
     description: 'Regular expression match'
   },
-  
+
   // Special operators
   column: {
     minArgs: 1,
@@ -176,7 +175,9 @@ export function getOperatorInfo(operator) {
   };
 }
 
-export function getCompatibleOperators(availableColumns) {
+export function getCompatibleOperators(availableColumns = []) {
+  // For now, return all operators
+  // In future, could filter based on column types
   return Object.keys(OPERATORS);
 }
 
@@ -197,17 +198,17 @@ export function getExpressionType(expr, availableColumns) {
   if (expr.type === 'constant') {
     return expr.valueType;
   }
-  
+
   if (expr.type === 'dynamic') {
     const opInfo = getOperatorInfo(expr.operator);
     return opInfo.outputType;
   }
-  
+
   if (expr.type === 'column') {
     const col = availableColumns.find(c => c.name === expr.columnName);
     return col ? col.dtype : 'unknown';
   }
-  
+
   return 'unknown';
 }
 
@@ -215,7 +216,7 @@ export function isTypeCompatible(sourceType, targetTypes) {
   if (!Array.isArray(targetTypes)) {
     targetTypes = [targetTypes];
   }
-  
+
   // Handle type conversions
   const compatibilityMap = {
     'int64': ['int64', 'float64'],
@@ -224,7 +225,7 @@ export function isTypeCompatible(sourceType, targetTypes) {
     'object': ['str', 'object'],
     'bool': ['bool']
   };
-  
+
   const compatibleTypes = compatibilityMap[sourceType] || [sourceType];
   return targetTypes.some(targetType => compatibleTypes.includes(targetType));
 }
