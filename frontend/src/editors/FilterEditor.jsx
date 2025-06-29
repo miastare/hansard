@@ -66,7 +66,7 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
   }, [onUpdate, onBatchUpdate]);
 
   const addCondition = () => {
-    const newConditions = [...conditions, { column: '', operator: '=', value: '' }];
+    const newConditions = [...conditions, { column: '' }];
     updateStep(newConditions);
   };
 
@@ -118,22 +118,26 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
         borderRadius: '8px',
         border: '1px solid #e9ecef'
       }}>
-        <strong style={{ fontSize: '14px', color: '#495057' }}>Available columns:</strong>
+        <strong style={{ fontSize: '14px', color: '#495057' }}>Available boolean columns:</strong>
         <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
           {currentSchema && currentSchema.length > 0 ? (
-            currentSchema.map(col => (
-              <span key={col.name} style={{ 
-                display: 'inline-block', 
-                margin: '3px 8px 3px 0', 
-                padding: '4px 8px', 
-                backgroundColor: '#e9ecef', 
-                borderRadius: '4px',
-                fontSize: '12px',
-                border: '1px solid #dee2e6'
-              }}>
-                {col.name} ({col.dtype})
-              </span>
-            ))
+            currentSchema.filter(col => col.dtype === 'bool').length > 0 ? (
+              currentSchema.filter(col => col.dtype === 'bool').map(col => (
+                <span key={col.name} style={{ 
+                  display: 'inline-block', 
+                  margin: '3px 8px 3px 0', 
+                  padding: '4px 8px', 
+                  backgroundColor: '#e9ecef', 
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  border: '1px solid #dee2e6'
+                }}>
+                  {col.name} (bool)
+                </span>
+              ))
+            ) : (
+              <em>No boolean columns available in the selected input</em>
+            )
           ) : (
             <em>No schema available - please select an input step</em>
           )}
@@ -150,9 +154,9 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1', minWidth: '200px' }}>
+            <div style={{ flex: '1', minWidth: '300px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>
-                Column:
+                Boolean Column:
               </label>
               <select
                 value={condition.column || ''}
@@ -165,61 +169,11 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
                   fontSize: '14px'
                 }}
               >
-                <option value="">Select column</option>
-                {currentSchema?.map(col => (
-                  <option key={col.name} value={col.name}>{col.name} ({col.dtype})</option>
+                <option value="">Select boolean column</option>
+                {currentSchema?.filter(col => col.dtype === 'bool').map(col => (
+                  <option key={col.name} value={col.name}>{col.name}</option>
                 ))}
               </select>
-            </div>
-
-            <div style={{ flex: '0 0 auto', minWidth: '120px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>
-                Operator:
-              </label>
-              <select
-                value={condition.operator || '='}
-                onChange={(e) => updateCondition(index, 'operator', e.target.value)}
-                style={{ 
-                  width: '100%',
-                  padding: '8px', 
-                  border: '1px solid #ccc', 
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="=">=</option>
-                <option value="!=">!=</option>
-                <option value="<">&lt;</option>
-                <option value="<=">&lt;=</option>
-                <option value=">">&gt;</option>
-                <option value=">=">&gt;=</option>
-                <option value="icontains">contains (case-insensitive)</option>
-                <option value="noticontains">does not contain</option>
-                <option value="regex">regex</option>
-                <option value="isnull">is null</option>
-                <option value="notnull">is not null</option>
-              </select>
-            </div>
-
-            <div style={{ flex: '1', minWidth: '150px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>
-                Value:
-              </label>
-              <input
-                type="text"
-                value={condition.value || ''}
-                onChange={(e) => updateCondition(index, 'value', e.target.value)}
-                placeholder="Enter value"
-                disabled={condition.operator === 'isnull' || condition.operator === 'notnull'}
-                style={{ 
-                  width: '100%',
-                  padding: '8px', 
-                  border: '1px solid #ccc', 
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  backgroundColor: (condition.operator === 'isnull' || condition.operator === 'notnull') ? '#f5f5f5' : 'white'
-                }}
-              />
             </div>
 
             <div style={{ flex: '0 0 auto' }}>
