@@ -72,7 +72,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
 
   const handleTypeChange = (newType) => {
     if (newType === 'constant') {
-      onChange({ type: 'constant', valueType: 'int64', value: 0 });
+      onChange({ type: 'constant', valueType: 'numeric', value: 0 });
     } else if (newType === 'column') {
       const firstColumn = safeAvailableColumns && safeAvailableColumns.length > 0 ? safeAvailableColumns[0] : null;
       onChange({ 
@@ -81,8 +81,8 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
       });
     } else {
       onChange({ type: 'dynamic', operator: 'add', args: [
-        { type: 'constant', valueType: 'int64', value: 0 },
-        { type: 'constant', valueType: 'int64', value: 0 }
+        { type: 'constant', valueType: 'numeric', value: 0 },
+        { type: 'constant', valueType: 'numeric', value: 0 }
       ]});
     }
   };
@@ -94,18 +94,18 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
       if (Array.isArray(parentContext.requiredType)) {
         // Filter out null/undefined values
         const validTypes = parentContext.requiredType.filter(t => t !== null && t !== undefined);
-        return validTypes.length > 0 ? validTypes : ['int64', 'float64', 'bool', 'str'];
+        return validTypes.length > 0 ? validTypes : ['numeric', 'bool', 'str'];
       }
       return [parentContext.requiredType];
     }
     
     // If no parent context, allow all types
-    return ['int64', 'float64', 'bool', 'str'];
+    return ['numeric', 'bool', 'str'];
   };
 
   const handleConstantChange = (field, value) => {
     if (field === 'valueType') {
-      const defaultValue = value === 'int64' ? 0 : value === 'float64' ? 0.0 : value === 'bool' ? false : '';
+      const defaultValue = value === 'numeric' ? 0 : value === 'bool' ? false : '';
       onChange({ ...expr, valueType: value, value: defaultValue });
     } else {
       onChange({ ...expr, [field]: value });
@@ -117,7 +117,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
     const newArgs = [];
 
     for (let i = 0; i < opInfo.minArgs; i++) {
-      newArgs.push({ type: 'constant', valueType: 'int64', value: 0 });
+      newArgs.push({ type: 'constant', valueType: 'numeric', value: 0 });
     }
 
     onChange({ ...expr, operator: newOperator, args: newArgs });
@@ -136,12 +136,9 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
         let defaultValue;
         let valueType;
         
-        if (secondArgType === 'int64') {
+        if (secondArgType === 'numeric') {
           defaultValue = 0;
-          valueType = 'int64';
-        } else if (secondArgType === 'float64') {
-          defaultValue = 0.0;
-          valueType = 'float64';
+          valueType = 'numeric';
         } else if (secondArgType === 'bool') {
           defaultValue = false;
           valueType = 'bool';
@@ -149,9 +146,9 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
           defaultValue = '';
           valueType = 'str';
         } else {
-          // Fallback to int64
+          // Fallback to numeric
           defaultValue = 0;
-          valueType = 'int64';
+          valueType = 'numeric';
         }
         
         newArgs[2] = { type: 'constant', valueType: valueType, value: defaultValue };
@@ -164,7 +161,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
   const addArgument = () => {
     const opInfo = getOperatorInfo(expr.operator);
     if (expr.args.length < opInfo.maxArgs) {
-      const newArgs = [...expr.args, { type: 'constant', valueType: 'int64', value: 0 }];
+      const newArgs = [...expr.args, { type: 'constant', valueType: 'numeric', value: 0 }];
       onChange({ ...expr, args: newArgs });
     }
   };
@@ -213,7 +210,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
 
   const setExprType = (type) => {
     if (type === 'constant') {
-      onChange({ type: 'constant', valueType: 'int64', value: 0 });
+      onChange({ type: 'constant', valueType: 'numeric', value: 0 });
     } else if (type === 'column') {
       const firstColumn = safeAvailableColumns && safeAvailableColumns.length > 0 ? safeAvailableColumns[0] : null;
       onChange({ 
@@ -428,11 +425,8 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                 }
                 
                 const typeOptions = [];
-                if (allowedTypes.includes('int64')) {
-                  typeOptions.push(<option key="int64" value="int64">Integer</option>);
-                }
-                if (allowedTypes.includes('float64')) {
-                  typeOptions.push(<option key="float64" value="float64">Float</option>);
+                if (allowedTypes.includes('numeric')) {
+                  typeOptions.push(<option key="numeric" value="numeric">Number</option>);
                 }
                 if (allowedTypes.includes('bool')) {
                   typeOptions.push(<option key="bool" value="bool">Boolean</option>);
@@ -445,8 +439,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
               })()}
             </select>
             <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-              {expr.valueType === 'int64' && 'Whole numbers (e.g., 1, 42, -10)'}
-              {expr.valueType === 'float64' && 'Decimal numbers (e.g., 3.14, -2.5)'}
+              {expr.valueType === 'numeric' && 'Numbers (e.g., 1, 42, 3.14, -2.5)'}
               {expr.valueType === 'bool' && 'True or False values'}
               {expr.valueType === 'str' && 'Text values (e.g., "hello", "world")'}
               {parentContext && parentContext.parentOperator && (
@@ -483,12 +476,11 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
             ) : (
               <input
                 type={expr.valueType === 'str' ? 'text' : 'number'}
-                step={expr.valueType === 'float64' ? 'any' : '1'}
+                step={expr.valueType === 'numeric' ? 'any' : '1'}
                 value={expr.value}
                 onChange={(e) => {
                   let value = e.target.value;
-                  if (expr.valueType === 'int64') value = parseInt(value) || 0;
-                  if (expr.valueType === 'float64') value = parseFloat(value) || 0.0;
+                  if (expr.valueType === 'numeric') value = parseFloat(value) || 0;
                   handleConstantChange('value', value);
                 }}
                 style={{

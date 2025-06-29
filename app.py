@@ -22,7 +22,19 @@ def schema(table: str):
         print(f"BACKEND: Table {table} not found in dfs")
         abort(404)
     df = dfs[table]
-    schema_data = [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]
+    schema_data = []
+    for c in df.columns:
+        dtype = str(df[c].dtype)
+        # Simplify numeric types to just 'numeric'
+        if dtype in ['int64', 'float64']:
+            dtype = 'numeric'
+        elif dtype == 'object':
+            dtype = 'str'
+        elif dtype == 'bool':
+            dtype = 'bool'
+        else:
+            dtype = 'str'  # fallback for other types
+        schema_data.append({"name": c, "dtype": dtype})
     result = {"cols": schema_data}
     print(f"BACKEND: Returning schema for {table}: {result}")
     return result

@@ -4,50 +4,50 @@ const OPERATORS = {
   add: { 
     minArgs: 2, 
     maxArgs: Infinity, 
-    inputTypes: ['int64', 'float64'], 
-    outputType: 'float64',
+    inputTypes: ['numeric'], 
+    outputType: 'numeric',
     description: 'Add numbers together'
   },
   sub: { 
     minArgs: 2, 
     maxArgs: 2, 
-    inputTypes: ['int64', 'float64'], 
-    outputType: 'float64',
+    inputTypes: ['numeric'], 
+    outputType: 'numeric',
     description: 'Subtract second number from first'
   },
   mul: { 
     minArgs: 2, 
     maxArgs: Infinity, 
-    inputTypes: ['int64', 'float64'], 
-    outputType: 'float64',
+    inputTypes: ['numeric'], 
+    outputType: 'numeric',
     description: 'Multiply numbers together'
   },
   div: { 
     minArgs: 2, 
     maxArgs: 2, 
-    inputTypes: ['int64', 'float64'], 
-    outputType: 'float64',
+    inputTypes: ['numeric'], 
+    outputType: 'numeric',
     description: 'Divide first number by second'
   },
   pow: { 
     minArgs: 2, 
     maxArgs: 2, 
-    inputTypes: ['int64', 'float64'], 
-    outputType: 'float64',
+    inputTypes: ['numeric'], 
+    outputType: 'numeric',
     description: 'Raise first number to power of second'
   },
   neg: { 
     minArgs: 1, 
     maxArgs: 1, 
-    inputTypes: ['int64', 'float64'], 
-    outputType: 'float64',
+    inputTypes: ['numeric'], 
+    outputType: 'numeric',
     description: 'Negate number'
   },
   abs: { 
     minArgs: 1, 
     maxArgs: 1, 
-    inputTypes: ['int64', 'float64'], 
-    outputType: 'float64',
+    inputTypes: ['numeric'], 
+    outputType: 'numeric',
     description: 'Absolute value'
   },
 
@@ -78,42 +78,42 @@ const OPERATORS = {
   eq: { 
     minArgs: 2, 
     maxArgs: 2, 
-    inputTypes: ['int64', 'float64', 'str', 'bool'], 
+    inputTypes: ['numeric', 'str', 'bool'], 
     outputType: 'bool',
     description: 'Equal to'
   },
   ne: { 
     minArgs: 2, 
     maxArgs: 2, 
-    inputTypes: ['int64', 'float64', 'str', 'bool'], 
+    inputTypes: ['numeric', 'str', 'bool'], 
     outputType: 'bool',
     description: 'Not equal to'
   },
   lt: { 
     minArgs: 2, 
     maxArgs: 2, 
-    inputTypes: ['int64', 'float64'], 
+    inputTypes: ['numeric'], 
     outputType: 'bool',
     description: 'Less than'
   },
   le: { 
     minArgs: 2, 
     maxArgs: 2, 
-    inputTypes: ['int64', 'float64'], 
+    inputTypes: ['numeric'], 
     outputType: 'bool',
     description: 'Less than or equal'
   },
   gt: { 
     minArgs: 2, 
     maxArgs: 2, 
-    inputTypes: ['int64', 'float64'], 
+    inputTypes: ['numeric'], 
     outputType: 'bool',
     description: 'Greater than'
   },
   ge: { 
     minArgs: 2, 
     maxArgs: 2, 
-    inputTypes: ['int64', 'float64'], 
+    inputTypes: ['numeric'], 
     outputType: 'bool',
     description: 'Greater than or equal'
   },
@@ -123,7 +123,7 @@ const OPERATORS = {
     minArgs: 1, 
     maxArgs: 1, 
     inputTypes: ['str'], 
-    outputType: 'int64',
+    outputType: 'numeric',
     description: 'Length of string'
   },
   lower: { 
@@ -197,45 +197,44 @@ export function getCompatibleOperators(availableColumns = [], requiredTypes = nu
   console.log('EXPRESSION UTILS: getCompatibleOperators called with columns:', availableColumns);
   console.log('EXPRESSION UTILS: requiredTypes:', requiredTypes);
   console.log('EXPRESSION UTILS: parentContext:', parentContext);
-  
+
   const allOps = Object.keys(OPERATORS);
-  
+
   // If no type constraints, return all operators
   if (!requiredTypes || !Array.isArray(requiredTypes)) {
     console.log('EXPRESSION UTILS: No type constraints, returning all operators:', allOps);
     return allOps;
   }
-  
+
   // Filter operators based on their output type compatibility with required types
   const compatibleOps = allOps.filter(op => {
     const opInfo = getOperatorInfo(op);
     const outputType = opInfo.outputType;
-    
+
     // Special handling for conditional operators
     if (outputType === 'conditional') {
       return true; // if_else can adapt to any required type
     }
-    
+
     // Check if operator output is compatible with any of the required types
     return requiredTypes.some(reqType => {
       if (reqType === 'any') return true;
-      
+
       // Type compatibility rules
-      if (outputType === 'float64' && (reqType === 'int64' || reqType === 'float64')) return true;
-      if (outputType === 'int64' && (reqType === 'int64' || reqType === 'float64')) return true;
+      if (outputType === 'numeric' && (reqType === 'numeric')) return true;
       if (outputType === reqType) return true;
-      
+
       return false;
     });
   });
-  
+
   console.log('EXPRESSION UTILS: Compatible operators for types', requiredTypes, ':', compatibleOps);
   return compatibleOps;
 }
 
 export function getTypeFromValue(value) {
   if (typeof value === 'number') {
-    return Number.isInteger(value) ? 'int64' : 'float64';
+    return 'numeric';
   }
   if (typeof value === 'boolean') {
     return 'bool';
@@ -248,25 +247,21 @@ export function getTypeFromValue(value) {
 
 export function getExpressionType(expr, availableColumns) {
   if (!expr) return 'unknown';
-  
+
   if (expr.type === 'constant') {
     return expr.valueType;
-  }
-
-  if (expr.type === 'dynamic') {
-    const opInfo = getOperatorInfo(expr.operator);
-    
-    // Handle special conditional type resolution
-    if (opInfo.outputType === 'conditional' && opInfo.constraintFunction) {
-      return opInfo.constraintFunction(expr.args || [], availableColumns);
-    }
-    
-    return opInfo.outputType;
   }
 
   if (expr.type === 'column') {
     const col = availableColumns.find(c => c.name === expr.columnName);
     return col ? col.dtype : 'unknown';
+  }
+
+  if (expr.type === 'dynamic') {
+    const opInfo = getOperatorInfo(expr.operator);
+    if (opInfo) {
+      return opInfo.outputType;
+    }
   }
 
   return 'unknown';
@@ -275,7 +270,7 @@ export function getExpressionType(expr, availableColumns) {
 // Get the required type for a specific argument position in an operator
 export function getRequiredTypeForArgument(operator, argIndex, parentExpressionContext = null) {
   const opInfo = getOperatorInfo(operator);
-  
+
   // Handle special cases
   if (operator === 'if_else') {
     if (argIndex === 0) return ['bool']; // condition must be boolean
@@ -288,15 +283,15 @@ export function getRequiredTypeForArgument(operator, argIndex, parentExpressionC
         if (Array.isArray(parentExpressionContext.requiredType)) {
           // Filter out null/undefined values
           const validTypes = parentExpressionContext.requiredType.filter(t => t !== null && t !== undefined);
-          return validTypes.length > 0 ? validTypes : ['int64', 'float64', 'str', 'bool'];
+          return validTypes.length > 0 ? validTypes : ['numeric', 'str', 'bool'];
         }
         return [parentExpressionContext.requiredType];
       }
       // If no parent constraint, allow any type but both branches must match
-      return ['int64', 'float64', 'str', 'bool']; 
+      return ['numeric', 'str', 'bool']; 
     }
   }
-  
+
   // For operators with specific input types, return them directly
   if (opInfo.inputTypes && opInfo.inputTypes.length > 0 && !opInfo.inputTypes.includes('any')) {
     // Handle variable-length operators that take the same type for all args
@@ -304,7 +299,7 @@ export function getRequiredTypeForArgument(operator, argIndex, parentExpressionC
       // For operators like 'add' that can take multiple args of the same type
       return opInfo.inputTypes;
     }
-    
+
     // For operators with position-specific types
     if (argIndex < opInfo.inputTypes.length) {
       const requiredType = opInfo.inputTypes[argIndex];
@@ -316,12 +311,12 @@ export function getRequiredTypeForArgument(operator, argIndex, parentExpressionC
           }
           return [parentExpressionContext.requiredType];
         }
-        return ['int64', 'float64', 'str', 'bool'];
+        return ['numeric', 'str', 'bool'];
       }
       return [requiredType];
     }
   }
-  
+
   // For operators with 'any' input types, check if we have parent context
   if (opInfo.inputTypes.includes('any')) {
     if (parentExpressionContext && parentExpressionContext.requiredType) {
@@ -330,10 +325,10 @@ export function getRequiredTypeForArgument(operator, argIndex, parentExpressionC
       }
       return [parentExpressionContext.requiredType];
     }
-    return ['int64', 'float64', 'str', 'bool']; // fallback to all types
+    return ['numeric', 'str', 'bool']; // fallback to all types
   }
-  
-  return opInfo.inputTypes || ['int64', 'float64', 'str', 'bool'];
+
+  return opInfo.inputTypes || ['numeric', 'str', 'bool'];
 }
 
 export function isTypeCompatible(sourceType, targetTypes) {
@@ -343,8 +338,7 @@ export function isTypeCompatible(sourceType, targetTypes) {
 
   // Handle type conversions
   const compatibilityMap = {
-    'int64': ['int64', 'float64'],
-    'float64': ['int64', 'float64'],
+    'numeric': ['numeric'],
     'str': ['str', 'object'],
     'object': ['str', 'object'],
     'bool': ['bool']
