@@ -88,13 +88,13 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
     updateStep(newCols);
   };
 
-  const updateColumnName = (oldName, newName) => {
-    if (oldName === newName) return;
+  const updateColumnName = useCallback((oldName, newName) => {
+    if (oldName === newName || newName === '') return;
     const newCols = { ...cols };
     newCols[newName] = newCols[oldName];
     delete newCols[oldName];
     updateStep(newCols);
-  };
+  }, [cols, updateStep]);
 
   const updateColumnExpr = (name, expr) => {
     const newCols = { ...cols, [name]: expr };
@@ -165,7 +165,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       </div>
 
       {Object.entries(cols).map(([name, expr]) => (
-        <div key={name} style={{ 
+        <div key={`column-${name}`} style={{ 
           marginBottom: '25px', 
           border: '2px solid #e9ecef', 
           padding: '20px',
@@ -184,6 +184,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
               Column name (LHS):
             </label>
             <input
+              key={`column-name-${name}`}
               type="text"
               value={name}
               onChange={(e) => updateColumnName(name, e.target.value)}
