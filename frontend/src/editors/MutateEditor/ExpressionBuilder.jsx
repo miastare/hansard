@@ -158,11 +158,22 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
   };
 
   const getExpressionSummary = (expr) => {
+    if (!expr || typeof expr !== 'object') {
+      return 'Invalid expression';
+    }
+    
     if (expr.type === 'constant') {
       return `${expr.value} (${expr.valueType})`;
-    } else {
+    } else if (expr.type === 'column') {
+      return `Column: ${expr.columnName || 'unnamed'}`;
+    } else if (expr.type === 'dynamic') {
+      if (!expr.args || !Array.isArray(expr.args)) {
+        return `${expr.operator || 'unknown'}(no args)`;
+      }
       const argSummaries = expr.args.map(arg => getExpressionSummary(arg)).join(', ');
-      return `${expr.operator}(${argSummaries})`;
+      return `${expr.operator || 'unknown'}(${argSummaries})`;
+    } else {
+      return 'Unknown expression type';
     }
   };
 
