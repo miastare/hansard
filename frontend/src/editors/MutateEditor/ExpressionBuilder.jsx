@@ -126,6 +126,38 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
   const handleArgChange = (index, newArg) => {
     const newArgs = [...expr.args];
     newArgs[index] = newArg;
+    
+    // Special handling for if_else operator
+    if (expr.operator === 'if_else' && index === 1 && newArgs.length >= 3) {
+      // If we're changing the second argument (index 1), reset the third argument to match its type
+      const secondArgType = getExpressionType(newArg, safeAvailableColumns);
+      if (secondArgType !== 'unknown' && secondArgType !== 'conditional') {
+        // Reset the third argument to a default constant of the same type
+        let defaultValue;
+        let valueType;
+        
+        if (secondArgType === 'int64') {
+          defaultValue = 0;
+          valueType = 'int64';
+        } else if (secondArgType === 'float64') {
+          defaultValue = 0.0;
+          valueType = 'float64';
+        } else if (secondArgType === 'bool') {
+          defaultValue = false;
+          valueType = 'bool';
+        } else if (secondArgType === 'str') {
+          defaultValue = '';
+          valueType = 'str';
+        } else {
+          // Fallback to int64
+          defaultValue = 0;
+          valueType = 'int64';
+        }
+        
+        newArgs[2] = { type: 'constant', valueType: valueType, value: defaultValue };
+      }
+    }
+    
     onChange({ ...expr, args: newArgs });
   };
 
@@ -548,28 +580,14 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
               
               // Create context for this argument
               let argRequiredType;
-              if (expr.operator === 'if_else' && (index === 1 || index === 2)) {
-                // For if_else branches, enforce that both branches have the same type
-                if (expr.args.length >= 3) {
-                  const otherBranchIndex = index === 1 ? 2 : 1;
-                  const otherBranchArg = expr.args[otherBranchIndex];
-                  
-                  if (otherBranchArg && otherBranchArg.type) {
-                    // Get the type of the other branch
-                    const otherBranchType = getExpressionType(otherBranchArg, safeAvailableColumns);
-                    if (otherBranchType !== 'unknown' && otherBranchType !== 'conditional') {
-                      // Constrain this branch to match the other branch's type
-                      argRequiredType = [otherBranchType];
-                    } else {
-                      // If other branch type is unknown, use parent context or allow all types
-                      if (!parentContext || !parentContext.requiredType) {
-                        argRequiredType = ['int64', 'float64', 'str', 'bool'];
-                      } else {
-                        argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
-                      }
-                    }
+              if (expr.operator === 'if_else' && index === 2) {
+                // For if_else third argument, constrain to match second argument type
+                if (expr.args.length >= 2 && expr.args[1]) {
+                  const secondArgType = getExpressionType(expr.args[1], safeAvailableColumns);
+                  if (secondArgType !== 'unknown' && secondArgType !== 'conditional') {
+                    argRequiredType = [secondArgType];
                   } else {
-                    // If other branch doesn't exist yet, use parent context or allow all types
+                    // If second arg type is unknown, use parent context or allow all types
                     if (!parentContext || !parentContext.requiredType) {
                       argRequiredType = ['int64', 'float64', 'str', 'bool'];
                     } else {
@@ -577,12 +595,19 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                     }
                   }
                 } else {
-                  // Not enough args yet, use parent context or allow all types
+                  // No second argument yet, use parent context or allow all types
                   if (!parentContext || !parentContext.requiredType) {
                     argRequiredType = ['int64', 'float64', 'str', 'bool'];
                   } else {
                     argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
                   }
+                }
+              } else if (expr.operator === 'if_else' && index === 1) {
+                // For if_else second argument, allow any type (it's authoritative)
+                if (!parentContext || !parentContext.requiredType) {
+                  argRequiredType = ['int64', 'float64', 'str', 'bool'];
+                } else {
+                  argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
                 }
               } else {
                 argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
@@ -612,9 +637,14 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                       Argument {index + 1}:
                       <span style={{ fontSize: '11px', color: '#666', fontWeight: 'normal' }}>
                         {' '}(requires: {Array.isArray(argContext.requiredType) ? argContext.requiredType.join(', ') : argContext.requiredType})
-                        {expr.operator === 'if_else' && (index === 1 || index === 2) && (
+                        {expr.operator === 'if_else' && index === 1 && (
+                          <span style={{ color: '#28a745', marginLeft: '4px' }}>
+                            • Determines type for branch 3
+                          </span>
+                        )}
+                        {expr.operator === 'if_else' && index === 2 && (
                           <span style={{ color: '#007bff', marginLeft: '4px' }}>
-                            • Must match other branch
+                            • Must match branch 2 type
                           </span>
                         )}
                       </span>
@@ -696,28 +726,14 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                 // Create context for the argument being edited
                 if (expr.type === 'dynamic') {
                   let argRequiredTypes;
-                  if (expr.operator === 'if_else' && (editingArgIndex === 1 || editingArgIndex === 2)) {
-                    // For if_else branches, enforce that both branches have the same type
-                    if (expr.args.length >= 3) {
-                      const otherBranchIndex = editingArgIndex === 1 ? 2 : 1;
-                      const otherBranchArg = expr.args[otherBranchIndex];
-                      
-                      if (otherBranchArg && otherBranchArg.type) {
-                        // Get the type of the other branch
-                        const otherBranchType = getExpressionType(otherBranchArg, safeAvailableColumns);
-                        if (otherBranchType !== 'unknown' && otherBranchType !== 'conditional') {
-                          // Constrain this branch to match the other branch's type
-                          argRequiredTypes = [otherBranchType];
-                        } else {
-                          // If other branch type is unknown, use parent context or allow all types
-                          if (!parentContext || !parentContext.requiredType) {
-                            argRequiredTypes = ['int64', 'float64', 'str', 'bool'];
-                          } else {
-                            argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
-                          }
-                        }
+                  if (expr.operator === 'if_else' && editingArgIndex === 2) {
+                    // For if_else third argument, constrain to match second argument type
+                    if (expr.args.length >= 2 && expr.args[1]) {
+                      const secondArgType = getExpressionType(expr.args[1], safeAvailableColumns);
+                      if (secondArgType !== 'unknown' && secondArgType !== 'conditional') {
+                        argRequiredTypes = [secondArgType];
                       } else {
-                        // If other branch doesn't exist yet, use parent context or allow all types
+                        // If second arg type is unknown, use parent context or allow all types
                         if (!parentContext || !parentContext.requiredType) {
                           argRequiredTypes = ['int64', 'float64', 'str', 'bool'];
                         } else {
@@ -725,12 +741,19 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                         }
                       }
                     } else {
-                      // Not enough args yet, use parent context or allow all types
+                      // No second argument yet, use parent context or allow all types
                       if (!parentContext || !parentContext.requiredType) {
                         argRequiredTypes = ['int64', 'float64', 'str', 'bool'];
                       } else {
                         argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
                       }
+                    }
+                  } else if (expr.operator === 'if_else' && editingArgIndex === 1) {
+                    // For if_else second argument, allow any type (it's authoritative)
+                    if (!parentContext || !parentContext.requiredType) {
+                      argRequiredTypes = ['int64', 'float64', 'str', 'bool'];
+                    } else {
+                      argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
                     }
                   } else {
                     argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
