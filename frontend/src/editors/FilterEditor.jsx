@@ -113,22 +113,28 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
     <div>
       <h4>Filter Step</h4>
 
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: '20px', position: 'relative', zIndex: 1000 }}>
         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
           Input step:
         </label>
         <select 
           value={step.input || ''} 
           onChange={(e) => {
-            console.log(`🔄 FILTER SELECT CHANGE: Selected value: ${e.target.value}`);
+            e.stopPropagation();
             updateInput(e.target.value);
           }}
+          onClick={(e) => e.stopPropagation()}
+          onFocus={(e) => e.stopPropagation()}
           style={{ 
             width: '100%', 
             padding: '10px', 
             border: '1px solid #ddd', 
             borderRadius: '6px',
-            fontSize: '14px'
+            fontSize: '14px',
+            backgroundColor: 'white',
+            cursor: 'pointer',
+            position: 'relative',
+            zIndex: 1001
           }}
         >
           <option value="">Select input</option>
