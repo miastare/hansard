@@ -9,7 +9,8 @@ export function deriveSchema(step, steps, tableCatalog) {
 
   console.log(`🔍 DERIVE SCHEMA: === Processing step ${step.id} (${step.op}) ===`);
   console.log(`🔍 DERIVE SCHEMA: Step details:`, step);
-  console.log(`🔍 DERIVE SCHEMA: Available steps:`, steps?.map(s => ({id: s.id, op: s.op, input: s.input})));
+  console.log(`🔍 DERIVE SCHEMA: Available steps:`, steps?.map(s => ({id: s.id, op: s.op, input: s.input, table: s.table})));
+  console.log(`🔍 DERIVE SCHEMA: Number of available steps:`, steps?.length || 0);
   console.log(`🔍 DERIVE SCHEMA: tableCatalog keys:`, Object.keys(tableCatalog || {}));
 
   if (step.op === "source") {
@@ -78,11 +79,13 @@ export function deriveSchema(step, steps, tableCatalog) {
     }
     
     console.log(`🔍 DERIVE SCHEMA: Found input step for mutate:`, inputStep);
+    console.log(`🔍 DERIVE SCHEMA: Input step details - id: ${inputStep.id}, op: ${inputStep.op}, input: ${inputStep.input}, table: ${inputStep.table}`);
     
     // Recursively get the input schema
     console.log(`🔍 DERIVE SCHEMA: Recursively deriving schema for input step ${inputStep.id} (${inputStep.op})`);
     const inputSchema = deriveSchema(inputStep, steps, tableCatalog);
     console.log(`🔍 DERIVE SCHEMA: Input schema for mutate (${inputSchema.length} columns):`, inputSchema);
+    console.log(`🔍 DERIVE SCHEMA: Input schema details:`, JSON.stringify(inputSchema, null, 2));
     
     if (!step.cols || Object.keys(step.cols).length === 0) {
       console.log(`🔍 DERIVE SCHEMA: No cols in mutate step, returning input schema`);

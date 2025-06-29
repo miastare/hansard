@@ -127,6 +127,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
 
   const updateInput = useCallback((newInput) => {
     console.log(`🔄 INPUT CHANGE [${step.id}]: Input changed from ${step.input} to ${newInput}`);
+    console.log(`🔄 INPUT CHANGE [${step.id}]: New step object:`, { ...step, input: newInput });
     onChange({ ...step, input: newInput });
   }, [step, onChange]);
 

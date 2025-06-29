@@ -49,7 +49,19 @@ const renderEditor = () => {
         };
 
         console.log(`🎭 STEP CARD [${index}]: Rendering MutateEditor with availableInputs: ${availableInputs?.length || 0} steps`);
+        console.log(`🎭 STEP CARD [${index}]: Available input step IDs:`, availableInputs?.map(s => s.id));
+        console.log(`🎭 STEP CARD [${index}]: Current step.input:`, step.input);
         console.log(`🎭 STEP CARD [${index}]: TableSchemas available: ${Object.keys(tableSchemas || {}).length} tables`);
+        
+        // Debug the input step resolution
+        if (step.input && availableInputs) {
+          const inputStep = availableInputs.find(s => s.id === step.input);
+          console.log(`🎭 STEP CARD [${index}]: Looking for input step with ID: ${step.input}`);
+          console.log(`🎭 STEP CARD [${index}]: Found input step:`, inputStep);
+          if (inputStep) {
+            console.log(`🎭 STEP CARD [${index}]: Input step details - op: ${inputStep.op}, input: ${inputStep.input}, table: ${inputStep.table}`);
+          }
+        }
         
         return (
           <MutateEditor 
