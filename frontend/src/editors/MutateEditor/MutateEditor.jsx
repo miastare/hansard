@@ -132,7 +132,16 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   }, [step, onChange]);
 
   const addColumn = () => {
-    const newName = `new_col_${Object.keys(cols).length + 1}`;
+    const existingInputColumns = currentSchema.map(col => col.name);
+    let newName = `new_col_${Object.keys(cols).length + 1}`;
+    
+    // Ensure the generated name doesn't conflict with input columns
+    let counter = Object.keys(cols).length + 1;
+    while (existingInputColumns.includes(newName)) {
+      counter++;
+      newName = `new_col_${counter}`;
+    }
+    
     const defaultExpr = { type: 'constant', valueType: 'int64', value: 0 };
     const id = generateId('col');
     const newCols = { 
@@ -147,12 +156,20 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
 
   const updateColumnName = useCallback((oldName, newName) => {
     if (oldName === newName || newName === '') return;
+    
+    // Check if new name conflicts with existing input columns
+    const existingInputColumns = currentSchema.map(col => col.name);
+    if (existingInputColumns.includes(newName)) {
+      alert(`Cannot use column name "${newName}" - it already exists in the input schema. Choose a different name.`);
+      return;
+    }
+    
     const newCols = { ...cols };
     // Preserve the column data with its stable ID
     newCols[newName] = newCols[oldName];
     delete newCols[oldName];
     updateStep(newCols);
-  }, [cols, updateStep]);
+  }, [cols, updateStep, currentSchema]);
 
   const updateColumnExpr = (name, expr) => {
     const newCols = { 
