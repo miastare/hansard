@@ -34,6 +34,7 @@ const renderEditor = () => {
           />
         );
       case 'filter':
+        console.log(`🎭 STEP CARD [${index}]: Rendering FilterEditor with availableInputs: ${availableInputs?.length || 0} steps`);
         return (
           <FilterEditor
             step={step}
