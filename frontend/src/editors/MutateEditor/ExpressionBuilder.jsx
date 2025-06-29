@@ -23,6 +23,12 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
     console.log('EXPRESSION BUILDER: getFilteredColumns called with operator:', operator);
     console.log('EXPRESSION BUILDER: safeAvailableColumns for filtering:', safeAvailableColumns);
     
+    // Ensure we have a valid array
+    if (!safeAvailableColumns || !Array.isArray(safeAvailableColumns)) {
+      console.log('EXPRESSION BUILDER: No valid columns array - returning empty array');
+      return [];
+    }
+    
     if (!operator) {
       console.log('EXPRESSION BUILDER: No operator - returning all columns');
       return safeAvailableColumns;
@@ -32,6 +38,12 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
     console.log('EXPRESSION BUILDER: opInfo for', operator, ':', opInfo);
     
     const filteredColumns = safeAvailableColumns.filter(col => {
+      // Defensive check for column structure
+      if (!col || !col.dtype || !col.name) {
+        console.log('EXPRESSION BUILDER: Invalid column structure:', col);
+        return false;
+      }
+      
       const colType = col.dtype === 'object' ? 'str' : col.dtype; // Convert object to str
       const isCompatible = opInfo.inputTypes.some(inputType => {
         if (inputType === 'int64' || inputType === 'float64') {
@@ -57,7 +69,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
     if (newType === 'constant') {
       onChange({ type: 'constant', valueType: 'int64', value: 0 });
     } else if (newType === 'column') {
-      const firstColumn = safeAvailableColumns[0];
+      const firstColumn = safeAvailableColumns && safeAvailableColumns.length > 0 ? safeAvailableColumns[0] : null;
       onChange({ 
         type: 'column', 
         columnName: firstColumn ? firstColumn.name : '' 
@@ -139,7 +151,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
     if (type === 'constant') {
       onChange({ type: 'constant', valueType: 'int64', value: 0 });
     } else if (type === 'column') {
-      const firstColumn = safeAvailableColumns[0];
+      const firstColumn = safeAvailableColumns && safeAvailableColumns.length > 0 ? safeAvailableColumns[0] : null;
       onChange({ 
         type: 'column', 
         columnName: firstColumn ? firstColumn.name : '' 
