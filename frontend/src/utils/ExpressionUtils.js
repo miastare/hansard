@@ -299,10 +299,14 @@ export function getRequiredTypeForArgument(operator, argIndex, parentExpressionC
     if (argIndex === 0) return ['bool']; // condition must be boolean
     if (argIndex === 1 || argIndex === 2) {
       // For if_else branches, the required type depends on the parent context
-      if (parentExpressionContext && parentExpressionContext.requiredType) {
+      if (parentExpressionContext && parentExpressionContext.requiredType && 
+          parentExpressionContext.requiredType !== null && 
+          parentExpressionContext.requiredType !== undefined) {
         // If parent has specific type requirements, use those
         if (Array.isArray(parentExpressionContext.requiredType)) {
-          return parentExpressionContext.requiredType;
+          // Filter out null/undefined values
+          const validTypes = parentExpressionContext.requiredType.filter(t => t !== null && t !== undefined);
+          return validTypes.length > 0 ? validTypes : ['int64', 'float64', 'str', 'bool'];
         }
         return [parentExpressionContext.requiredType];
       }

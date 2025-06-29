@@ -556,10 +556,23 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
               console.log('EXPRESSION BUILDER: Rendering arg', index, 'for operator', expr.operator);
               
               // Create context for this argument
+              let argRequiredType;
+              if (expr.operator === 'if_else' && (index === 1 || index === 2)) {
+                // For if_else branches, if this is a top-level mutate expression (no parentContext),
+                // allow any type
+                if (!parentContext || !parentContext.requiredType) {
+                  argRequiredType = ['int64', 'float64', 'str', 'bool'];
+                } else {
+                  argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
+                }
+              } else {
+                argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
+              }
+              
               const argContext = {
                 parentOperator: expr.operator,
                 argIndex: index,
-                requiredType: getRequiredTypeForArgument(expr.operator, index, parentContext)
+                requiredType: argRequiredType
               };
               
               return (
@@ -658,7 +671,19 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
               parentContext={(() => {
                 // Create context for the argument being edited
                 if (expr.type === 'dynamic') {
-                  const argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
+                  let argRequiredTypes;
+                  if (expr.operator === 'if_else' && (editingArgIndex === 1 || editingArgIndex === 2)) {
+                    // For if_else branches, if this is a top-level mutate expression (no parentContext),
+                    // allow any type
+                    if (!parentContext || !parentContext.requiredType) {
+                      argRequiredTypes = ['int64', 'float64', 'str', 'bool'];
+                    } else {
+                      argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
+                    }
+                  } else {
+                    argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
+                  }
+                  
                   return {
                     parentOperator: expr.operator,
                     argIndex: editingArgIndex,
