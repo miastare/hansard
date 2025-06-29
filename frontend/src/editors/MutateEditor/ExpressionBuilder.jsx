@@ -7,45 +7,62 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
   const safeAvailableColumns = availableColumns || [];
   
   console.log('EXPRESSION BUILDER: === RENDERING ===');
-  console.log('EXPRESSION BUILDER: expr:', expr);
-  console.log('EXPRESSION BUILDER: availableColumns RAW:', availableColumns);
-  console.log('EXPRESSION BUILDER: availableColumns type:', typeof availableColumns);
-  console.log('EXPRESSION BUILDER: availableColumns Array.isArray:', Array.isArray(availableColumns));
   console.log('EXPRESSION BUILDER: availableColumns length:', availableColumns?.length);
-  console.log('EXPRESSION BUILDER: safeAvailableColumns after safety:', safeAvailableColumns);
-  console.log('EXPRESSION BUILDER: safeAvailableColumns type:', typeof safeAvailableColumns);
-  console.log('EXPRESSION BUILDER: safeAvailableColumns Array.isArray:', Array.isArray(safeAvailableColumns));
   console.log('EXPRESSION BUILDER: safeAvailableColumns length:', safeAvailableColumns?.length);
   if (safeAvailableColumns && Array.isArray(safeAvailableColumns) && safeAvailableColumns.length > 0) {
-    console.log('EXPRESSION BUILDER: availableColumns column names:', safeAvailableColumns.map(col => col?.name));
-    console.log('EXPRESSION BUILDER: availableColumns details:', JSON.stringify(safeAvailableColumns, null, 2));
+    console.log('EXPRESSION BUILDER: Column names available:', safeAvailableColumns.map(col => col?.name));
   } else {
     console.log('EXPRESSION BUILDER: NO VALID COLUMNS AVAILABLE!');
   }
 
   // Filter columns based on current context
   const getFilteredColumns = (operator = null) => {
-    console.log('EXPRESSION BUILDER: getFilteredColumns called with operator:', operator);
-    console.log('EXPRESSION BUILDER: safeAvailableColumns for filtering:', safeAvailableColumns);
+    console.log('=== EXPRESSION BUILDER: getFilteredColumns ENTRY ===');
+    console.log('EXPRESSION BUILDER: operator:', operator);
+    console.log('EXPRESSION BUILDER: availableColumns original prop:', availableColumns);
+    console.log('EXPRESSION BUILDER: availableColumns type:', typeof availableColumns);
+    console.log('EXPRESSION BUILDER: availableColumns isArray:', Array.isArray(availableColumns));
+    console.log('EXPRESSION BUILDER: availableColumns length:', availableColumns?.length);
+    console.log('EXPRESSION BUILDER: safeAvailableColumns:', safeAvailableColumns);
+    console.log('EXPRESSION BUILDER: safeAvailableColumns type:', typeof safeAvailableColumns);
+    console.log('EXPRESSION BUILDER: safeAvailableColumns isArray:', Array.isArray(safeAvailableColumns));
+    console.log('EXPRESSION BUILDER: safeAvailableColumns length:', safeAvailableColumns?.length);
     
-    // Ensure we have a valid array
-    if (!safeAvailableColumns || !Array.isArray(safeAvailableColumns)) {
-      console.log('EXPRESSION BUILDER: No valid columns array - returning empty array');
+    // Triple-check we have a valid array - use original prop as fallback
+    const workingColumns = safeAvailableColumns || availableColumns || [];
+    console.log('EXPRESSION BUILDER: workingColumns after fallback:', workingColumns);
+    console.log('EXPRESSION BUILDER: workingColumns type:', typeof workingColumns);
+    console.log('EXPRESSION BUILDER: workingColumns isArray:', Array.isArray(workingColumns));
+    console.log('EXPRESSION BUILDER: workingColumns length:', workingColumns?.length);
+    
+    if (!workingColumns || !Array.isArray(workingColumns)) {
+      console.log('EXPRESSION BUILDER: CRITICAL ERROR - No valid columns array available!');
+      console.log('EXPRESSION BUILDER: Returning empty array to prevent crash');
+      return [];
+    }
+    
+    if (workingColumns.length === 0) {
+      console.log('EXPRESSION BUILDER: WARNING - workingColumns is empty array');
       return [];
     }
     
     if (!operator) {
-      console.log('EXPRESSION BUILDER: No operator - returning all columns');
-      return safeAvailableColumns;
+      console.log('EXPRESSION BUILDER: No operator - returning all workingColumns');
+      return workingColumns;
     }
 
     const opInfo = getOperatorInfo(operator);
     console.log('EXPRESSION BUILDER: opInfo for', operator, ':', opInfo);
     
-    const filteredColumns = safeAvailableColumns.filter(col => {
+    const filteredColumns = workingColumns.filter(col => {
       // Defensive check for column structure
-      if (!col || !col.dtype || !col.name) {
-        console.log('EXPRESSION BUILDER: Invalid column structure:', col);
+      if (!col || typeof col !== 'object') {
+        console.log('EXPRESSION BUILDER: Invalid column structure (not object):', col);
+        return false;
+      }
+      
+      if (!col.dtype || !col.name) {
+        console.log('EXPRESSION BUILDER: Invalid column structure (missing dtype/name):', col);
         return false;
       }
       
@@ -63,7 +80,8 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
       return isCompatible;
     });
     
-    console.log('EXPRESSION BUILDER: Filtered columns for', operator, ':', filteredColumns);
+    console.log('EXPRESSION BUILDER: Final filtered columns for', operator, ':', filteredColumns);
+    console.log('EXPRESSION BUILDER: Final filtered columns length:', filteredColumns.length);
     return filteredColumns;
   };
 
@@ -269,27 +287,56 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
             >
               <option value="">Select column</option>
               {(() => {
-                const filteredCols = getFilteredColumns();
-                console.log('EXPRESSION BUILDER: About to map over filteredCols:', filteredCols);
+                console.log('=== EXPRESSION BUILDER: COLUMN DROPDOWN RENDERING ===');
+                console.log('EXPRESSION BUILDER: About to call getFilteredColumns()');
+                
+                let filteredCols;
+                try {
+                  filteredCols = getFilteredColumns();
+                  console.log('EXPRESSION BUILDER: getFilteredColumns() returned:', filteredCols);
+                } catch (error) {
+                  console.error('EXPRESSION BUILDER: ERROR calling getFilteredColumns():', error);
+                  return <option value="">Error loading columns</option>;
+                }
+                
                 console.log('EXPRESSION BUILDER: filteredCols type:', typeof filteredCols);
                 console.log('EXPRESSION BUILDER: filteredCols Array.isArray:', Array.isArray(filteredCols));
                 console.log('EXPRESSION BUILDER: filteredCols length:', filteredCols?.length);
                 
-                if (!filteredCols || !Array.isArray(filteredCols)) {
-                  console.log('EXPRESSION BUILDER: ERROR - filteredCols is not a valid array!');
-                  return <option value="">No columns available</option>;
+                if (!filteredCols) {
+                  console.log('EXPRESSION BUILDER: filteredCols is null/undefined');
+                  return <option value="">No columns available (null)</option>;
                 }
                 
-                return filteredCols.map((col, index) => {
-                  console.log('EXPRESSION BUILDER: Rendering option', index, 'for column:', col);
-                  if (!col || !col.name) {
-                    console.log('EXPRESSION BUILDER: ERROR - Invalid column structure at index', index, ':', col);
+                if (!Array.isArray(filteredCols)) {
+                  console.log('EXPRESSION BUILDER: filteredCols is not an array, type:', typeof filteredCols);
+                  return <option value="">No columns available (not array)</option>;
+                }
+                
+                if (filteredCols.length === 0) {
+                  console.log('EXPRESSION BUILDER: filteredCols is empty array');
+                  return <option value="">No columns available (empty)</option>;
+                }
+                
+                console.log('EXPRESSION BUILDER: About to map over', filteredCols.length, 'columns');
+                
+                const options = filteredCols.map((col, index) => {
+                  console.log('EXPRESSION BUILDER: Mapping column', index, ':', col);
+                  if (!col || typeof col !== 'object') {
+                    console.log('EXPRESSION BUILDER: Invalid column at index', index, ':', col);
                     return <option key={`invalid-${index}`} value="">Invalid column</option>;
                   }
+                  if (!col.name) {
+                    console.log('EXPRESSION BUILDER: Column missing name at index', index, ':', col);
+                    return <option key={`noname-${index}`} value="">Unnamed column</option>;
+                  }
                   return (
-                    <option key={col.name} value={col.name}>{col.name} ({col.dtype})</option>
+                    <option key={col.name} value={col.name}>{col.name} ({col.dtype || 'unknown'})</option>
                   );
                 });
+                
+                console.log('EXPRESSION BUILDER: Generated', options.length, 'options');
+                return options;
               })()}
             </select>
           </div>
@@ -537,13 +584,30 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
                 handleArgChange(editingArgIndex, newArg);
               }}
               availableColumns={(() => {
-                console.log('EXPRESSION BUILDER: === MODAL COLUMNS PROP ===');
-                console.log('EXPRESSION BUILDER: Passing to modal - safeAvailableColumns:', safeAvailableColumns);
-                console.log('EXPRESSION BUILDER: Modal columns type:', typeof safeAvailableColumns);
-                console.log('EXPRESSION BUILDER: Modal columns Array.isArray:', Array.isArray(safeAvailableColumns));
-                console.log('EXPRESSION BUILDER: Modal columns length:', safeAvailableColumns?.length);
-                console.log('EXPRESSION BUILDER: Modal columns details:', JSON.stringify(safeAvailableColumns, null, 2));
-                return safeAvailableColumns;
+                console.log('=== EXPRESSION BUILDER: MODAL COLUMNS PROP PREPARATION ===');
+                console.log('EXPRESSION BUILDER: Original availableColumns prop:', availableColumns);
+                console.log('EXPRESSION BUILDER: Original availableColumns type:', typeof availableColumns);
+                console.log('EXPRESSION BUILDER: Original availableColumns isArray:', Array.isArray(availableColumns));
+                console.log('EXPRESSION BUILDER: Original availableColumns length:', availableColumns?.length);
+                console.log('EXPRESSION BUILDER: safeAvailableColumns:', safeAvailableColumns);
+                console.log('EXPRESSION BUILDER: safeAvailableColumns type:', typeof safeAvailableColumns);
+                console.log('EXPRESSION BUILDER: safeAvailableColumns isArray:', Array.isArray(safeAvailableColumns));
+                console.log('EXPRESSION BUILDER: safeAvailableColumns length:', safeAvailableColumns?.length);
+                
+                // Use the original prop if safeAvailableColumns is somehow corrupted
+                const columnsToPass = (safeAvailableColumns && Array.isArray(safeAvailableColumns) && safeAvailableColumns.length > 0) 
+                  ? safeAvailableColumns 
+                  : (availableColumns && Array.isArray(availableColumns) ? availableColumns : []);
+                
+                console.log('EXPRESSION BUILDER: Final columnsToPass:', columnsToPass);
+                console.log('EXPRESSION BUILDER: Final columnsToPass type:', typeof columnsToPass);
+                console.log('EXPRESSION BUILDER: Final columnsToPass isArray:', Array.isArray(columnsToPass));
+                console.log('EXPRESSION BUILDER: Final columnsToPass length:', columnsToPass?.length);
+                if (columnsToPass.length > 0) {
+                  console.log('EXPRESSION BUILDER: First column sample:', columnsToPass[0]);
+                }
+                
+                return columnsToPass;
               })()}
             />
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
