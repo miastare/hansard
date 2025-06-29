@@ -86,14 +86,24 @@ export default function DSLBuilder() {
 
   const getAvailableInputs = useCallback((currentIndex) => {
     console.log(`DSL BUILDER: getAvailableInputs called for index ${currentIndex}`);
+    console.log(`DSL BUILDER: Current steps state:`, steps);
     console.log(`DSL BUILDER: steps.slice(0, ${currentIndex}):`, steps.slice(0, currentIndex));
     
     const availableInputs = steps.slice(0, currentIndex).map((step, idx) => ({
       id: step.id || `step_${step.op}_${idx}`,
       op: step.op,
-      table: step.table // Include table for source steps
+      table: step.table, // Include table for source steps
+      input: step.input, // Include input for chained steps
+      cols: step.cols // Include cols for mutate steps
     }));
     console.log(`DSL BUILDER: getAvailableInputs for index ${currentIndex}:`, availableInputs);
+    console.log(`DSL BUILDER: Available inputs with all properties:`, availableInputs.map(inp => ({
+      id: inp.id,
+      op: inp.op,
+      input: inp.input,
+      table: inp.table,
+      hascols: !!inp.cols
+    })));
     return availableInputs;
   }, [steps]);
 
@@ -161,10 +171,24 @@ export default function DSLBuilder() {
       <div className={styles.main}>
         <h2>DSL Pipeline Builder</h2>
         {steps.map((step, index) => {
-          const availableInputs = getAvailableInputs(index);
+          // Calculate availableInputs fresh each render to ensure current step data
+          const availableInputs = steps.slice(0, index).map((step, idx) => ({
+            id: step.id || `step_${step.op}_${idx}`,
+            op: step.op,
+            table: step.table, // Include table for source steps
+            input: step.input, // Include input for chained steps
+            cols: step.cols // Include cols for mutate steps
+          }));
+          
           console.log(`DSL BUILDER: === RENDERING STEP ${index} ===`);
           console.log(`DSL BUILDER: Step ${index} (${step.op}), availableInputs:`, availableInputs);
           console.log(`DSL BUILDER: Step ${index} details:`, step);
+          console.log(`DSL BUILDER: Fresh availableInputs with inputs:`, availableInputs.map(inp => ({
+            id: inp.id,
+            op: inp.op,
+            input: inp.input,
+            table: inp.table
+          })));
           console.log(`DSL BUILDER: tableSchemas:`, tableSchemas);
           console.log(`DSL BUILDER: tableSchemas keys:`, Object.keys(tableSchemas || {}));
           console.log(`DSL BUILDER: tableSchemas values:`, Object.values(tableSchemas || {}));
@@ -175,6 +199,14 @@ export default function DSLBuilder() {
             const inputStep = availableInputs.find(inp => inp.id === step.input);
             if (inputStep && inputStep.table && tableSchemas) {
               console.log(`DSL BUILDER: Schema for step ${index} input table ${inputStep.table}:`, tableSchemas[inputStep.table]);
+            }
+            if (inputStep) {
+              console.log(`DSL BUILDER: Found input step for mutate ${step.id}:`, {
+                id: inputStep.id,
+                op: inputStep.op,
+                input: inputStep.input,
+                table: inputStep.table
+              });
             }
           }
 
