@@ -12,44 +12,41 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   const [cols, setCols] = useState(step.cols || {});
 
   // Get schema for the selected input
-  const getInputSchema = useCallback(() => {
+  const getInputSchema = () => {
     console.log('MUTATE EDITOR: === getInputSchema called ===');
     console.log('MUTATE EDITOR: step.input:', step.input);
-    console.log('MUTATE EDITOR: availableInputs length:', availableInputs?.length);
-    console.log('MUTATE EDITOR: tableSchemas keys:', Object.keys(tableSchemas || {}));
+    console.log('MUTATE EDITOR: availableInputs length:', availableInputs.length);
+    console.log('MUTATE EDITOR: tableSchemas keys:', Object.keys(tableSchemas));
 
-    // Check if availableInputs exists first
-    if (!availableInputs || availableInputs.length === 0) {
-      console.log('MUTATE EDITOR: No availableInputs - returning empty array');
-      return [];
-    }
-
-    // If input is specified and exists, use it
-    if (step.input && step.input.trim() !== '') {
-      console.log('MUTATE EDITOR: Using step.input:', step.input);
+    // If step has a specific input, use that
+    if (step.input) {
+      console.log('MUTATE EDITOR: step.input exists:', step.input);
       const inputStep = availableInputs.find(s => s.id === step.input);
-      console.log('MUTATE EDITOR: Found inputStep:', inputStep);
       if (inputStep) {
-        const schema = deriveSchema(inputStep, [...availableInputs, step], tableSchemas);
-        console.log('MUTATE EDITOR: Derived schema from inputStep:', schema);
-        return schema;
+        if (inputStep.op === 'source' && inputStep.table) {
+          const schema = tableSchemas[inputStep.table];
+          console.log('MUTATE EDITOR: Found source step schema:', schema);
+          return schema ? schema.cols : [];
+        }
+        // Handle other step types if needed
       }
     }
 
-    // If no input is selected but there are available inputs, use the last one
-    console.log('MUTATE EDITOR: No step.input specified - using last available input');
-    const lastInput = availableInputs[availableInputs.length - 1];
-    console.log('MUTATE EDITOR: Using lastInput:', lastInput);
-
-    if (lastInput) {
-      const schema = deriveSchema(lastInput, availableInputs, tableSchemas);
-      console.log('MUTATE EDITOR: Derived schema from lastInput:', schema);
-      return schema;
+    // If no specific input but we have available inputs, use the first one
+    if (availableInputs && availableInputs.length > 0) {
+      console.log('MUTATE EDITOR: Using first available input');
+      const firstInput = availableInputs[0];
+      console.log('MUTATE EDITOR: First input:', firstInput);
+      if (firstInput.op === 'source' && firstInput.table) {
+        const schema = tableSchemas[firstInput.table];
+        console.log('MUTATE EDITOR: Using first available input schema:', schema);
+        return schema ? schema.cols : [];
+      }
     }
 
     console.log('MUTATE EDITOR: No valid input found - returning empty array');
     return [];
-  }, [step, availableInputs, tableSchemas]);
+  };
 
   console.log(`MUTATE EDITOR: === SCHEMA COMPUTATION ===`);
   console.log(`MUTATE EDITOR: inputSchema prop:`, inputSchema);

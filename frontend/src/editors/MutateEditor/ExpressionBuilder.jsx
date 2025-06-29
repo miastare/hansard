@@ -296,7 +296,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
                   console.log('EXPRESSION BUILDER: getFilteredColumns() returned:', filteredCols);
                 } catch (error) {
                   console.error('EXPRESSION BUILDER: ERROR calling getFilteredColumns():', error);
-                  return <option value="">Error loading columns</option>;
+                  return [<option key="error" value="">Error loading columns</option>];
                 }
                 
                 console.log('EXPRESSION BUILDER: filteredCols type:', typeof filteredCols);
@@ -305,38 +305,43 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
                 
                 if (!filteredCols) {
                   console.log('EXPRESSION BUILDER: filteredCols is null/undefined');
-                  return <option value="">No columns available (null)</option>;
+                  return [<option key="null" value="">No columns available (null)</option>];
                 }
                 
                 if (!Array.isArray(filteredCols)) {
                   console.log('EXPRESSION BUILDER: filteredCols is not an array, type:', typeof filteredCols);
-                  return <option value="">No columns available (not array)</option>;
+                  return [<option key="notarray" value="">No columns available (not array)</option>];
                 }
                 
                 if (filteredCols.length === 0) {
                   console.log('EXPRESSION BUILDER: filteredCols is empty array');
-                  return <option value="">No columns available (empty)</option>;
+                  return [<option key="empty" value="">No columns available (empty)</option>];
                 }
                 
                 console.log('EXPRESSION BUILDER: About to map over', filteredCols.length, 'columns');
                 
-                const options = filteredCols.map((col, index) => {
-                  console.log('EXPRESSION BUILDER: Mapping column', index, ':', col);
-                  if (!col || typeof col !== 'object') {
-                    console.log('EXPRESSION BUILDER: Invalid column at index', index, ':', col);
-                    return <option key={`invalid-${index}`} value="">Invalid column</option>;
-                  }
-                  if (!col.name) {
-                    console.log('EXPRESSION BUILDER: Column missing name at index', index, ':', col);
-                    return <option key={`noname-${index}`} value="">Unnamed column</option>;
-                  }
-                  return (
-                    <option key={col.name} value={col.name}>{col.name} ({col.dtype || 'unknown'})</option>
-                  );
-                });
-                
-                console.log('EXPRESSION BUILDER: Generated', options.length, 'options');
-                return options;
+                try {
+                  const options = filteredCols.map((col, index) => {
+                    console.log('EXPRESSION BUILDER: Mapping column', index, ':', col);
+                    if (!col || typeof col !== 'object') {
+                      console.log('EXPRESSION BUILDER: Invalid column at index', index, ':', col);
+                      return <option key={`invalid-${index}`} value="">Invalid column</option>;
+                    }
+                    if (!col.name) {
+                      console.log('EXPRESSION BUILDER: Column missing name at index', index, ':', col);
+                      return <option key={`noname-${index}`} value="">Unnamed column</option>;
+                    }
+                    return (
+                      <option key={col.name} value={col.name}>{col.name} ({col.dtype || 'unknown'})</option>
+                    );
+                  });
+                  
+                  console.log('EXPRESSION BUILDER: Generated', options.length, 'options');
+                  return options;
+                } catch (mapError) {
+                  console.error('EXPRESSION BUILDER: ERROR during mapping:', mapError);
+                  return [<option key="maperror" value="">Error mapping columns</option>];
+                }
               })()}
             </select>
           </div>
