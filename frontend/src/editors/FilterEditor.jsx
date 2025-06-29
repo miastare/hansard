@@ -9,7 +9,7 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
   const getInputSchema = () => {
     // If step has a specific input, use that
     if (step.input && step.input !== '' && availableInputs) {
-      const inputStep = availableInputs.find(s => s.id === step.input);
+      const inputStep = availableInputs.find(s => String(s.id) === String(step.input));
       
       if (inputStep) {
         if (inputStep.op === 'source' && inputStep.table) {
