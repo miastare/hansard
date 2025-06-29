@@ -3,15 +3,19 @@ import Modal from './Modal';
 import { getOperatorInfo, getCompatibleOperators, getTypeFromValue } from '../../utils/ExpressionUtils';
 
 export default function ExpressionBuilder({ expr, onChange, availableColumns }) {
+  // Ensure availableColumns is always an array
+  const safeAvailableColumns = availableColumns || [];
+  
   console.log('EXPRESSION BUILDER: === RENDERING ===');
   console.log('EXPRESSION BUILDER: expr:', expr);
   console.log('EXPRESSION BUILDER: availableColumns:', availableColumns);
+  console.log('EXPRESSION BUILDER: safeAvailableColumns:', safeAvailableColumns);
   console.log('EXPRESSION BUILDER: availableColumns type:', typeof availableColumns);
   console.log('EXPRESSION BUILDER: availableColumns Array.isArray:', Array.isArray(availableColumns));
   console.log('EXPRESSION BUILDER: availableColumns length:', availableColumns?.length);
-  if (availableColumns && Array.isArray(availableColumns)) {
-    console.log('EXPRESSION BUILDER: availableColumns column names:', availableColumns.map(col => col?.name));
-    console.log('EXPRESSION BUILDER: availableColumns details:', JSON.stringify(availableColumns, null, 2));
+  if (safeAvailableColumns && Array.isArray(safeAvailableColumns)) {
+    console.log('EXPRESSION BUILDER: availableColumns column names:', safeAvailableColumns.map(col => col?.name));
+    console.log('EXPRESSION BUILDER: availableColumns details:', JSON.stringify(safeAvailableColumns, null, 2));
   }
 
   const [showModal, setShowModal] = useState(false);
@@ -21,8 +25,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
     if (newType === 'constant') {
       onChange({ type: 'constant', valueType: 'int64', value: 0 });
     } else if (newType === 'column') {
-      const safeColumns = availableColumns || [];
-      const firstColumn = safeColumns[0];
+      const firstColumn = safeAvailableColumns[0];
       onChange({ 
         type: 'column', 
         columnName: firstColumn ? firstColumn.name : '' 
@@ -104,8 +107,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
     if (type === 'constant') {
       onChange({ type: 'constant', valueType: 'int64', value: 0 });
     } else if (type === 'column') {
-      const safeColumns = availableColumns || [];
-      const firstColumn = safeColumns[0];
+      const firstColumn = safeAvailableColumns[0];
       onChange({ 
         type: 'column', 
         columnName: firstColumn ? firstColumn.name : '' 
@@ -217,7 +219,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
               }}
             >
               <option value="">Select column</option>
-              {(availableColumns || []).map(col => {
+              {safeAvailableColumns.map(col => {
                 console.log('EXPRESSION BUILDER: Rendering option for column:', col);
                 return (
                   <option key={col.name} value={col.name}>{col.name} ({col.dtype})</option>
@@ -338,7 +340,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
                 minWidth: '150px'
               }}
             >
-              {getCompatibleOperators(availableColumns || []).map(op => (
+              {getCompatibleOperators(safeAvailableColumns).map(op => (
                 <option key={op} value={op}>{op}</option>
               ))}
             </select>
@@ -451,7 +453,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
             <ExpressionBuilder
               expr={expr.args[editingArgIndex]}
               onChange={(newArg) => handleArgChange(editingArgIndex, newArg)}
-              availableColumns={availableColumns || []}
+              availableColumns={safeAvailableColumns}
             />
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
               <button
