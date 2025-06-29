@@ -88,28 +88,19 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
   };
 
   // Get allowed types for constants based on parent operator context
-  const getAllowedConstantTypes = (operatorContext = parentOperator) => {
-    if (!parentOperator) {
-      // If no parent operator, allow all types
-      return ['int64', 'float64', 'bool', 'str'];
+  const getAllowedConstantTypes = () => {
+    // Use the parentContext to determine allowed types
+    if (parentContext && parentContext.requiredType) {
+      if (Array.isArray(parentContext.requiredType)) {
+        // Filter out null/undefined values
+        const validTypes = parentContext.requiredType.filter(t => t !== null && t !== undefined);
+        return validTypes.length > 0 ? validTypes : ['int64', 'float64', 'bool', 'str'];
+      }
+      return [parentContext.requiredType];
     }
     
-    const opInfo = getOperatorInfo(parentOperator);
-    const allowedTypes = [];
-    
-    // Map operator input types to constant types
-    opInfo.inputTypes.forEach(inputType => {
-      if (inputType === 'int64' || inputType === 'float64') {
-        if (!allowedTypes.includes('int64')) allowedTypes.push('int64');
-        if (!allowedTypes.includes('float64')) allowedTypes.push('float64');
-      } else if (inputType === 'str') {
-        if (!allowedTypes.includes('str')) allowedTypes.push('str');
-      } else if (inputType === 'bool') {
-        if (!allowedTypes.includes('bool')) allowedTypes.push('bool');
-      }
-    });
-    
-    return allowedTypes.length > 0 ? allowedTypes : ['int64', 'float64', 'bool', 'str'];
+    // If no parent context, allow all types
+    return ['int64', 'float64', 'bool', 'str'];
   };
 
   const handleConstantChange = (field, value) => {
@@ -426,9 +417,9 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
               {expr.valueType === 'float64' && 'Decimal numbers (e.g., 3.14, -2.5)'}
               {expr.valueType === 'bool' && 'True or False values'}
               {expr.valueType === 'str' && 'Text values (e.g., "hello", "world")'}
-              {parentOperator && (
+              {parentContext && parentContext.parentOperator && (
                 <div style={{ fontSize: '11px', color: '#007bff', marginTop: '2px' }}>
-                  ℹ️ Types limited by {parentOperator} operator requirements
+                  ℹ️ Types limited by {parentContext.parentOperator} operator requirements
                 </div>
               )}
             </div>
