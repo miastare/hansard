@@ -7,21 +7,27 @@ export function deriveSchema(step, steps, tableCatalog) {
     return [];
   }
 
-  console.log(`🔍 DERIVE SCHEMA: Processing step ${step.id} (${step.op})`);
+  console.log(`🔍 DERIVE SCHEMA: === Processing step ${step.id} (${step.op}) ===`);
   console.log(`🔍 DERIVE SCHEMA: Step details:`, step);
   console.log(`🔍 DERIVE SCHEMA: Available steps:`, steps?.map(s => ({id: s.id, op: s.op, input: s.input})));
+  console.log(`🔍 DERIVE SCHEMA: tableCatalog keys:`, Object.keys(tableCatalog || {}));
 
   if (step.op === "source") {
     console.log(`🔍 DERIVE SCHEMA: Processing source step for table: ${step.table}`);
     const table = tableCatalog[step.table];
+    console.log(`🔍 DERIVE SCHEMA: Table data:`, table);
     
     if (!table) {
       console.log(`🔍 DERIVE SCHEMA: ❌ No table found for: ${step.table}`);
-      console.log(`🔍 DERIVE SCHEMA: Available tables:`, Object.keys(tableCatalog));
+      console.log(`🔍 DERIVE SCHEMA: Available tables:`, Object.keys(tableCatalog || {}));
       return [];
     }
     
     const cols = table.cols || table;
+    console.log(`🔍 DERIVE SCHEMA: Extracted cols:`, cols);
+    console.log(`🔍 DERIVE SCHEMA: Cols is array:`, Array.isArray(cols));
+    console.log(`🔍 DERIVE SCHEMA: Cols type:`, typeof cols);
+    
     if (!Array.isArray(cols)) {
       console.log(`🔍 DERIVE SCHEMA: ❌ Table schema is not an array:`, cols);
       return [];

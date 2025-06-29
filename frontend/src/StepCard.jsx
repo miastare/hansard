@@ -19,11 +19,7 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
   };
 
 const renderEditor = () => {
-    console.log(`STEP CARD: Rendering editor for step ${index}, op: ${step.op}`);
-    console.log(`STEP CARD: availableInputs:`, availableInputs);
-    console.log(`STEP CARD: tableSchemas:`, tableSchemas);
-    console.log(`STEP CARD: step.input:`, step.input);
-    console.log(`STEP CARD: requestSchema function:`, requestSchema);
+    console.log(`🎭 STEP CARD [${index}]: Rendering editor for step ${step.id}, op: ${step.op}`);
 
     switch (step.op) {
       case 'source':
@@ -31,7 +27,7 @@ const renderEditor = () => {
           <SourceEditor
             step={step}
             onChange={(updatedStep) => {
-              console.log(`STEP CARD: SourceEditor onChange called with:`, updatedStep);
+              console.log(`🎭 STEP CARD [${index}]: SourceEditor onChange called`);
               onUpdate(index, updatedStep);
             }}
             requestSchema={requestSchema}
@@ -48,23 +44,20 @@ const renderEditor = () => {
         );
       case 'mutate':
         const updateStep = (updatedStep) => {
-          console.log(`STEP CARD: MutateEditor onChange called with:`, updatedStep);
+          console.log(`🎭 STEP CARD [${index}]: MutateEditor onChange called`);
           onUpdate(index, updatedStep);
         };
 
-        // For mutate steps, we don't need to derive schema here - let MutateEditor handle it
-  let inputSchema = null;
-
-        console.log(`STEP CARD: Final inputSchema for step ${index}:`, inputSchema);
-        console.log(`STEP CARD: About to render editor with inputSchema:`, inputSchema);
-        console.log(`STEP CARD: Passing inputSchema to MutateEditor:`, inputSchema);
+        console.log(`🎭 STEP CARD [${index}]: Rendering MutateEditor with availableInputs: ${availableInputs?.length || 0} steps`);
+        console.log(`🎭 STEP CARD [${index}]: TableSchemas available: ${Object.keys(tableSchemas || {}).length} tables`);
+        
         return (
           <MutateEditor 
             step={step} 
             onChange={updateStep} 
-            availableInputs={availableInputs}
-            tableSchemas={tableSchemas}
-            inputSchema={inputSchema || []}
+            availableInputs={availableInputs || []}
+            tableSchemas={tableSchemas || {}}
+            inputSchema={null}
           />
         );
       case 'aggregate':

@@ -36,41 +36,70 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   const getInputSchema = () => {
     console.log(`📊 SCHEMA [${step.id}]: === getInputSchema called ===`);
     console.log(`📊 SCHEMA [${step.id}]: step.input:`, step.input);
-    console.log(`📊 SCHEMA [${step.id}]: availableInputs:`, availableInputs?.map(i => ({id: i.id, op: i.op, table: i.table})));
+    console.log(`📊 SCHEMA [${step.id}]: availableInputs:`, availableInputs);
+    console.log(`📊 SCHEMA [${step.id}]: availableInputs mapped:`, availableInputs?.map(i => ({id: i.id, op: i.op, table: i.table})));
+    console.log(`📊 SCHEMA [${step.id}]: tableSchemas:`, tableSchemas);
+    console.log(`📊 SCHEMA [${step.id}]: tableSchemas keys:`, Object.keys(tableSchemas || {}));
 
     // If step has a specific input, use that
-    if (step.input) {
+    if (step.input && availableInputs) {
       console.log(`📊 SCHEMA [${step.id}]: Looking for input step with ID: ${step.input}`);
       const inputStep = availableInputs.find(s => s.id === step.input);
+      console.log(`📊 SCHEMA [${step.id}]: Found inputStep:`, inputStep);
       
       if (inputStep) {
-        console.log(`📊 SCHEMA [${step.id}]: Found inputStep:`, inputStep);
+        console.log(`📊 SCHEMA [${step.id}]: Processing inputStep - op: ${inputStep.op}, table: ${inputStep.table}`);
         
         if (inputStep.op === 'source' && inputStep.table) {
-          console.log(`📊 SCHEMA [${step.id}]: Input is source step, getting table schema`);
-          const schema = tableSchemas[inputStep.table];
-          console.log(`📊 SCHEMA [${step.id}]: Table schema for ${inputStep.table}:`, schema);
-          return schema ? schema.cols : [];
+          console.log(`📊 SCHEMA [${step.id}]: Input is source step, getting table schema for: ${inputStep.table}`);
+          const schemaWrapper = tableSchemas[inputStep.table];
+          console.log(`📊 SCHEMA [${step.id}]: Schema wrapper:`, schemaWrapper);
+          
+          if (schemaWrapper) {
+            // Handle both wrapper format {cols: [...]} and direct array format
+            const schema = schemaWrapper.cols || schemaWrapper;
+            console.log(`📊 SCHEMA [${step.id}]: Extracted schema:`, schema);
+            console.log(`📊 SCHEMA [${step.id}]: Schema is array:`, Array.isArray(schema));
+            console.log(`📊 SCHEMA [${step.id}]: Schema length:`, schema?.length);
+            
+            if (Array.isArray(schema)) {
+              console.log(`📊 SCHEMA [${step.id}]: ✅ Returning source schema with ${schema.length} columns`);
+              return schema;
+            } else {
+              console.log(`📊 SCHEMA [${step.id}]: ❌ Schema is not an array:`, typeof schema);
+              return [];
+            }
+          } else {
+            console.log(`📊 SCHEMA [${step.id}]: ❌ No schema found for table: ${inputStep.table}`);
+            console.log(`📊 SCHEMA [${step.id}]: Available tables:`, Object.keys(tableSchemas || {}));
+            return [];
+          }
         } else {
           // For non-source steps (like other mutate steps), derive the schema
           console.log(`📊 SCHEMA [${step.id}]: Input is ${inputStep.op} step, deriving schema`);
-          console.log(`📊 SCHEMA [${step.id}]: Calling deriveSchema with:`, {
-            inputStep: inputStep,
-            availableSteps: availableInputs.map(s => ({id: s.id, op: s.op, input: s.input, cols: s.cols})),
-            tableSchemas: Object.keys(tableSchemas)
-          });
+          console.log(`📊 SCHEMA [${step.id}]: Calling deriveSchema with inputStep:`, inputStep);
           
           const derivedSchema = deriveSchema(inputStep, availableInputs, tableSchemas);
           console.log(`📊 SCHEMA [${step.id}]: deriveSchema returned:`, derivedSchema);
-          return derivedSchema || [];
+          console.log(`📊 SCHEMA [${step.id}]: Derived schema is array:`, Array.isArray(derivedSchema));
+          console.log(`📊 SCHEMA [${step.id}]: Derived schema length:`, derivedSchema?.length);
+          
+          if (Array.isArray(derivedSchema)) {
+            console.log(`📊 SCHEMA [${step.id}]: ✅ Returning derived schema with ${derivedSchema.length} columns`);
+            return derivedSchema;
+          } else {
+            console.log(`📊 SCHEMA [${step.id}]: ❌ Derived schema is not an array, returning empty`);
+            return [];
+          }
         }
       } else {
         console.log(`📊 SCHEMA [${step.id}]: ❌ No input step found with ID: ${step.input}`);
         console.log(`📊 SCHEMA [${step.id}]: Available step IDs:`, availableInputs?.map(s => s.id));
+        return [];
       }
     }
 
-    console.log(`📊 SCHEMA [${step.id}]: ❌ No valid input found - returning empty array`);
+    console.log(`📊 SCHEMA [${step.id}]: ❌ No valid input found - step.input: ${step.input}, availableInputs exists: ${!!availableInputs}`);
     return [];
   };
 
