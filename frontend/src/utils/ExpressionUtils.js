@@ -155,6 +155,24 @@ const OPERATORS = {
     description: 'Regular expression match'
   },
 
+  // Conditional operators
+  if_else: {
+    minArgs: 3,
+    maxArgs: 3,
+    inputTypes: ['bool', 'any', 'any'], // condition, true_value, false_value
+    outputType: 'conditional', // Output type matches the true/false branches
+    description: 'Conditional expression: if condition then true_value else false_value',
+    constraintFunction: (args, availableColumns) => {
+      // The second and third arguments must be the same type
+      if (args.length === 3) {
+        const trueType = getExpressionType(args[1], availableColumns);
+        const falseType = getExpressionType(args[2], availableColumns);
+        return trueType === falseType ? trueType : 'unknown';
+      }
+      return 'unknown';
+    }
+  },
+
   // Special operators
   column: {
     minArgs: 1,
@@ -199,12 +217,20 @@ export function getTypeFromValue(value) {
 }
 
 export function getExpressionType(expr, availableColumns) {
+  if (!expr) return 'unknown';
+  
   if (expr.type === 'constant') {
     return expr.valueType;
   }
 
   if (expr.type === 'dynamic') {
     const opInfo = getOperatorInfo(expr.operator);
+    
+    // Handle special conditional type resolution
+    if (opInfo.outputType === 'conditional' && opInfo.constraintFunction) {
+      return opInfo.constraintFunction(expr.args || [], availableColumns);
+    }
+    
     return opInfo.outputType;
   }
 
@@ -214,6 +240,33 @@ export function getExpressionType(expr, availableColumns) {
   }
 
   return 'unknown';
+}
+
+// Get the required type for a specific argument position in an operator
+export function getRequiredTypeForArgument(operator, argIndex, parentExpressionContext = null) {
+  const opInfo = getOperatorInfo(operator);
+  
+  // Handle special cases
+  if (operator === 'if_else') {
+    if (argIndex === 0) return ['bool']; // condition must be boolean
+    if (argIndex === 1 || argIndex === 2) {
+      // For if_else branches, the required type depends on the parent context
+      if (parentExpressionContext && parentExpressionContext.requiredType) {
+        return [parentExpressionContext.requiredType];
+      }
+      return ['int64', 'float64', 'str', 'bool']; // any type is allowed if no parent constraint
+    }
+  }
+  
+  // For operators with 'any' input types, check if we have parent context
+  if (opInfo.inputTypes.includes('any')) {
+    if (parentExpressionContext && parentExpressionContext.requiredType) {
+      return [parentExpressionContext.requiredType];
+    }
+    return ['int64', 'float64', 'str', 'bool']; // fallback to all types
+  }
+  
+  return opInfo.inputTypes;
 }
 
 export function isTypeCompatible(sourceType, targetTypes) {

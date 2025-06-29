@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
-import { getOperatorInfo, getCompatibleOperators, getTypeFromValue } from '../../utils/ExpressionUtils';
+import { getOperatorInfo, getCompatibleOperators, getTypeFromValue, getRequiredTypeForArgument, getExpressionType } from '../../utils/ExpressionUtils';
 
-export default function ExpressionBuilder({ expr, onChange, availableColumns, parentOperator = null }) {
+export default function ExpressionBuilder({ expr, onChange, availableColumns, parentOperator = null, argIndex = null, parentContext = null }) {
   // Ensure availableColumns is always an array
   const safeAvailableColumns = availableColumns || [];
   
@@ -15,29 +15,16 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
     console.log('EXPRESSION BUILDER: NO VALID COLUMNS AVAILABLE!');
   }
 
-  // Filter columns based on current context
-  const getFilteredColumns = (operator = null) => {
+  // Filter columns based on current context and argument position
+  const getFilteredColumns = (operator = null, argIndex = null, parentContext = null) => {
     console.log('=== EXPRESSION BUILDER: getFilteredColumns ENTRY ===');
-    console.log('EXPRESSION BUILDER: operator:', operator);
-    console.log('EXPRESSION BUILDER: availableColumns original prop:', availableColumns);
-    console.log('EXPRESSION BUILDER: availableColumns type:', typeof availableColumns);
-    console.log('EXPRESSION BUILDER: availableColumns isArray:', Array.isArray(availableColumns));
-    console.log('EXPRESSION BUILDER: availableColumns length:', availableColumns?.length);
-    console.log('EXPRESSION BUILDER: safeAvailableColumns:', safeAvailableColumns);
-    console.log('EXPRESSION BUILDER: safeAvailableColumns type:', typeof safeAvailableColumns);
-    console.log('EXPRESSION BUILDER: safeAvailableColumns isArray:', Array.isArray(safeAvailableColumns));
-    console.log('EXPRESSION BUILDER: safeAvailableColumns length:', safeAvailableColumns?.length);
+    console.log('EXPRESSION BUILDER: operator:', operator, 'argIndex:', argIndex);
     
     // Triple-check we have a valid array - use original prop as fallback
     const workingColumns = safeAvailableColumns || availableColumns || [];
-    console.log('EXPRESSION BUILDER: workingColumns after fallback:', workingColumns);
-    console.log('EXPRESSION BUILDER: workingColumns type:', typeof workingColumns);
-    console.log('EXPRESSION BUILDER: workingColumns isArray:', Array.isArray(workingColumns));
-    console.log('EXPRESSION BUILDER: workingColumns length:', workingColumns?.length);
     
     if (!workingColumns || !Array.isArray(workingColumns)) {
       console.log('EXPRESSION BUILDER: CRITICAL ERROR - No valid columns array available!');
-      console.log('EXPRESSION BUILDER: Returning empty array to prevent crash');
       return [];
     }
     
@@ -51,37 +38,32 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
       return workingColumns;
     }
 
-    const opInfo = getOperatorInfo(operator);
-    console.log('EXPRESSION BUILDER: opInfo for', operator, ':', opInfo);
+    // Get required types for this specific argument position
+    const requiredTypes = getRequiredTypeForArgument(operator, argIndex, parentContext);
+    console.log('EXPRESSION BUILDER: Required types for', operator, 'arg', argIndex, ':', requiredTypes);
     
     const filteredColumns = workingColumns.filter(col => {
       // Defensive check for column structure
-      if (!col || typeof col !== 'object') {
-        console.log('EXPRESSION BUILDER: Invalid column structure (not object):', col);
-        return false;
-      }
-      
-      if (!col.dtype || !col.name) {
-        console.log('EXPRESSION BUILDER: Invalid column structure (missing dtype/name):', col);
+      if (!col || typeof col !== 'object' || !col.dtype || !col.name) {
         return false;
       }
       
       const colType = col.dtype === 'object' ? 'str' : col.dtype; // Convert object to str
-      const isCompatible = opInfo.inputTypes.some(inputType => {
-        if (inputType === 'int64' || inputType === 'float64') {
+      const isCompatible = requiredTypes.some(requiredType => {
+        if (requiredType === 'any') return true;
+        if (requiredType === 'int64' || requiredType === 'float64') {
           return colType === 'int64' || colType === 'float64';
         }
-        if (inputType === 'str') {
+        if (requiredType === 'str') {
           return colType === 'str' || colType === 'object';
         }
-        return colType === inputType;
+        return colType === requiredType;
       });
-      console.log('EXPRESSION BUILDER: Column', col.name, 'type', colType, 'compatible with', operator, ':', isCompatible);
+      
       return isCompatible;
     });
     
-    console.log('EXPRESSION BUILDER: Final filtered columns for', operator, ':', filteredColumns);
-    console.log('EXPRESSION BUILDER: Final filtered columns length:', filteredColumns.length);
+    console.log('EXPRESSION BUILDER: Final filtered columns:', filteredColumns.length);
     return filteredColumns;
   };
 
@@ -324,11 +306,11 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
               <option value="">Select column</option>
               {(() => {
                 console.log('=== EXPRESSION BUILDER: COLUMN DROPDOWN RENDERING ===');
-                console.log('EXPRESSION BUILDER: About to call getFilteredColumns()');
+                console.log('EXPRESSION BUILDER: About to call getFilteredColumns with parent context');
                 
                 let filteredCols;
                 try {
-                  filteredCols = getFilteredColumns();
+                  filteredCols = getFilteredColumns(parentOperator, argIndex, parentContext);
                   console.log('EXPRESSION BUILDER: getFilteredColumns() returned:', filteredCols);
                 } catch (error) {
                   console.error('EXPRESSION BUILDER: ERROR calling getFilteredColumns():', error);
@@ -562,8 +544,13 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
 
             {expr.args.map((arg, index) => {
               console.log('EXPRESSION BUILDER: Rendering arg', index, 'for operator', expr.operator);
-              const operatorFilteredColumns = getFilteredColumns(expr.operator);
-              console.log('EXPRESSION BUILDER: Operator-filtered columns for arg', index, ':', operatorFilteredColumns);
+              
+              // Create context for this argument
+              const argContext = {
+                parentOperator: expr.operator,
+                argIndex: index,
+                requiredType: getRequiredTypeForArgument(expr.operator, index, parentContext)
+              };
               
               return (
                 <div key={index} style={{ 
@@ -581,11 +568,14 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                   }}>
                     <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
                       Argument {index + 1}:
+                      <span style={{ fontSize: '11px', color: '#666', fontWeight: 'normal' }}>
+                        {' '}(requires: {Array.isArray(argContext.requiredType) ? argContext.requiredType.join(', ') : argContext.requiredType})
+                      </span>
                     </span>
                     <div>
                       <button
                         onClick={() => {
-                          console.log('EXPRESSION BUILDER: Opening modal for arg', index, 'with columns:', operatorFilteredColumns);
+                          console.log('EXPRESSION BUILDER: Opening modal for arg', index, 'with context:', argContext);
                           openArgModal(index);
                         }}
                         style={{
@@ -654,28 +644,19 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                 handleArgChange(editingArgIndex, newArg);
               }}
               parentOperator={expr.type === 'dynamic' ? expr.operator : null}
-              availableColumns={(() => {
-                console.log('=== EXPRESSION BUILDER: MODAL COLUMNS PROP PREPARATION ===');
-                console.log('EXPRESSION BUILDER: Current operator:', expr.operator);
-                
-                // Get operator-filtered columns for the modal
-                let filteredColumnsForModal;
-                try {
-                  filteredColumnsForModal = getFilteredColumns(expr.operator);
-                  console.log('EXPRESSION BUILDER: Operator-filtered columns for modal:', filteredColumnsForModal);
-                } catch (error) {
-                  console.error('EXPRESSION BUILDER: ERROR getting filtered columns for modal:', error);
-                  // Fallback to safe columns
-                  filteredColumnsForModal = safeAvailableColumns || [];
+              argIndex={editingArgIndex}
+              parentContext={(() => {
+                // Create context for the argument being edited
+                if (expr.type === 'dynamic') {
+                  return {
+                    parentOperator: expr.operator,
+                    argIndex: editingArgIndex,
+                    requiredType: getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext)
+                  };
                 }
-                
-                console.log('EXPRESSION BUILDER: Final filteredColumnsForModal:', filteredColumnsForModal);
-                console.log('EXPRESSION BUILDER: Final filteredColumnsForModal type:', typeof filteredColumnsForModal);
-                console.log('EXPRESSION BUILDER: Final filteredColumnsForModal isArray:', Array.isArray(filteredColumnsForModal));
-                console.log('EXPRESSION BUILDER: Final filteredColumnsForModal length:', filteredColumnsForModal?.length);
-                
-                return filteredColumnsForModal;
+                return parentContext;
               })()}
+              availableColumns={safeAvailableColumns}
             />
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
               <button
