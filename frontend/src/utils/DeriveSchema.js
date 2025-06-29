@@ -58,10 +58,15 @@ export function deriveSchema(step, steps, tableCatalog) {
   if (step.op === "mutate") {
     console.log(`🔍 DERIVE SCHEMA: Processing mutate step ${step.id}`);
     console.log(`🔍 DERIVE SCHEMA: Mutate step input: ${step.input}`);
+    console.log(`🔍 DERIVE SCHEMA: Mutate step input type: ${typeof step.input}`);
+    console.log(`🔍 DERIVE SCHEMA: Mutate step input is empty string: ${step.input === ''}`);
+    console.log(`🔍 DERIVE SCHEMA: Mutate step input is null: ${step.input === null}`);
+    console.log(`🔍 DERIVE SCHEMA: Mutate step input is undefined: ${step.input === undefined}`);
     console.log(`🔍 DERIVE SCHEMA: Mutate step cols:`, step.cols);
     
-    if (!step.input) {
+    if (!step.input || step.input === '') {
       console.log(`🔍 DERIVE SCHEMA: ❌ Mutate step has no input specified`);
+      console.log(`🔍 DERIVE SCHEMA: ❌ Full step object:`, JSON.stringify(step, null, 2));
       return [];
     }
     

@@ -36,13 +36,17 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   const getInputSchema = () => {
     console.log(`📊 SCHEMA [${step.id}]: === getInputSchema called ===`);
     console.log(`📊 SCHEMA [${step.id}]: step.input:`, step.input);
+    console.log(`📊 SCHEMA [${step.id}]: step.input type:`, typeof step.input);
+    console.log(`📊 SCHEMA [${step.id}]: step.input is empty string:`, step.input === '');
+    console.log(`📊 SCHEMA [${step.id}]: step.input is null:`, step.input === null);
+    console.log(`📊 SCHEMA [${step.id}]: step.input is undefined:`, step.input === undefined);
     console.log(`📊 SCHEMA [${step.id}]: availableInputs:`, availableInputs);
     console.log(`📊 SCHEMA [${step.id}]: availableInputs mapped:`, availableInputs?.map(i => ({id: i.id, op: i.op, table: i.table})));
     console.log(`📊 SCHEMA [${step.id}]: tableSchemas:`, tableSchemas);
     console.log(`📊 SCHEMA [${step.id}]: tableSchemas keys:`, Object.keys(tableSchemas || {}));
 
     // If step has a specific input, use that
-    if (step.input && availableInputs) {
+    if (step.input && step.input !== '' && availableInputs) {
       console.log(`📊 SCHEMA [${step.id}]: Looking for input step with ID: ${step.input}`);
       const inputStep = availableInputs.find(s => s.id === step.input);
       console.log(`📊 SCHEMA [${step.id}]: Found inputStep:`, inputStep);
