@@ -601,29 +601,25 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
               }}
               availableColumns={(() => {
                 console.log('=== EXPRESSION BUILDER: MODAL COLUMNS PROP PREPARATION ===');
-                console.log('EXPRESSION BUILDER: Original availableColumns prop:', availableColumns);
-                console.log('EXPRESSION BUILDER: Original availableColumns type:', typeof availableColumns);
-                console.log('EXPRESSION BUILDER: Original availableColumns isArray:', Array.isArray(availableColumns));
-                console.log('EXPRESSION BUILDER: Original availableColumns length:', availableColumns?.length);
-                console.log('EXPRESSION BUILDER: safeAvailableColumns:', safeAvailableColumns);
-                console.log('EXPRESSION BUILDER: safeAvailableColumns type:', typeof safeAvailableColumns);
-                console.log('EXPRESSION BUILDER: safeAvailableColumns isArray:', Array.isArray(safeAvailableColumns));
-                console.log('EXPRESSION BUILDER: safeAvailableColumns length:', safeAvailableColumns?.length);
+                console.log('EXPRESSION BUILDER: Current operator:', expr.operator);
                 
-                // Use the original prop if safeAvailableColumns is somehow corrupted
-                const columnsToPass = (safeAvailableColumns && Array.isArray(safeAvailableColumns) && safeAvailableColumns.length > 0) 
-                  ? safeAvailableColumns 
-                  : (availableColumns && Array.isArray(availableColumns) ? availableColumns : []);
-                
-                console.log('EXPRESSION BUILDER: Final columnsToPass:', columnsToPass);
-                console.log('EXPRESSION BUILDER: Final columnsToPass type:', typeof columnsToPass);
-                console.log('EXPRESSION BUILDER: Final columnsToPass isArray:', Array.isArray(columnsToPass));
-                console.log('EXPRESSION BUILDER: Final columnsToPass length:', columnsToPass?.length);
-                if (columnsToPass.length > 0) {
-                  console.log('EXPRESSION BUILDER: First column sample:', columnsToPass[0]);
+                // Get operator-filtered columns for the modal
+                let filteredColumnsForModal;
+                try {
+                  filteredColumnsForModal = getFilteredColumns(expr.operator);
+                  console.log('EXPRESSION BUILDER: Operator-filtered columns for modal:', filteredColumnsForModal);
+                } catch (error) {
+                  console.error('EXPRESSION BUILDER: ERROR getting filtered columns for modal:', error);
+                  // Fallback to safe columns
+                  filteredColumnsForModal = safeAvailableColumns || [];
                 }
                 
-                return columnsToPass;
+                console.log('EXPRESSION BUILDER: Final filteredColumnsForModal:', filteredColumnsForModal);
+                console.log('EXPRESSION BUILDER: Final filteredColumnsForModal type:', typeof filteredColumnsForModal);
+                console.log('EXPRESSION BUILDER: Final filteredColumnsForModal isArray:', Array.isArray(filteredColumnsForModal));
+                console.log('EXPRESSION BUILDER: Final filteredColumnsForModal length:', filteredColumnsForModal?.length);
+                
+                return filteredColumnsForModal;
               })()}
             />
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
