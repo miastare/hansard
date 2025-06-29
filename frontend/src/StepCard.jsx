@@ -45,6 +45,7 @@ const renderEditor = () => {
           <FilterEditor
             step={step}
             onUpdate={handleUpdate}
+            onBatchUpdate={handleBatchUpdate}
             availableInputs={availableInputs || []}
             tableSchemas={tableSchemas || {}}
           />
