@@ -174,8 +174,19 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
     });
     
     if (newName === '') {
+      // Always update the step even for empty names
+      const newCols = { ...cols };
+      newCols[newName] = newCols[oldName];
+      delete newCols[oldName];
+      updateStep(newCols);
       return;
     }
+    
+    // Always update the step first (allow typing)
+    const newCols = { ...cols };
+    newCols[newName] = newCols[oldName];
+    delete newCols[oldName];
+    updateStep(newCols);
     
     // Check for conflicts after a delay
     const existingInputColumns = currentSchema.map(col => col.name);
@@ -186,15 +197,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
           [stableId]: `Column name "${newName}" already exists in input schema`
         }));
       }, 200);
-      return; // Don't update the step if there's a conflict
     }
-    
-    // No conflict, proceed with the update
-    const newCols = { ...cols };
-    // Preserve the column data with its stable ID
-    newCols[newName] = newCols[oldName];
-    delete newCols[oldName];
-    updateStep(newCols);
   }, [cols, updateStep, currentSchema]);
 
   const updateColumnExpr = (name, expr) => {
