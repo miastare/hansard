@@ -90,8 +90,6 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
         <select 
           value={step.input || ''} 
           onChange={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
             updateInput(e.target.value);
           }}
           style={{ 
