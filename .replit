@@ -20,6 +20,15 @@ args = "cd frontend && npm install && npm start"
 task = "shell.exec"
 args = "python3 app.py"
 
+[[workflows.workflow]]
+name = "Build Frontend"
+author = 42117987
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd frontend && npm run build"
+
 [[ports]]
 localPort = 3000
 externalPort = 3000
