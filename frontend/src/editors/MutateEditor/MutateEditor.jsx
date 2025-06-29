@@ -19,8 +19,20 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
     console.log('MUTATE EDITOR: availableInputs:', availableInputs);
     console.log('MUTATE EDITOR: tableSchemas keys:', Object.keys(tableSchemas || {}));
 
-    // If no input is selected but there are available inputs, try to use the first/last one
-    if (!step.input && availableInputs && availableInputs.length > 0) {
+    // If input is specified and exists, use it
+    if (step.input && step.input.trim() !== '') {
+      console.log('MUTATE EDITOR: Using step.input:', step.input);
+      const inputStep = availableInputs?.find(s => s.id === step.input);
+      console.log('MUTATE EDITOR: Found inputStep:', inputStep);
+      if (inputStep) {
+        const schema = deriveSchema(inputStep, [...availableInputs, step], tableSchemas);
+        console.log('MUTATE EDITOR: Derived schema from inputStep:', schema);
+        return schema;
+      }
+    }
+
+    // If no input is selected but there are available inputs, try to use the last one
+    if ((!step.input || step.input.trim() === '') && availableInputs && availableInputs.length > 0) {
       console.log('MUTATE EDITOR: No step.input but availableInputs exist - using last available input');
       const lastInput = availableInputs[availableInputs.length - 1];
       console.log('MUTATE EDITOR: Using lastInput:', lastInput);
@@ -28,17 +40,6 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       if (lastInput) {
         const schema = deriveSchema(lastInput, availableInputs, tableSchemas);
         console.log('MUTATE EDITOR: Derived schema from lastInput:', schema);
-        return schema;
-      }
-    }
-
-    if (step.input) {
-      console.log('MUTATE EDITOR: Using step.input:', step.input);
-      const inputStep = availableInputs?.find(s => s.id === step.input);
-      console.log('MUTATE EDITOR: Found inputStep:', inputStep);
-      if (inputStep) {
-        const schema = deriveSchema(inputStep, [...availableInputs, step], tableSchemas);
-        console.log('MUTATE EDITOR: Derived schema from inputStep:', schema);
         return schema;
       }
     }
