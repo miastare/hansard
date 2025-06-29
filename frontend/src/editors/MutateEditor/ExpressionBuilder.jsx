@@ -514,7 +514,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
                 console.log('EXPRESSION BUILDER: Modal onChange for arg', editingArgIndex, ':', newArg);
                 handleArgChange(editingArgIndex, newArg);
               }}
-              availableColumns={expr.type === 'dynamic' ? getFilteredColumns(expr.operator) : safeAvailableColumns}
+              availableColumns={safeAvailableColumns}
             />
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
               <button
