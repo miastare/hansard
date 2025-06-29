@@ -505,9 +505,19 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                 minWidth: '150px'
               }}
             >
-              {getCompatibleOperators(safeAvailableColumns).map(op => (
-                <option key={op} value={op}>{op}</option>
-              ))}
+              {(() => {
+                // Get required types from parent context
+                let requiredTypes = null;
+                if (parentContext && parentContext.requiredType) {
+                  requiredTypes = Array.isArray(parentContext.requiredType) ? 
+                    parentContext.requiredType : [parentContext.requiredType];
+                }
+                
+                const compatibleOps = getCompatibleOperators(safeAvailableColumns, requiredTypes, parentContext);
+                return compatibleOps.map(op => (
+                  <option key={op} value={op}>{op}</option>
+                ));
+              })()}
             </select>
           </div>
 
@@ -648,10 +658,11 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
               parentContext={(() => {
                 // Create context for the argument being edited
                 if (expr.type === 'dynamic') {
+                  const argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
                   return {
                     parentOperator: expr.operator,
                     argIndex: editingArgIndex,
-                    requiredType: getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext)
+                    requiredType: argRequiredTypes
                   };
                 }
                 return parentContext;

@@ -211,14 +211,44 @@ export function getOperatorInfo(operator) {
   };
 }
 
-export function getCompatibleOperators(availableColumns = []) {
+export function getCompatibleOperators(availableColumns = [], requiredTypes = null, parentContext = null) {
   console.log('EXPRESSION UTILS: getCompatibleOperators called with columns:', availableColumns);
+  console.log('EXPRESSION UTILS: requiredTypes:', requiredTypes);
+  console.log('EXPRESSION UTILS: parentContext:', parentContext);
   
-  // For now, return all operators
-  // In future, could filter based on column types
   const allOps = Object.keys(OPERATORS);
-  console.log('EXPRESSION UTILS: Returning all operators:', allOps);
-  return allOps;
+  
+  // If no type constraints, return all operators
+  if (!requiredTypes || !Array.isArray(requiredTypes)) {
+    console.log('EXPRESSION UTILS: No type constraints, returning all operators:', allOps);
+    return allOps;
+  }
+  
+  // Filter operators based on their output type compatibility with required types
+  const compatibleOps = allOps.filter(op => {
+    const opInfo = getOperatorInfo(op);
+    const outputType = opInfo.outputType;
+    
+    // Special handling for conditional operators
+    if (outputType === 'conditional') {
+      return true; // if_else can adapt to any required type
+    }
+    
+    // Check if operator output is compatible with any of the required types
+    return requiredTypes.some(reqType => {
+      if (reqType === 'any') return true;
+      
+      // Type compatibility rules
+      if (outputType === 'float64' && (reqType === 'int64' || reqType === 'float64')) return true;
+      if (outputType === 'int64' && (reqType === 'int64' || reqType === 'float64')) return true;
+      if (outputType === reqType) return true;
+      
+      return false;
+    });
+  });
+  
+  console.log('EXPRESSION UTILS: Compatible operators for types', requiredTypes, ':', compatibleOps);
+  return compatibleOps;
 }
 
 export function getTypeFromValue(value) {
@@ -270,21 +300,54 @@ export function getRequiredTypeForArgument(operator, argIndex, parentExpressionC
     if (argIndex === 1 || argIndex === 2) {
       // For if_else branches, the required type depends on the parent context
       if (parentExpressionContext && parentExpressionContext.requiredType) {
+        // If parent has specific type requirements, use those
+        if (Array.isArray(parentExpressionContext.requiredType)) {
+          return parentExpressionContext.requiredType;
+        }
         return [parentExpressionContext.requiredType];
       }
-      return ['int64', 'float64', 'str', 'bool']; // any type is allowed if no parent constraint
+      // If no parent constraint, allow any type but both branches must match
+      return ['int64', 'float64', 'str', 'bool']; 
+    }
+  }
+  
+  // For operators with specific input types, return them directly
+  if (opInfo.inputTypes && opInfo.inputTypes.length > 0 && !opInfo.inputTypes.includes('any')) {
+    // Handle variable-length operators that take the same type for all args
+    if (argIndex >= opInfo.inputTypes.length) {
+      // For operators like 'add' that can take multiple args of the same type
+      return opInfo.inputTypes;
+    }
+    
+    // For operators with position-specific types
+    if (argIndex < opInfo.inputTypes.length) {
+      const requiredType = opInfo.inputTypes[argIndex];
+      if (requiredType === 'any') {
+        // If this specific position allows 'any', check parent context
+        if (parentExpressionContext && parentExpressionContext.requiredType) {
+          if (Array.isArray(parentExpressionContext.requiredType)) {
+            return parentExpressionContext.requiredType;
+          }
+          return [parentExpressionContext.requiredType];
+        }
+        return ['int64', 'float64', 'str', 'bool'];
+      }
+      return [requiredType];
     }
   }
   
   // For operators with 'any' input types, check if we have parent context
   if (opInfo.inputTypes.includes('any')) {
     if (parentExpressionContext && parentExpressionContext.requiredType) {
+      if (Array.isArray(parentExpressionContext.requiredType)) {
+        return parentExpressionContext.requiredType;
+      }
       return [parentExpressionContext.requiredType];
     }
     return ['int64', 'float64', 'str', 'bool']; // fallback to all types
   }
   
-  return opInfo.inputTypes;
+  return opInfo.inputTypes || ['int64', 'float64', 'str', 'bool'];
 }
 
 export function isTypeCompatible(sourceType, targetTypes) {
