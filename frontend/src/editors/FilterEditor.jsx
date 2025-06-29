@@ -3,77 +3,49 @@ import React, { useState, useCallback } from 'react';
 import { deriveSchema } from '../utils/DeriveSchema';
 
 export default function FilterEditor({ step, onUpdate, availableInputs, tableSchemas }) {
-  console.log(`🔍 FILTER EDITOR [${step.id}]: === RENDERING ===`);
-  console.log(`🔍 FILTER EDITOR [${step.id}]: step:`, step);
-  console.log(`🔍 FILTER EDITOR [${step.id}]: availableInputs:`, availableInputs?.map(i => ({id: i.id, op: i.op})));
-
   const [conditions, setConditions] = useState(step.conditions || []);
 
   // Get schema for the selected input (similar to MutateEditor logic)
   const getInputSchema = () => {
-    console.log(`📊 FILTER SCHEMA [${step.id}]: === getInputSchema called ===`);
-    console.log(`📊 FILTER SCHEMA [${step.id}]: step.input:`, step.input);
-    console.log(`📊 FILTER SCHEMA [${step.id}]: availableInputs:`, availableInputs);
-    console.log(`📊 FILTER SCHEMA [${step.id}]: tableSchemas:`, tableSchemas);
-
     // If step has a specific input, use that
     if (step.input && step.input !== '' && availableInputs) {
-      console.log(`📊 FILTER SCHEMA [${step.id}]: Looking for input step with ID: ${step.input}`);
       const inputStep = availableInputs.find(s => s.id === step.input);
-      console.log(`📊 FILTER SCHEMA [${step.id}]: Found inputStep:`, inputStep);
       
       if (inputStep) {
-        console.log(`📊 FILTER SCHEMA [${step.id}]: Processing inputStep - op: ${inputStep.op}, table: ${inputStep.table}`);
-        
         if (inputStep.op === 'source' && inputStep.table) {
-          console.log(`📊 FILTER SCHEMA [${step.id}]: Input is source step, getting table schema for: ${inputStep.table}`);
           const schemaWrapper = tableSchemas[inputStep.table];
-          console.log(`📊 FILTER SCHEMA [${step.id}]: Schema wrapper:`, schemaWrapper);
           
           if (schemaWrapper) {
             // Handle both wrapper format {cols: [...]} and direct array format
             const schema = schemaWrapper.cols || schemaWrapper;
-            console.log(`📊 FILTER SCHEMA [${step.id}]: Extracted schema:`, schema);
             
             if (Array.isArray(schema)) {
-              console.log(`📊 FILTER SCHEMA [${step.id}]: ✅ Returning source schema with ${schema.length} columns`);
               return schema;
             } else {
-              console.log(`📊 FILTER SCHEMA [${step.id}]: ❌ Schema is not an array:`, typeof schema);
               return [];
             }
           } else {
-            console.log(`📊 FILTER SCHEMA [${step.id}]: ❌ No schema found for table: ${inputStep.table}`);
             return [];
           }
         } else {
           // For non-source steps (like mutate steps), derive the schema
-          console.log(`📊 FILTER SCHEMA [${step.id}]: Input is ${inputStep.op} step, deriving schema`);
-          console.log(`📊 FILTER SCHEMA [${step.id}]: Calling deriveSchema with inputStep:`, inputStep);
-          
           const derivedSchema = deriveSchema(inputStep, availableInputs, tableSchemas);
-          console.log(`📊 FILTER SCHEMA [${step.id}]: deriveSchema returned:`, derivedSchema);
           
           if (Array.isArray(derivedSchema)) {
-            console.log(`📊 FILTER SCHEMA [${step.id}]: ✅ Returning derived schema with ${derivedSchema.length} columns`);
             return derivedSchema;
           } else {
-            console.log(`📊 FILTER SCHEMA [${step.id}]: ❌ Derived schema is not an array, returning empty`);
             return [];
           }
         }
       } else {
-        console.log(`📊 FILTER SCHEMA [${step.id}]: ❌ No input step found with ID: ${step.input}`);
         return [];
       }
     }
 
-    console.log(`📊 FILTER SCHEMA [${step.id}]: ❌ No valid input found`);
     return [];
   };
 
   const currentSchema = getInputSchema();
-  console.log(`🎯 FILTER FINAL SCHEMA [${step.id}]: currentSchema:`, currentSchema);
 
   const updateStep = useCallback((newConditions) => {
     setConditions(newConditions);
@@ -81,17 +53,13 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
   }, [onUpdate]);
 
   const updateInput = useCallback((newInput) => {
-    console.log(`🔄 FILTER INPUT CHANGE [${step.id}]: Input changed from ${step.input} to ${newInput}`);
-    console.log(`🔄 FILTER INPUT CHANGE [${step.id}]: onUpdate function:`, typeof onUpdate);
-    console.log(`🔄 FILTER INPUT CHANGE [${step.id}]: Calling onUpdate with 'input', ${newInput}`);
-    
     // Update the step input
     onUpdate('input', newInput);
     
     // Clear conditions when input changes since schema might be different
     setConditions([]);
     onUpdate('conditions', []);
-  }, [step.id, onUpdate]);
+  }, [onUpdate]);
 
   const addCondition = () => {
     const newConditions = [...conditions, { column: '', operator: '=', value: '' }];
@@ -113,28 +81,19 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
     <div>
       <h4>Filter Step</h4>
 
-      <div style={{ marginBottom: '20px', position: 'relative', zIndex: 1000 }}>
+      <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
           Input step:
         </label>
         <select 
           value={step.input || ''} 
-          onChange={(e) => {
-            e.stopPropagation();
-            updateInput(e.target.value);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          onFocus={(e) => e.stopPropagation()}
+          onChange={(e) => updateInput(e.target.value)}
           style={{ 
             width: '100%', 
             padding: '10px', 
             border: '1px solid #ddd', 
             borderRadius: '6px',
-            fontSize: '14px',
-            backgroundColor: 'white',
-            cursor: 'pointer',
-            position: 'relative',
-            zIndex: 1001
+            fontSize: '14px'
           }}
         >
           <option value="">Select input</option>

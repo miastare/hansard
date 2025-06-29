@@ -15,9 +15,7 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
   }
 
   const handleUpdate = (field, value) => {
-    console.log(`🎭 STEP CARD [${index}]: handleUpdate called with field: ${field}, value: ${value}`);
     const updatedStep = { ...step, [field]: value };
-    console.log(`🎭 STEP CARD [${index}]: Updated step:`, updatedStep);
     onUpdate(index, updatedStep);
   };
 
