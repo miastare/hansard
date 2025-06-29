@@ -82,11 +82,15 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
 
   const updateInput = useCallback((newInput) => {
     console.log(`🔄 FILTER INPUT CHANGE [${step.id}]: Input changed from ${step.input} to ${newInput}`);
+    console.log(`🔄 FILTER INPUT CHANGE [${step.id}]: onUpdate function:`, typeof onUpdate);
+    
+    // Update the step input
     onUpdate('input', newInput);
+    
     // Clear conditions when input changes since schema might be different
     setConditions([]);
     onUpdate('conditions', []);
-  }, [step.input, onUpdate]);
+  }, [step.id, onUpdate]);
 
   const addCondition = () => {
     const newConditions = [...conditions, { column: '', operator: '=', value: '' }];
@@ -114,7 +118,10 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
         </label>
         <select 
           value={step.input || ''} 
-          onChange={(e) => updateInput(e.target.value)}
+          onChange={(e) => {
+            console.log(`🔄 FILTER SELECT CHANGE: Selected value: ${e.target.value}`);
+            updateInput(e.target.value);
+          }}
           style={{ 
             width: '100%', 
             padding: '10px', 
