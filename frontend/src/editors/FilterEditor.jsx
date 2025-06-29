@@ -83,6 +83,7 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
   const updateInput = useCallback((newInput) => {
     console.log(`🔄 FILTER INPUT CHANGE [${step.id}]: Input changed from ${step.input} to ${newInput}`);
     console.log(`🔄 FILTER INPUT CHANGE [${step.id}]: onUpdate function:`, typeof onUpdate);
+    console.log(`🔄 FILTER INPUT CHANGE [${step.id}]: Calling onUpdate with 'input', ${newInput}`);
     
     // Update the step input
     onUpdate('input', newInput);
