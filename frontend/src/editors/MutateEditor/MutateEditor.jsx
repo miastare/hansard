@@ -174,17 +174,21 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
           <div style={{ marginBottom: '15px' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '8px', 
-              fontWeight: 'bold',
-              fontSize: '14px',
-              color: '#495057'
-            }}>
+            <label 
+              htmlFor={`column-name-input-${name}`}
+              style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontWeight: 'bold',
+                fontSize: '14px',
+                color: '#495057'
+              }}
+            >
               Column name (LHS):
             </label>
             <input
-              key={`column-name-${name}`}
+              id={`column-name-input-${name}`}
+              name={`column-name-${name}`}
               type="text"
               value={name}
               onChange={(e) => updateColumnName(name, e.target.value)}
