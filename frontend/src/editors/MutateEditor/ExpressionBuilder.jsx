@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { getOperatorInfo, getCompatibleOperators, getTypeFromValue } from '../../utils/ExpressionUtils';
 
-export default function ExpressionBuilder({ expr, onChange, availableColumns }) {
+export default function ExpressionBuilder({ expr, onChange, availableColumns, parentOperator = null }) {
   // Ensure availableColumns is always an array
   const safeAvailableColumns = availableColumns || [];
   
@@ -103,6 +103,31 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
         { type: 'constant', valueType: 'int64', value: 0 }
       ]});
     }
+  };
+
+  // Get allowed types for constants based on parent operator context
+  const getAllowedConstantTypes = (operatorContext = parentOperator) => {
+    if (!parentOperator) {
+      // If no parent operator, allow all types
+      return ['int64', 'float64', 'bool', 'str'];
+    }
+    
+    const opInfo = getOperatorInfo(parentOperator);
+    const allowedTypes = [];
+    
+    // Map operator input types to constant types
+    opInfo.inputTypes.forEach(inputType => {
+      if (inputType === 'int64' || inputType === 'float64') {
+        if (!allowedTypes.includes('int64')) allowedTypes.push('int64');
+        if (!allowedTypes.includes('float64')) allowedTypes.push('float64');
+      } else if (inputType === 'str') {
+        if (!allowedTypes.includes('str')) allowedTypes.push('str');
+      } else if (inputType === 'bool') {
+        if (!allowedTypes.includes('bool')) allowedTypes.push('bool');
+      }
+    });
+    
+    return allowedTypes.length > 0 ? allowedTypes : ['int64', 'float64', 'bool', 'str'];
   };
 
   const handleConstantChange = (field, value) => {
@@ -385,16 +410,45 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
                 minWidth: '150px'
               }}
             >
-              <option value="int64">Integer</option>
-              <option value="float64">Float</option>
-              <option value="bool">Boolean</option>
-              <option value="str">String</option>
+              {(() => {
+                const allowedTypes = getAllowedConstantTypes();
+                console.log('EXPRESSION BUILDER: Allowed constant types for parent operator', parentOperator, ':', allowedTypes);
+                
+                // Auto-correct if current type is not allowed
+                if (!allowedTypes.includes(expr.valueType) && allowedTypes.length > 0) {
+                  console.log('EXPRESSION BUILDER: Current type', expr.valueType, 'not allowed, switching to', allowedTypes[0]);
+                  setTimeout(() => {
+                    handleConstantChange('valueType', allowedTypes[0]);
+                  }, 0);
+                }
+                
+                const typeOptions = [];
+                if (allowedTypes.includes('int64')) {
+                  typeOptions.push(<option key="int64" value="int64">Integer</option>);
+                }
+                if (allowedTypes.includes('float64')) {
+                  typeOptions.push(<option key="float64" value="float64">Float</option>);
+                }
+                if (allowedTypes.includes('bool')) {
+                  typeOptions.push(<option key="bool" value="bool">Boolean</option>);
+                }
+                if (allowedTypes.includes('str')) {
+                  typeOptions.push(<option key="str" value="str">String</option>);
+                }
+                
+                return typeOptions;
+              })()}
             </select>
             <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
               {expr.valueType === 'int64' && 'Whole numbers (e.g., 1, 42, -10)'}
               {expr.valueType === 'float64' && 'Decimal numbers (e.g., 3.14, -2.5)'}
               {expr.valueType === 'bool' && 'True or False values'}
               {expr.valueType === 'str' && 'Text values (e.g., "hello", "world")'}
+              {parentOperator && (
+                <div style={{ fontSize: '11px', color: '#007bff', marginTop: '2px' }}>
+                  ℹ️ Types limited by {parentOperator} operator requirements
+                </div>
+              )}
             </div>
           </div>
 
@@ -599,6 +653,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
                 console.log('EXPRESSION BUILDER: Modal onChange for arg', editingArgIndex, ':', newArg);
                 handleArgChange(editingArgIndex, newArg);
               }}
+              parentOperator={expr.type === 'dynamic' ? expr.operator : null}
               availableColumns={(() => {
                 console.log('=== EXPRESSION BUILDER: MODAL COLUMNS PROP PREPARATION ===');
                 console.log('EXPRESSION BUILDER: Current operator:', expr.operator);
