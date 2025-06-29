@@ -620,6 +620,7 @@ export default function ExpressionBuilder({
               value={arg}
               onChange={(newArg) => updateArgument(index, newArg)}
               parentOperator={expr.operator}
+              availableColumns={safeAvailableColumns}
             />
           </div>
         ))}
@@ -681,7 +682,7 @@ export default function ExpressionBuilder({
   );
 }
 
-const ArgumentEditor = ({ argIndex, operator, value, onChange, parentOperator = null }) => {
+const ArgumentEditor = ({ argIndex, operator, value, onChange, parentOperator = null, availableColumns = [] }) => {
     console.log('EXPRESSION BUILDER: ArgumentEditor rendering for:', operator, 'arg', argIndex);
     console.log('EXPRESSION BUILDER: Current value:', value);
     console.log('EXPRESSION BUILDER: parentOperator:', parentOperator);
