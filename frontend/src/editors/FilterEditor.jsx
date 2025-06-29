@@ -57,11 +57,9 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
     onUpdate('input', newInput);
     
     // Clear conditions when input changes since schema might be different
-    if (newInput !== step.input) {
-      setConditions([]);
-      onUpdate('conditions', []);
-    }
-  }, [onUpdate, step.input]);
+    setConditions([]);
+    onUpdate('conditions', []);
+  }, [onUpdate]);
 
   const addCondition = () => {
     const newConditions = [...conditions, { column: '', operator: '=', value: '' }];
