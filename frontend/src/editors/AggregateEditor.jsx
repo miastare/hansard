@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { deriveSchema } from '../utils/DeriveSchema';
 
 const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, tableSchemas }) => {
   console.log('🔢 AGGREGATE EDITOR: Rendering with step:', step);
@@ -62,14 +63,11 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
     const inputStep = availableInputs.find(inp => inp.id === step.input);
     if (!inputStep) return [];
 
-    // For source steps, get columns from table schema
-    if (inputStep.op === 'source' && inputStep.table && tableSchemas[inputStep.table]) {
-      return tableSchemas[inputStep.table].cols || [];
-    }
-
-    // For other steps, we'd need to derive the schema
-    // For now, return empty array
-    return [];
+    // Use schema derivation for all step types
+    const derivedSchema = deriveSchema(inputStep, availableInputs, tableSchemas);
+    console.log('🔢 AGGREGATE EDITOR: Derived schema for input step:', derivedSchema);
+    
+    return Array.isArray(derivedSchema) ? derivedSchema : [];
   };
 
   const availableColumns = getAvailableColumns();

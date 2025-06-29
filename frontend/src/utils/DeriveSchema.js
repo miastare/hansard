@@ -119,6 +119,61 @@ export function deriveSchema(step, steps, tableCatalog) {
     return outputSchema;
   }
 
+  if (step.op === "aggregate") {
+    console.log(`🔍 DERIVE SCHEMA: Processing aggregate step ${step.id}`);
+    console.log(`🔍 DERIVE SCHEMA: Aggregate step input: ${step.input}`);
+    console.log(`🔍 DERIVE SCHEMA: Aggregate step group:`, step.group);
+    console.log(`🔍 DERIVE SCHEMA: Aggregate step metrics:`, step.metrics);
+    
+    if (!step.input || step.input === '') {
+      console.log(`🔍 DERIVE SCHEMA: ❌ Aggregate step has no input specified`);
+      return [];
+    }
+    
+    const inputStep = steps.find(s => s.id === step.input);
+    if (!inputStep) {
+      console.log(`🔍 DERIVE SCHEMA: ❌ No input step found for aggregate: ${step.input}`);
+      console.log(`🔍 DERIVE SCHEMA: Available step IDs:`, steps?.map(s => s.id));
+      return [];
+    }
+    
+    console.log(`🔍 DERIVE SCHEMA: Found input step for aggregate:`, inputStep);
+    
+    // Get input schema to validate group columns
+    const inputSchema = deriveSchema(inputStep, steps, tableCatalog);
+    console.log(`🔍 DERIVE SCHEMA: Input schema for aggregate (${inputSchema.length} columns):`, inputSchema);
+    
+    const outputSchema = [];
+    
+    // Add group by columns (they keep their original types)
+    if (step.group && step.group.length > 0) {
+      step.group.forEach(groupCol => {
+        const inputCol = inputSchema.find(col => col.name === groupCol);
+        if (inputCol) {
+          console.log(`🔍 DERIVE SCHEMA: Adding group column: ${groupCol} (${inputCol.dtype})`);
+          outputSchema.push({ name: groupCol, dtype: inputCol.dtype });
+        } else {
+          console.log(`🔍 DERIVE SCHEMA: ⚠️ Group column ${groupCol} not found in input schema`);
+          // Add it anyway with unknown type
+          outputSchema.push({ name: groupCol, dtype: 'unknown' });
+        }
+      });
+    }
+    
+    // Add metric columns (they become numeric)
+    if (step.metrics && Object.keys(step.metrics).length > 0) {
+      Object.entries(step.metrics).forEach(([metricName, metric]) => {
+        console.log(`🔍 DERIVE SCHEMA: Adding metric column: ${metricName} (${metric.fn})`);
+        // Most aggregation functions return numeric values
+        const metricType = metric.fn === 'count' ? 'numeric' : 'numeric';
+        outputSchema.push({ name: metricName, dtype: metricType });
+      });
+    }
+    
+    console.log(`🔍 DERIVE SCHEMA: ✅ Final aggregate output schema (${outputSchema.length} columns):`, outputSchema);
+    return outputSchema;
+  }
+
   console.log(`🔍 DERIVE SCHEMA: ❌ Unhandled step type: ${step.op}`);
   return [];
 }
