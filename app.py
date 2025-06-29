@@ -7,19 +7,13 @@ from flask.helpers import send_from_directory
 from dsl_supporter import dfs
 
 
-app = Flask(__name__, static_folder='./frontend/build', static_url_path='')
+app = Flask(__name__)
 cors = CORS(app)
 
 @app.route('/api/run', methods=['POST'])
 @cross_origin()
 def run():
     return jsonify(run_pipeline(request.get_json(), app.config['DFS']))
-
-
-@app.route('/')
-@cross_origin()
-def serve():
-    return send_from_directory(app.static_folder, 'index.html')
 
 @app.get("/api/schema/<table>")
 def schema(table: str):
@@ -43,5 +37,5 @@ def preview(table: str):
 
 if __name__ == '__main__':
     app.config['DFS'] = dfs
-    app.run(debug=False, host='0.0.0.0', port=4005)
+    app.run(debug=True, host='0.0.0.0', port=4005)
 

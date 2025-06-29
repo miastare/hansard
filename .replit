@@ -14,11 +14,11 @@ mode = "parallel"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd frontend && npm install && npm start"
+args = "python3 app.py"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python3 app.py"
+args = "cd frontend && npm install && npm start"
 
 [[workflows.workflow]]
 name = "Build Frontend"
@@ -30,13 +30,9 @@ task = "shell.exec"
 args = "cd frontend && npm run build"
 
 [[ports]]
-localPort = 3000
-externalPort = 3000
-
-[[ports]]
 localPort = 3001
-externalPort = 3001
+externalPort = 80
 
 [[ports]]
 localPort = 4005
-externalPort = 80
+externalPort = 4005
