@@ -549,12 +549,40 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
               // Create context for this argument
               let argRequiredType;
               if (expr.operator === 'if_else' && (index === 1 || index === 2)) {
-                // For if_else branches, if this is a top-level mutate expression (no parentContext),
-                // allow any type
-                if (!parentContext || !parentContext.requiredType) {
-                  argRequiredType = ['int64', 'float64', 'str', 'bool'];
+                // For if_else branches, enforce that both branches have the same type
+                if (expr.args.length >= 3) {
+                  const otherBranchIndex = index === 1 ? 2 : 1;
+                  const otherBranchArg = expr.args[otherBranchIndex];
+                  
+                  if (otherBranchArg && otherBranchArg.type) {
+                    // Get the type of the other branch
+                    const otherBranchType = getExpressionType(otherBranchArg, safeAvailableColumns);
+                    if (otherBranchType !== 'unknown' && otherBranchType !== 'conditional') {
+                      // Constrain this branch to match the other branch's type
+                      argRequiredType = [otherBranchType];
+                    } else {
+                      // If other branch type is unknown, use parent context or allow all types
+                      if (!parentContext || !parentContext.requiredType) {
+                        argRequiredType = ['int64', 'float64', 'str', 'bool'];
+                      } else {
+                        argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
+                      }
+                    }
+                  } else {
+                    // If other branch doesn't exist yet, use parent context or allow all types
+                    if (!parentContext || !parentContext.requiredType) {
+                      argRequiredType = ['int64', 'float64', 'str', 'bool'];
+                    } else {
+                      argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
+                    }
+                  }
                 } else {
-                  argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
+                  // Not enough args yet, use parent context or allow all types
+                  if (!parentContext || !parentContext.requiredType) {
+                    argRequiredType = ['int64', 'float64', 'str', 'bool'];
+                  } else {
+                    argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
+                  }
                 }
               } else {
                 argRequiredType = getRequiredTypeForArgument(expr.operator, index, parentContext);
@@ -584,6 +612,11 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                       Argument {index + 1}:
                       <span style={{ fontSize: '11px', color: '#666', fontWeight: 'normal' }}>
                         {' '}(requires: {Array.isArray(argContext.requiredType) ? argContext.requiredType.join(', ') : argContext.requiredType})
+                        {expr.operator === 'if_else' && (index === 1 || index === 2) && (
+                          <span style={{ color: '#007bff', marginLeft: '4px' }}>
+                            • Must match other branch
+                          </span>
+                        )}
                       </span>
                     </span>
                     <div>
@@ -664,12 +697,40 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                 if (expr.type === 'dynamic') {
                   let argRequiredTypes;
                   if (expr.operator === 'if_else' && (editingArgIndex === 1 || editingArgIndex === 2)) {
-                    // For if_else branches, if this is a top-level mutate expression (no parentContext),
-                    // allow any type
-                    if (!parentContext || !parentContext.requiredType) {
-                      argRequiredTypes = ['int64', 'float64', 'str', 'bool'];
+                    // For if_else branches, enforce that both branches have the same type
+                    if (expr.args.length >= 3) {
+                      const otherBranchIndex = editingArgIndex === 1 ? 2 : 1;
+                      const otherBranchArg = expr.args[otherBranchIndex];
+                      
+                      if (otherBranchArg && otherBranchArg.type) {
+                        // Get the type of the other branch
+                        const otherBranchType = getExpressionType(otherBranchArg, safeAvailableColumns);
+                        if (otherBranchType !== 'unknown' && otherBranchType !== 'conditional') {
+                          // Constrain this branch to match the other branch's type
+                          argRequiredTypes = [otherBranchType];
+                        } else {
+                          // If other branch type is unknown, use parent context or allow all types
+                          if (!parentContext || !parentContext.requiredType) {
+                            argRequiredTypes = ['int64', 'float64', 'str', 'bool'];
+                          } else {
+                            argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
+                          }
+                        }
+                      } else {
+                        // If other branch doesn't exist yet, use parent context or allow all types
+                        if (!parentContext || !parentContext.requiredType) {
+                          argRequiredTypes = ['int64', 'float64', 'str', 'bool'];
+                        } else {
+                          argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
+                        }
+                      }
                     } else {
-                      argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
+                      // Not enough args yet, use parent context or allow all types
+                      if (!parentContext || !parentContext.requiredType) {
+                        argRequiredTypes = ['int64', 'float64', 'str', 'bool'];
+                      } else {
+                        argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
+                      }
                     }
                   } else {
                     argRequiredTypes = getRequiredTypeForArgument(expr.operator, editingArgIndex, parentContext);
