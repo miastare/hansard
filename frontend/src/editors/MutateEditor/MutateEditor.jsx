@@ -45,12 +45,19 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       console.log('MUTATE EDITOR: step.input exists:', step.input);
       const inputStep = availableInputs.find(s => s.id === step.input);
       if (inputStep) {
+        console.log('MUTATE EDITOR: Found inputStep:', inputStep);
+        
         if (inputStep.op === 'source' && inputStep.table) {
           const schema = tableSchemas[inputStep.table];
           console.log('MUTATE EDITOR: Found source step schema:', schema);
           return schema ? schema.cols : [];
+        } else {
+          // For non-source steps (like other mutate steps), derive the schema
+          console.log('MUTATE EDITOR: Input is not a source step, deriving schema');
+          const derivedSchema = deriveSchema(inputStep, availableInputs, tableSchemas);
+          console.log('MUTATE EDITOR: Derived schema:', derivedSchema);
+          return derivedSchema || [];
         }
-        // Handle other step types if needed
       }
     }
 
@@ -63,6 +70,11 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
         const schema = tableSchemas[firstInput.table];
         console.log('MUTATE EDITOR: Using first available input schema:', schema);
         return schema ? schema.cols : [];
+      } else {
+        // For non-source steps, derive the schema
+        const derivedSchema = deriveSchema(firstInput, availableInputs, tableSchemas);
+        console.log('MUTATE EDITOR: Using first available input derived schema:', derivedSchema);
+        return derivedSchema || [];
       }
     }
 
