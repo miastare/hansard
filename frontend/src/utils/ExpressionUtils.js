@@ -176,9 +176,13 @@ export function getOperatorInfo(operator) {
 }
 
 export function getCompatibleOperators(availableColumns = []) {
+  console.log('EXPRESSION UTILS: getCompatibleOperators called with columns:', availableColumns);
+  
   // For now, return all operators
   // In future, could filter based on column types
-  return Object.keys(OPERATORS);
+  const allOps = Object.keys(OPERATORS);
+  console.log('EXPRESSION UTILS: Returning all operators:', allOps);
+  return allOps;
 }
 
 export function getTypeFromValue(value) {

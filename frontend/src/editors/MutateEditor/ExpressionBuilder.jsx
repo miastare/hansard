@@ -18,6 +18,38 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
     console.log('EXPRESSION BUILDER: availableColumns details:', JSON.stringify(safeAvailableColumns, null, 2));
   }
 
+  // Filter columns based on current context
+  const getFilteredColumns = (operator = null) => {
+    console.log('EXPRESSION BUILDER: getFilteredColumns called with operator:', operator);
+    console.log('EXPRESSION BUILDER: safeAvailableColumns for filtering:', safeAvailableColumns);
+    
+    if (!operator) {
+      console.log('EXPRESSION BUILDER: No operator - returning all columns');
+      return safeAvailableColumns;
+    }
+
+    const opInfo = getOperatorInfo(operator);
+    console.log('EXPRESSION BUILDER: opInfo for', operator, ':', opInfo);
+    
+    const filteredColumns = safeAvailableColumns.filter(col => {
+      const colType = col.dtype === 'object' ? 'str' : col.dtype; // Convert object to str
+      const isCompatible = opInfo.inputTypes.some(inputType => {
+        if (inputType === 'int64' || inputType === 'float64') {
+          return colType === 'int64' || colType === 'float64';
+        }
+        if (inputType === 'str') {
+          return colType === 'str' || colType === 'object';
+        }
+        return colType === inputType;
+      });
+      console.log('EXPRESSION BUILDER: Column', col.name, 'type', colType, 'compatible with', operator, ':', isCompatible);
+      return isCompatible;
+    });
+    
+    console.log('EXPRESSION BUILDER: Filtered columns for', operator, ':', filteredColumns);
+    return filteredColumns;
+  };
+
   const [showModal, setShowModal] = useState(false);
   const [editingArgIndex, setEditingArgIndex] = useState(null);
 
@@ -219,7 +251,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
               }}
             >
               <option value="">Select column</option>
-              {safeAvailableColumns.map(col => {
+              {getFilteredColumns().map(col => {
                 console.log('EXPRESSION BUILDER: Rendering option for column:', col);
                 return (
                   <option key={col.name} value={col.name}>{col.name} ({col.dtype})</option>
@@ -377,69 +409,78 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
               </div>
             </div>
 
-            {expr.args.map((arg, index) => (
-              <div key={index} style={{ 
-                marginBottom: '10px',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                backgroundColor: '#fff'
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  marginBottom: '8px'
+            {expr.args.map((arg, index) => {
+              console.log('EXPRESSION BUILDER: Rendering arg', index, 'for operator', expr.operator);
+              const operatorFilteredColumns = getFilteredColumns(expr.operator);
+              console.log('EXPRESSION BUILDER: Operator-filtered columns for arg', index, ':', operatorFilteredColumns);
+              
+              return (
+                <div key={index} style={{ 
+                  marginBottom: '10px',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  backgroundColor: '#fff'
                 }}>
-                  <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
-                    Argument {index + 1}:
-                  </span>
-                  <div>
-                    <button
-                      onClick={() => openArgModal(index)}
-                      style={{
-                        padding: '4px 8px',
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '3px',
-                        cursor: 'pointer',
-                        fontSize: '11px',
-                        marginRight: '5px'
-                      }}
-                    >
-                      Edit
-                    </button>
-                    {expr.args.length > getOperatorInfo(expr.operator).minArgs && (
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                      Argument {index + 1}:
+                    </span>
+                    <div>
                       <button
-                        onClick={() => removeArgument(index)}
+                        onClick={() => {
+                          console.log('EXPRESSION BUILDER: Opening modal for arg', index, 'with columns:', operatorFilteredColumns);
+                          openArgModal(index);
+                        }}
                         style={{
                           padding: '4px 8px',
-                          backgroundColor: '#dc3545',
+                          backgroundColor: '#007bff',
                           color: 'white',
                           border: 'none',
                           borderRadius: '3px',
                           cursor: 'pointer',
-                          fontSize: '11px'
+                          fontSize: '11px',
+                          marginRight: '5px'
                         }}
                       >
-                        Remove
+                        Edit
                       </button>
-                    )}
+                      {expr.args.length > getOperatorInfo(expr.operator).minArgs && (
+                        <button
+                          onClick={() => removeArgument(index)}
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                            fontSize: '11px'
+                          }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ 
+                    padding: '8px',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    color: '#495057',
+                    border: '1px solid #e9ecef'
+                  }}>
+                    {truncate(getExpressionSummary(arg))}
                   </div>
                 </div>
-                <div style={{ 
-                  padding: '8px',
-                  backgroundColor: '#f8f9fa',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  color: '#495057',
-                  border: '1px solid #e9ecef'
-                }}>
-                  {truncate(getExpressionSummary(arg))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -449,11 +490,19 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
           <div style={{ padding: '20px', minWidth: '500px' }}>
             <h3 style={{ marginBottom: '20px' }}>
               Edit Argument {editingArgIndex + 1}
+              {expr.type === 'dynamic' && (
+                <span style={{ fontSize: '14px', color: '#666', fontWeight: 'normal' }}>
+                  {' '}for {expr.operator} operation
+                </span>
+              )}
             </h3>
             <ExpressionBuilder
               expr={expr.args[editingArgIndex]}
-              onChange={(newArg) => handleArgChange(editingArgIndex, newArg)}
-              availableColumns={safeAvailableColumns}
+              onChange={(newArg) => {
+                console.log('EXPRESSION BUILDER: Modal onChange for arg', editingArgIndex, ':', newArg);
+                handleArgChange(editingArgIndex, newArg);
+              }}
+              availableColumns={expr.type === 'dynamic' ? getFilteredColumns(expr.operator) : safeAvailableColumns}
             />
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
               <button

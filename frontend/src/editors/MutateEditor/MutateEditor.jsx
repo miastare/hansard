@@ -12,59 +12,40 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   const [cols, setCols] = useState(step.cols || {});
 
   // Get schema for the selected input
-  const getInputSchema = () => {
-    console.log(`MUTATE EDITOR: === getInputSchema called ===`);
-    console.log(`MUTATE EDITOR: step.input:`, step.input);
-    console.log(`MUTATE EDITOR: availableInputs:`, availableInputs);
-    console.log(`MUTATE EDITOR: availableInputs length:`, availableInputs?.length);
-    console.log(`MUTATE EDITOR: tableSchemas:`, tableSchemas);
-    console.log(`MUTATE EDITOR: tableSchemas keys:`, Object.keys(tableSchemas || {}));
+  const getInputSchema = useCallback(() => {
+    console.log('MUTATE EDITOR: === getInputSchema called ===');
+    console.log('MUTATE EDITOR: step.input:', step.input);
+    console.log('MUTATE EDITOR: availableInputs length:', availableInputs?.length);
+    console.log('MUTATE EDITOR: availableInputs:', availableInputs);
+    console.log('MUTATE EDITOR: tableSchemas keys:', Object.keys(tableSchemas || {}));
 
-    if (!step.input || !availableInputs) {
-      console.log(`MUTATE EDITOR: No input or availableInputs - returning empty array`);
-      console.log(`MUTATE EDITOR: step.input exists:`, !!step.input);
-      console.log(`MUTATE EDITOR: availableInputs exists:`, !!availableInputs);
-      return [];
+    // If no input is selected but there are available inputs, try to use the first/last one
+    if (!step.input && availableInputs && availableInputs.length > 0) {
+      console.log('MUTATE EDITOR: No step.input but availableInputs exist - using last available input');
+      const lastInput = availableInputs[availableInputs.length - 1];
+      console.log('MUTATE EDITOR: Using lastInput:', lastInput);
+
+      if (lastInput) {
+        const schema = deriveSchema(lastInput, availableInputs, tableSchemas);
+        console.log('MUTATE EDITOR: Derived schema from lastInput:', schema);
+        return schema;
+      }
     }
 
-    console.log(`MUTATE EDITOR: Searching for input step with id: ${step.input}`);
-    const inputStep = availableInputs.find(inp => inp.id === step.input);
-    console.log(`MUTATE EDITOR: Found inputStep:`, inputStep);
-
-    if (!inputStep) {
-      console.log(`MUTATE EDITOR: No inputStep found for id: ${step.input}`);
-      console.log(`MUTATE EDITOR: Available input IDs:`, availableInputs.map(inp => inp.id));
-      return [];
+    if (step.input) {
+      console.log('MUTATE EDITOR: Using step.input:', step.input);
+      const inputStep = availableInputs?.find(s => s.id === step.input);
+      console.log('MUTATE EDITOR: Found inputStep:', inputStep);
+      if (inputStep) {
+        const schema = deriveSchema(inputStep, [...availableInputs, step], tableSchemas);
+        console.log('MUTATE EDITOR: Derived schema from inputStep:', schema);
+        return schema;
+      }
     }
 
-    console.log(`MUTATE EDITOR: inputStep.op:`, inputStep.op);
-    console.log(`MUTATE EDITOR: inputStep.table:`, inputStep.table);
-    console.log(`MUTATE EDITOR: tableSchemas exists:`, !!tableSchemas);
-    console.log(`MUTATE EDITOR: tableSchemas[inputStep.table] exists:`, !!(tableSchemas && inputStep.table && tableSchemas[inputStep.table]));
-
-    if (inputStep.table && tableSchemas && tableSchemas[inputStep.table]) {
-      const schemaWrapper = tableSchemas[inputStep.table];
-      console.log(`MUTATE EDITOR: Found schema wrapper for table ${inputStep.table}:`, schemaWrapper);
-      console.log(`MUTATE EDITOR: Schema wrapper type:`, typeof schemaWrapper);
-      console.log(`MUTATE EDITOR: Schema wrapper has cols:`, !!schemaWrapper.cols);
-      
-      const schema = schemaWrapper.cols || schemaWrapper;
-      console.log(`MUTATE EDITOR: Extracted schema:`, schema);
-      console.log(`MUTATE EDITOR: Schema type:`, typeof schema);
-      console.log(`MUTATE EDITOR: Schema Array.isArray:`, Array.isArray(schema));
-      console.log(`MUTATE EDITOR: Schema length:`, schema?.length);
-      console.log(`MUTATE EDITOR: Schema column names:`, schema?.map(col => col?.name));
-      return schema;
-    }
-
-    console.log(`MUTATE EDITOR: No schema found for inputStep - conditions not met`);
-    console.log(`MUTATE EDITOR: inputStep.table exists:`, !!inputStep.table);
-    console.log(`MUTATE EDITOR: tableSchemas exists:`, !!tableSchemas);
-    if (inputStep.table && tableSchemas) {
-      console.log(`MUTATE EDITOR: tableSchemas[${inputStep.table}] exists:`, !!tableSchemas[inputStep.table]);
-    }
+    console.log('MUTATE EDITOR: No schema found - returning empty array');
     return [];
-  };
+  }, [step, availableInputs, tableSchemas]);
 
   console.log(`MUTATE EDITOR: === SCHEMA COMPUTATION ===`);
   console.log(`MUTATE EDITOR: inputSchema prop:`, inputSchema);
