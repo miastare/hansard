@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import ExpressionBuilder from './ExpressionBuilder';
 import { deriveSchema } from '../../utils/DeriveSchema';
 import generateId from '../../utils/GenerateId';
@@ -31,6 +31,8 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   };
 
   const [cols, setCols] = useState(() => initializeColumnsWithIds(step.cols));
+  const [validationErrors, setValidationErrors] = useState({});
+  const validationTimeouts = useRef({});
 
   // Get schema for the selected input
   const getInputSchema = () => {
@@ -155,15 +157,39 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   };
 
   const updateColumnName = useCallback((oldName, newName) => {
-    if (oldName === newName || newName === '') return;
+    if (oldName === newName) return;
     
-    // Check if new name conflicts with existing input columns
-    const existingInputColumns = currentSchema.map(col => col.name);
-    if (existingInputColumns.includes(newName)) {
-      alert(`Cannot use column name "${newName}" - it already exists in the input schema. Choose a different name.`);
+    const stableId = cols[oldName]?._id;
+    
+    // Clear any existing timeout for this column
+    if (validationTimeouts.current[stableId]) {
+      clearTimeout(validationTimeouts.current[stableId]);
+    }
+    
+    // Clear existing error immediately when typing
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[stableId];
+      return newErrors;
+    });
+    
+    if (newName === '') {
       return;
     }
     
+    // Check for conflicts after a delay
+    const existingInputColumns = currentSchema.map(col => col.name);
+    if (existingInputColumns.includes(newName)) {
+      validationTimeouts.current[stableId] = setTimeout(() => {
+        setValidationErrors(prev => ({
+          ...prev,
+          [stableId]: `Column name "${newName}" already exists in input schema`
+        }));
+      }, 200);
+      return; // Don't update the step if there's a conflict
+    }
+    
+    // No conflict, proceed with the update
     const newCols = { ...cols };
     // Preserve the column data with its stable ID
     newCols[newName] = newCols[oldName];
@@ -183,10 +209,32 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   };
 
   const removeColumn = (name) => {
+    const stableId = cols[name]?._id;
+    
+    // Clear timeout and error for this column
+    if (stableId && validationTimeouts.current[stableId]) {
+      clearTimeout(validationTimeouts.current[stableId]);
+      delete validationTimeouts.current[stableId];
+    }
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[stableId];
+      return newErrors;
+    });
+    
     const newCols = { ...cols };
     delete newCols[name];
     updateStep(newCols);
   };
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(validationTimeouts.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
+    };
+  }, []);
 
   return (
     <div>
@@ -248,11 +296,12 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       {Object.entries(cols).map(([name, colData]) => {
         const stableId = colData._id;
         const expr = colData.expr;
+        const hasError = validationErrors[stableId];
         
         return (
           <div key={`column-${stableId}`} style={{ 
             marginBottom: '25px', 
-            border: '2px solid #e9ecef', 
+            border: hasError ? '2px solid #dc3545' : '2px solid #e9ecef', 
             padding: '20px',
             borderRadius: '10px',
             backgroundColor: '#fff',
@@ -266,7 +315,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
                   marginBottom: '8px', 
                   fontWeight: 'bold',
                   fontSize: '14px',
-                  color: '#495057'
+                  color: hasError ? '#dc3545' : '#495057'
                 }}
               >
                 Column name (LHS):
@@ -280,46 +329,60 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
                 placeholder="Enter column name"
                 style={{ 
                   padding: '10px', 
-                  border: '2px solid #ddd', 
+                  border: hasError ? '2px solid #dc3545' : '2px solid #ddd', 
                   borderRadius: '6px',
                   width: '250px',
                   fontSize: '14px'
                 }}
               />
+              {hasError && (
+                <div style={{
+                  marginTop: '5px',
+                  color: '#dc3545',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}>
+                  {hasError}
+                </div>
+              )}
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontWeight: 'bold',
-                fontSize: '14px',
-                color: '#495057'
-              }}>
-                Expression (RHS):
-              </label>
-              <ExpressionBuilder 
-                expr={expr} 
-                onChange={(newExpr) => updateColumnExpr(name, newExpr)}
-                availableColumns={currentSchema || []}
-              />
-            </div>
+            {!hasError && (
+              <>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    color: '#495057'
+                  }}>
+                    Expression (RHS):
+                  </label>
+                  <ExpressionBuilder 
+                    expr={expr} 
+                    onChange={(newExpr) => updateColumnExpr(name, newExpr)}
+                    availableColumns={currentSchema || []}
+                  />
+                </div>
 
-            <button 
-              onClick={() => removeColumn(name)} 
-              style={{ 
-                padding: '8px 16px',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
-            >
-              Remove Column
-            </button>
+                <button 
+                  onClick={() => removeColumn(name)} 
+                  style={{ 
+                    padding: '8px 16px',
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  Remove Column
+                </button>
+              </>
+            )}
           </div>
         );
       })}
