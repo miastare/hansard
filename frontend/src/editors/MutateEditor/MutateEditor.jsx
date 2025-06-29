@@ -4,11 +4,10 @@ import { deriveSchema } from '../../utils/DeriveSchema';
 import generateId from '../../utils/GenerateId';
 
 export default function MutateEditor({ step, onChange, availableInputs, tableSchemas, inputSchema }) {
-  console.log('MUTATE EDITOR: === RENDERING ===');
-  console.log('MUTATE EDITOR: step:', step);
-  console.log('MUTATE EDITOR: availableInputs:', availableInputs);
-  console.log('MUTATE EDITOR: tableSchemas:', tableSchemas);
-  console.log('MUTATE EDITOR: inputSchema prop:', inputSchema);
+  console.log(`🔄 MUTATE EDITOR [${step.id}]: === RENDERING ===`);
+  console.log(`🔄 MUTATE EDITOR [${step.id}]: step:`, step);
+  console.log(`🔄 MUTATE EDITOR [${step.id}]: availableInputs:`, availableInputs?.map(i => ({id: i.id, op: i.op})));
+  console.log(`🔄 MUTATE EDITOR [${step.id}]: inputSchema prop:`, inputSchema);
 
   // Convert legacy cols format to new format with stable IDs
   const initializeColumnsWithIds = (cols) => {
@@ -35,75 +34,53 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
 
   // Get schema for the selected input
   const getInputSchema = () => {
-    console.log('MUTATE EDITOR: === getInputSchema called ===');
-    console.log('MUTATE EDITOR: step.input:', step.input);
-    console.log('MUTATE EDITOR: availableInputs length:', availableInputs.length);
-    console.log('MUTATE EDITOR: tableSchemas keys:', Object.keys(tableSchemas));
+    console.log(`📊 SCHEMA [${step.id}]: === getInputSchema called ===`);
+    console.log(`📊 SCHEMA [${step.id}]: step.input:`, step.input);
+    console.log(`📊 SCHEMA [${step.id}]: availableInputs:`, availableInputs?.map(i => ({id: i.id, op: i.op, table: i.table})));
 
     // If step has a specific input, use that
     if (step.input) {
-      console.log('MUTATE EDITOR: step.input exists:', step.input);
+      console.log(`📊 SCHEMA [${step.id}]: Looking for input step with ID: ${step.input}`);
       const inputStep = availableInputs.find(s => s.id === step.input);
+      
       if (inputStep) {
-        console.log('MUTATE EDITOR: Found inputStep:', inputStep);
+        console.log(`📊 SCHEMA [${step.id}]: Found inputStep:`, inputStep);
         
         if (inputStep.op === 'source' && inputStep.table) {
+          console.log(`📊 SCHEMA [${step.id}]: Input is source step, getting table schema`);
           const schema = tableSchemas[inputStep.table];
-          console.log('MUTATE EDITOR: Found source step schema:', schema);
+          console.log(`📊 SCHEMA [${step.id}]: Table schema for ${inputStep.table}:`, schema);
           return schema ? schema.cols : [];
         } else {
           // For non-source steps (like other mutate steps), derive the schema
-          console.log('MUTATE EDITOR: Input is not a source step, deriving schema');
+          console.log(`📊 SCHEMA [${step.id}]: Input is ${inputStep.op} step, deriving schema`);
+          console.log(`📊 SCHEMA [${step.id}]: Calling deriveSchema with:`, {
+            inputStep: inputStep,
+            availableSteps: availableInputs.map(s => ({id: s.id, op: s.op, input: s.input, cols: s.cols})),
+            tableSchemas: Object.keys(tableSchemas)
+          });
+          
           const derivedSchema = deriveSchema(inputStep, availableInputs, tableSchemas);
-          console.log('MUTATE EDITOR: Derived schema:', derivedSchema);
+          console.log(`📊 SCHEMA [${step.id}]: deriveSchema returned:`, derivedSchema);
           return derivedSchema || [];
         }
-      }
-    }
-
-    // If no specific input but we have available inputs, use the first one
-    if (availableInputs && availableInputs.length > 0) {
-      console.log('MUTATE EDITOR: Using first available input');
-      const firstInput = availableInputs[0];
-      console.log('MUTATE EDITOR: First input:', firstInput);
-      if (firstInput.op === 'source' && firstInput.table) {
-        const schema = tableSchemas[firstInput.table];
-        console.log('MUTATE EDITOR: Using first available input schema:', schema);
-        return schema ? schema.cols : [];
       } else {
-        // For non-source steps, derive the schema
-        const derivedSchema = deriveSchema(firstInput, availableInputs, tableSchemas);
-        console.log('MUTATE EDITOR: Using first available input derived schema:', derivedSchema);
-        return derivedSchema || [];
+        console.log(`📊 SCHEMA [${step.id}]: ❌ No input step found with ID: ${step.input}`);
+        console.log(`📊 SCHEMA [${step.id}]: Available step IDs:`, availableInputs?.map(s => s.id));
       }
     }
 
-    console.log('MUTATE EDITOR: No valid input found - returning empty array');
+    console.log(`📊 SCHEMA [${step.id}]: ❌ No valid input found - returning empty array`);
     return [];
   };
 
-  console.log(`MUTATE EDITOR: === SCHEMA COMPUTATION ===`);
-  console.log(`MUTATE EDITOR: inputSchema prop:`, inputSchema);
-  console.log(`MUTATE EDITOR: inputSchema prop type:`, typeof inputSchema);
-  console.log(`MUTATE EDITOR: inputSchema prop Array.isArray:`, Array.isArray(inputSchema));
-
   const computedSchema = getInputSchema();
-  console.log(`MUTATE EDITOR: computedSchema:`, computedSchema);
-  console.log(`MUTATE EDITOR: computedSchema type:`, typeof computedSchema);
-  console.log(`MUTATE EDITOR: computedSchema Array.isArray:`, Array.isArray(computedSchema));
-
   const schema = inputSchema || computedSchema;
-  console.log(`MUTATE EDITOR: Final selected schema:`, schema);
-  console.log('MUTATE EDITOR: Final schema type:', typeof schema);
-  console.log('MUTATE EDITOR: Final schema Array.isArray:', Array.isArray(schema));
-
   const currentSchema = schema || [];
-  console.log('MUTATE EDITOR: currentSchema after fallback:', currentSchema);
-  console.log('MUTATE EDITOR: currentSchema length:', currentSchema.length);
-  console.log('MUTATE EDITOR: currentSchema contents:', JSON.stringify(currentSchema, null, 2));
-
-  console.log('MUTATE EDITOR: step.input:', step.input);
-  console.log('MUTATE EDITOR: step.cols:', step.cols);
+  
+  console.log(`🎯 FINAL SCHEMA [${step.id}]: Using ${inputSchema ? 'prop' : 'computed'} schema`);
+  console.log(`🎯 FINAL SCHEMA [${step.id}]: currentSchema:`, currentSchema);
+  console.log(`🎯 FINAL SCHEMA [${step.id}]: currentSchema length:`, currentSchema.length);
 
   const updateStep = useCallback((newCols) => {
     setCols(newCols);
@@ -116,7 +93,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   }, [step, onChange]);
 
   const updateInput = useCallback((newInput) => {
-    console.log(`MUTATE EDITOR: Input changed to:`, newInput);
+    console.log(`🔄 INPUT CHANGE [${step.id}]: Input changed from ${step.input} to ${newInput}`);
     onChange({ ...step, input: newInput });
   }, [step, onChange]);
 
@@ -272,10 +249,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
               </label>
               <ExpressionBuilder 
                 expr={expr} 
-                onChange={(newExpr) => {
-                  console.log('MUTATE EDITOR: updateColumnExpr called with:', name, newExpr);
-                  updateColumnExpr(name, newExpr);
-                }}
+                onChange={(newExpr) => updateColumnExpr(name, newExpr)}
                 availableColumns={currentSchema || []}
               />
             </div>

@@ -52,59 +52,8 @@ const renderEditor = () => {
           onUpdate(index, updatedStep);
         };
 
-        // Get schema for this step's input
-        console.log(`STEP CARD: === RENDERING STEP CARD ===`);
-  console.log(`STEP CARD: step:`, step);
-  console.log(`STEP CARD: step.op:`, step.op);
-  console.log(`STEP CARD: step.input:`, step.input);
-  console.log(`STEP CARD: availableInputs:`, availableInputs);
-  console.log(`STEP CARD: tableSchemas:`, tableSchemas);
-  console.log(`STEP CARD: tableSchemas keys:`, Object.keys(tableSchemas || {}));
-  console.log(`STEP CARD: requestSchema function:`, typeof requestSchema);
-
-  // Calculate schema for this step if it's a mutate step
+        // For mutate steps, we don't need to derive schema here - let MutateEditor handle it
   let inputSchema = null;
-  if (step.op === 'mutate' && step.input) {
-    console.log(`STEP CARD: === CALCULATING SCHEMA FOR MUTATE STEP ===`);
-    console.log(`STEP CARD: Calculating schema for mutate step with input: ${step.input}`);
-    console.log(`STEP CARD: Available inputs:`, availableInputs);
-    console.log(`STEP CARD: Available inputs length:`, availableInputs?.length);
-
-    const inputStep = availableInputs.find(inp => inp.id === step.input);
-    console.log(`STEP CARD: Found input step:`, inputStep);
-
-    if (inputStep) {
-      console.log(`STEP CARD: Input step op:`, inputStep.op);
-      console.log(`STEP CARD: Input step table:`, inputStep.table);
-
-      if ('source' === inputStep.op && inputStep.table && tableSchemas) {
-          const schemaWrapper = tableSchemas[inputStep.table];
-          console.log(`STEP CARD: Got schema wrapper for table ${inputStep.table}:`, schemaWrapper);
-          console.log(`STEP CARD: Schema wrapper type:`, typeof schemaWrapper, `has cols:`, !!schemaWrapper?.cols);
-
-          inputSchema = schemaWrapper?.cols || schemaWrapper;
-          console.log(`STEP CARD: Extracted schema:`, inputSchema);
-          console.log(`STEP CARD: Schema type:`, typeof inputSchema, `Array.isArray:`, Array.isArray(inputSchema));
-          console.log(`STEP CARD: Schema length:`, inputSchema?.length);
-          console.log(`STEP CARD: Schema contents:`, JSON.stringify(inputSchema, null, 2));
-
-          if (inputSchema && Array.isArray(inputSchema)) {
-            console.log(`STEP CARD: Schema column names:`, inputSchema.map(col => col.name));
-            console.log(`STEP CARD: Schema column types:`, inputSchema.map(col => col.dtype));
-          }
-        } else {
-        console.log(`STEP CARD: Cannot get schema - source conditions not met`);
-        console.log(`STEP CARD: inputStep.op === 'source':`, inputStep.op === 'source');
-        console.log(`STEP CARD: inputStep.table exists:`, !!inputStep.table);
-        console.log(`STEP CARD: tableSchemas exists:`, !!tableSchemas);
-        console.log(`STEP CARD: tableSchemas[inputStep.table] exists:`, !!(tableSchemas && inputStep.table && tableSchemas[inputStep.table]));
-      }
-    } else {
-      console.log(`STEP CARD: No input step found for id: ${step.input}`);
-    }
-  } else {
-    console.log(`STEP CARD: Not a mutate step or no input - step.op:`, step.op, `step.input:`, step.input);
-  }
 
         console.log(`STEP CARD: Final inputSchema for step ${index}:`, inputSchema);
         console.log(`STEP CARD: About to render editor with inputSchema:`, inputSchema);

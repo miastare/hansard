@@ -2,78 +2,110 @@
 // utils/DeriveSchema.js
 
 export function deriveSchema(step, steps, tableCatalog) {
-  if (!step) return [];
+  if (!step) {
+    console.log('🔍 DERIVE SCHEMA: ❌ No step provided');
+    return [];
+  }
 
-  console.log('DERIVE SCHEMA: Processing step:', step);
-  console.log('DERIVE SCHEMA: Available steps:', steps);
+  console.log(`🔍 DERIVE SCHEMA: Processing step ${step.id} (${step.op})`);
+  console.log(`🔍 DERIVE SCHEMA: Step details:`, step);
+  console.log(`🔍 DERIVE SCHEMA: Available steps:`, steps?.map(s => ({id: s.id, op: s.op, input: s.input})));
 
   if (step.op === "source") {
+    console.log(`🔍 DERIVE SCHEMA: Processing source step for table: ${step.table}`);
     const table = tableCatalog[step.table];
-    if (!table) return [];
     
-    // Handle both formats: table.cols or table directly
+    if (!table) {
+      console.log(`🔍 DERIVE SCHEMA: ❌ No table found for: ${step.table}`);
+      console.log(`🔍 DERIVE SCHEMA: Available tables:`, Object.keys(tableCatalog));
+      return [];
+    }
+    
     const cols = table.cols || table;
-    if (!Array.isArray(cols)) return [];
+    if (!Array.isArray(cols)) {
+      console.log(`🔍 DERIVE SCHEMA: ❌ Table schema is not an array:`, cols);
+      return [];
+    }
     
-    // Fix type mapping - convert 'object' to 'str' for string columns
     const result = cols.map(col => ({
       ...col,
       dtype: col.dtype === 'object' ? 'str' : col.dtype
     }));
-    console.log('DERIVE SCHEMA: Source schema result:', result);
+    console.log(`🔍 DERIVE SCHEMA: ✅ Source schema result (${result.length} columns):`, result);
     return result;
   }
 
   if (step.op === "filter") {
+    console.log(`🔍 DERIVE SCHEMA: Processing filter step, looking for input: ${step.input}`);
     const inputStep = steps.find(s => s.id === step.input);
-    console.log('DERIVE SCHEMA: Filter - found input step:', inputStep);
+    
+    if (!inputStep) {
+      console.log(`🔍 DERIVE SCHEMA: ❌ No input step found for filter: ${step.input}`);
+      console.log(`🔍 DERIVE SCHEMA: Available step IDs:`, steps?.map(s => s.id));
+      return [];
+    }
+    
+    console.log(`🔍 DERIVE SCHEMA: Filter input step found:`, inputStep);
     return deriveSchema(inputStep, steps, tableCatalog);
   }
 
   if (step.op === "mutate") {
-    console.log('DERIVE SCHEMA: Processing mutate step');
-    console.log('DERIVE SCHEMA: step.input:', step.input);
-    console.log('DERIVE SCHEMA: step.cols:', step.cols);
+    console.log(`🔍 DERIVE SCHEMA: Processing mutate step ${step.id}`);
+    console.log(`🔍 DERIVE SCHEMA: Mutate step input: ${step.input}`);
+    console.log(`🔍 DERIVE SCHEMA: Mutate step cols:`, step.cols);
+    
+    if (!step.input) {
+      console.log(`🔍 DERIVE SCHEMA: ❌ Mutate step has no input specified`);
+      return [];
+    }
     
     const inputStep = steps.find(s => s.id === step.input);
-    console.log('DERIVE SCHEMA: Mutate - found input step:', inputStep);
+    if (!inputStep) {
+      console.log(`🔍 DERIVE SCHEMA: ❌ No input step found for mutate: ${step.input}`);
+      console.log(`🔍 DERIVE SCHEMA: Available step IDs:`, steps?.map(s => s.id));
+      return [];
+    }
     
+    console.log(`🔍 DERIVE SCHEMA: Found input step for mutate:`, inputStep);
+    
+    // Recursively get the input schema
+    console.log(`🔍 DERIVE SCHEMA: Recursively deriving schema for input step ${inputStep.id} (${inputStep.op})`);
     const inputSchema = deriveSchema(inputStep, steps, tableCatalog);
-    console.log('DERIVE SCHEMA: Input schema for mutate:', inputSchema);
+    console.log(`🔍 DERIVE SCHEMA: Input schema for mutate (${inputSchema.length} columns):`, inputSchema);
     
-    if (!step.cols) {
-      console.log('DERIVE SCHEMA: No cols in mutate step, returning input schema');
+    if (!step.cols || Object.keys(step.cols).length === 0) {
+      console.log(`🔍 DERIVE SCHEMA: No cols in mutate step, returning input schema`);
       return inputSchema;
     }
 
     // Start with input schema
     const outputSchema = [...inputSchema];
-    console.log('DERIVE SCHEMA: Starting output schema:', outputSchema);
+    console.log(`🔍 DERIVE SCHEMA: Starting with input schema (${outputSchema.length} columns)`);
     
     // Add or update columns based on mutations
     Object.entries(step.cols).forEach(([colName, expr]) => {
-      console.log('DERIVE SCHEMA: Processing column:', colName, 'with expr:', expr);
+      console.log(`🔍 DERIVE SCHEMA: Processing mutate column: ${colName}`);
       const derivedType = deriveExpressionType(expr, inputSchema);
-      console.log('DERIVE SCHEMA: Derived type for', colName, ':', derivedType);
+      console.log(`🔍 DERIVE SCHEMA: Derived type for ${colName}: ${derivedType}`);
       
       // Find existing column or add new one
       const existingIndex = outputSchema.findIndex(col => col.name === colName);
       const newCol = { name: colName, dtype: derivedType };
       
       if (existingIndex >= 0) {
-        console.log('DERIVE SCHEMA: Updating existing column at index', existingIndex);
+        console.log(`🔍 DERIVE SCHEMA: Updating existing column ${colName} at index ${existingIndex}`);
         outputSchema[existingIndex] = newCol;
       } else {
-        console.log('DERIVE SCHEMA: Adding new column');
+        console.log(`🔍 DERIVE SCHEMA: Adding new column ${colName}`);
         outputSchema.push(newCol);
       }
     });
     
-    console.log('DERIVE SCHEMA: Final output schema:', outputSchema);
+    console.log(`🔍 DERIVE SCHEMA: ✅ Final mutate output schema (${outputSchema.length} columns):`, outputSchema);
     return outputSchema;
   }
 
-  console.log('DERIVE SCHEMA: Unhandled step type:', step.op);
+  console.log(`🔍 DERIVE SCHEMA: ❌ Unhandled step type: ${step.op}`);
   return [];
 }
 
