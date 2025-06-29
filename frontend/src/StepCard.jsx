@@ -2,6 +2,7 @@ import React from 'react';
 import SourceEditor from './editors/SourceEditor';
 import FilterEditor from './editors/FilterEditor';
 import MutateEditor from './editors/MutateEditor/MutateEditor';
+import AggregateEditor from './editors/AggregateEditor';
 
 const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchemas, requestSchema }) => {
   // Safety check to prevent undefined errors
@@ -81,19 +82,15 @@ const renderEditor = () => {
           />
         );
       case 'aggregate':
+        console.log(`🎭 STEP CARD [${index}]: Rendering AggregateEditor with availableInputs: ${availableInputs?.length || 0} steps`);
         return (
-          <div>
-            <label>
-              Input:
-              <select value={step.input || ''} onChange={(e) => handleUpdate('input', e.target.value)}>
-                <option value="">Select input</option>
-                {(availableInputs || []).map(input => (
-                  <option key={input} value={input}>{input}</option>
-                ))}
-              </select>
-            </label>
-            {/* Add more aggregate fields as needed */}
-          </div>
+          <AggregateEditor
+            step={step}
+            onUpdate={handleUpdate}
+            onBatchUpdate={handleBatchUpdate}
+            availableInputs={availableInputs || []}
+            tableSchemas={tableSchemas || {}}
+          />
         );
       case 'join':
         return (
