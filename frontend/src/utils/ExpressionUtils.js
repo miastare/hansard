@@ -173,6 +173,24 @@ const OPERATORS = {
     }
   },
 
+  // Conditional operators
+  if_else: {
+    minArgs: 3,
+    maxArgs: 3,
+    inputTypes: ['bool', 'any', 'any'], // condition, true_value, false_value
+    outputType: 'conditional', // Output type matches the true/false branches
+    description: 'Conditional expression: if condition then true_value else false_value',
+    constraintFunction: (args, availableColumns) => {
+      // The second and third arguments must be the same type
+      if (args.length === 3) {
+        const trueType = getExpressionType(args[1], availableColumns);
+        const falseType = getExpressionType(args[2], availableColumns);
+        return trueType === falseType ? trueType : 'unknown';
+      }
+      return 'unknown';
+    }
+  },
+
   // Special operators
   column: {
     minArgs: 1,
@@ -252,10 +270,7 @@ export function getRequiredTypeForArgument(operator, argIndex, parentExpressionC
     if (argIndex === 1 || argIndex === 2) {
       // For if_else branches, the required type depends on the parent context
       if (parentExpressionContext && parentExpressionContext.requiredType) {
-        // If parent requires specific type, both branches must match that type
-        return Array.isArray(parentExpressionContext.requiredType) 
-          ? parentExpressionContext.requiredType 
-          : [parentExpressionContext.requiredType];
+        return [parentExpressionContext.requiredType];
       }
       return ['int64', 'float64', 'str', 'bool']; // any type is allowed if no parent constraint
     }
@@ -264,9 +279,7 @@ export function getRequiredTypeForArgument(operator, argIndex, parentExpressionC
   // For operators with 'any' input types, check if we have parent context
   if (opInfo.inputTypes.includes('any')) {
     if (parentExpressionContext && parentExpressionContext.requiredType) {
-      return Array.isArray(parentExpressionContext.requiredType) 
-        ? parentExpressionContext.requiredType 
-        : [parentExpressionContext.requiredType];
+      return [parentExpressionContext.requiredType];
     }
     return ['int64', 'float64', 'str', 'bool']; // fallback to all types
   }

@@ -148,12 +148,6 @@ function deriveExpressionType(expr, schema) {
     if (expr.operator === 'len') {
       return 'int64';
     }
-    if (expr.operator === 'if_else' && expr.args && expr.args.length >= 3) {
-      // Return type of if_else is the type of the true/false branches (should be same)
-      const trueType = deriveExpressionType(expr.args[1], schema);
-      const falseType = deriveExpressionType(expr.args[2], schema);
-      return trueType === falseType ? trueType : 'unknown';
-    }
   }
   
   if (expr.type === 'column') {

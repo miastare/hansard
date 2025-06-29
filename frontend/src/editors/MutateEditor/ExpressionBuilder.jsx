@@ -2,33 +2,10 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { getOperatorInfo, getCompatibleOperators, getTypeFromValue, getRequiredTypeForArgument, getExpressionType } from '../../utils/ExpressionUtils';
 
-const createDefaultExpression = (type = 'constant', valueType = 'str') => {
-    switch (type) {
-      case 'constant':
-        const defaultValue = valueType === 'bool' ? false : 
-                           valueType === 'int64' ? 0 :
-                           valueType === 'float64' ? 0.0 : '';
-        return { type: 'constant', value: defaultValue, valueType };
-      case 'column':
-        return { type: 'column', columnName: '' };
-      case 'dynamic':
-        return { type: 'dynamic', operator: 'add', args: [] };
-      default:
-        return { type: 'constant', value: '', valueType: 'str' };
-    }
-  };
-
-export default function ExpressionBuilder({ 
-  expr, 
-  onChange, 
-  availableColumns, 
-  parentOperator = null,
-  parentContext = null,
-  argIndex = null
-}) {
+export default function ExpressionBuilder({ expr, onChange, availableColumns, parentOperator = null, argIndex = null, parentContext = null }) {
   // Ensure availableColumns is always an array
   const safeAvailableColumns = availableColumns || [];
-
+  
   console.log('EXPRESSION BUILDER: === RENDERING ===');
   console.log('EXPRESSION BUILDER: availableColumns length:', availableColumns?.length);
   console.log('EXPRESSION BUILDER: safeAvailableColumns length:', safeAvailableColumns?.length);
@@ -39,25 +16,38 @@ export default function ExpressionBuilder({
   }
 
   // Filter columns based on current context and argument position
-  const getFilteredColumns = (argIndex, operator, parentContext = null) => {
-    console.log('EXPRESSION BUILDER: getFilteredColumns called');
-    console.log('EXPRESSION BUILDER: availableColumns:', availableColumns);
+  const getFilteredColumns = (operator = null, argIndex = null, parentContext = null) => {
+    console.log('=== EXPRESSION BUILDER: getFilteredColumns ENTRY ===');
     console.log('EXPRESSION BUILDER: operator:', operator, 'argIndex:', argIndex);
-    console.log('EXPRESSION BUILDER: parentContext:', parentContext);
-
-    const workingColumns = availableColumns || [];
-    console.log('EXPRESSION BUILDER: Working with columns:', workingColumns.length);
+    
+    // Triple-check we have a valid array - use original prop as fallback
+    const workingColumns = safeAvailableColumns || availableColumns || [];
+    
+    if (!workingColumns || !Array.isArray(workingColumns)) {
+      console.log('EXPRESSION BUILDER: CRITICAL ERROR - No valid columns array available!');
+      return [];
+    }
+    
+    if (workingColumns.length === 0) {
+      console.log('EXPRESSION BUILDER: WARNING - workingColumns is empty array');
+      return [];
+    }
+    
+    if (!operator) {
+      console.log('EXPRESSION BUILDER: No operator - returning all workingColumns');
+      return workingColumns;
+    }
 
     // Get required types for this specific argument position
     const requiredTypes = getRequiredTypeForArgument(operator, argIndex, parentContext);
     console.log('EXPRESSION BUILDER: Required types for', operator, 'arg', argIndex, ':', requiredTypes);
-
+    
     const filteredColumns = workingColumns.filter(col => {
       // Defensive check for column structure
       if (!col || typeof col !== 'object' || !col.dtype || !col.name) {
         return false;
       }
-
+      
       const colType = col.dtype === 'object' ? 'str' : col.dtype; // Convert object to str
       const isCompatible = requiredTypes.some(requiredType => {
         if (requiredType === 'any') return true;
@@ -69,10 +59,10 @@ export default function ExpressionBuilder({
         }
         return colType === requiredType;
       });
-
+      
       return isCompatible;
     });
-
+    
     console.log('EXPRESSION BUILDER: Final filtered columns:', filteredColumns.length);
     return filteredColumns;
   };
@@ -103,10 +93,10 @@ export default function ExpressionBuilder({
       // If no parent operator, allow all types
       return ['int64', 'float64', 'bool', 'str'];
     }
-
+    
     const opInfo = getOperatorInfo(parentOperator);
     const allowedTypes = [];
-
+    
     // Map operator input types to constant types
     opInfo.inputTypes.forEach(inputType => {
       if (inputType === 'int64' || inputType === 'float64') {
@@ -118,7 +108,7 @@ export default function ExpressionBuilder({
         if (!allowedTypes.includes('bool')) allowedTypes.push('bool');
       }
     });
-
+    
     return allowedTypes.length > 0 ? allowedTypes : ['int64', 'float64', 'bool', 'str'];
   };
 
@@ -178,7 +168,7 @@ export default function ExpressionBuilder({
     if (!expr || typeof expr !== 'object') {
       return 'Invalid expression';
     }
-
+    
     if (expr.type === 'constant') {
       return `${expr.value} (${expr.valueType})`;
     } else if (expr.type === 'column') {
@@ -210,39 +200,6 @@ export default function ExpressionBuilder({
     } else if (type === 'dynamic') {
       setShowModal(true);
     }
-  };
-
-  const handleAddArgument = () => {
-    // Determine what type the new argument should be based on operator requirements
-    const newArgIndex = (expr.args || []).length;
-    const requiredTypes = getRequiredTypeForArgument(expr.operator, newArgIndex, parentContext);
-
-    // Create appropriate default based on required types
-    let defaultExpr;
-    if (requiredTypes.includes('bool')) {
-      defaultExpr = createDefaultExpression('constant', 'bool');
-    } else if (requiredTypes.includes('int64') || requiredTypes.includes('float64')) {
-      defaultExpr = createDefaultExpression('constant', 'int64');
-    } else if (requiredTypes.includes('str')) {
-      defaultExpr = createDefaultExpression('constant', 'str');
-    } else {
-      defaultExpr = createDefaultExpression('constant');
-    }
-
-    const newArgs = [...(expr.args || []), defaultExpr];
-    onChange({
-      ...expr,
-      args: newArgs
-    });
-  };
-
-  const updateArgument = (index, newArg) => {
-    const newArgs = [...expr.args];
-    newArgs[index] = newArg;
-    onChange({
-      ...expr,
-      args: newArgs
-    });
   };
 
   if (!expr) {
@@ -350,37 +307,37 @@ export default function ExpressionBuilder({
               {(() => {
                 console.log('=== EXPRESSION BUILDER: COLUMN DROPDOWN RENDERING ===');
                 console.log('EXPRESSION BUILDER: About to call getFilteredColumns with parent context');
-
+                
                 let filteredCols;
                 try {
-                  filteredCols = getFilteredColumns(argIndex, expr.operator, parentContext);
+                  filteredCols = getFilteredColumns(parentOperator, argIndex, parentContext);
                   console.log('EXPRESSION BUILDER: getFilteredColumns() returned:', filteredCols);
                 } catch (error) {
                   console.error('EXPRESSION BUILDER: ERROR calling getFilteredColumns():', error);
                   return [<option key="error" value="">Error loading columns</option>];
                 }
-
+                
                 console.log('EXPRESSION BUILDER: filteredCols type:', typeof filteredCols);
                 console.log('EXPRESSION BUILDER: filteredCols Array.isArray:', Array.isArray(filteredCols));
                 console.log('EXPRESSION BUILDER: filteredCols length:', filteredCols?.length);
-
+                
                 if (!filteredCols) {
                   console.log('EXPRESSION BUILDER: filteredCols is null/undefined');
                   return [<option key="null" value="">No columns available (null)</option>];
                 }
-
+                
                 if (!Array.isArray(filteredCols)) {
                   console.log('EXPRESSION BUILDER: filteredCols is not an array, type:', typeof filteredCols);
                   return [<option key="notarray" value="">No columns available (not array)</option>];
                 }
-
+                
                 if (filteredCols.length === 0) {
                   console.log('EXPRESSION BUILDER: filteredCols is empty array');
                   return [<option key="empty" value="">No columns available (empty)</option>];
                 }
-
+                
                 console.log('EXPRESSION BUILDER: About to map over', filteredCols.length, 'columns');
-
+                
                 try {
                   const options = filteredCols.map((col, index) => {
                     console.log('EXPRESSION BUILDER: Mapping column', index, ':', col);
@@ -396,7 +353,7 @@ export default function ExpressionBuilder({
                       <option key={col.name} value={col.name}>{col.name} ({col.dtype || 'unknown'})</option>
                     );
                   });
-
+                  
                   console.log('EXPRESSION BUILDER: Generated', options.length, 'options');
                   return options;
                 } catch (mapError) {
@@ -438,7 +395,7 @@ export default function ExpressionBuilder({
               {(() => {
                 const allowedTypes = getAllowedConstantTypes();
                 console.log('EXPRESSION BUILDER: Allowed constant types for parent operator', parentOperator, ':', allowedTypes);
-
+                
                 // Auto-correct if current type is not allowed
                 if (!allowedTypes.includes(expr.valueType) && allowedTypes.length > 0) {
                   console.log('EXPRESSION BUILDER: Current type', expr.valueType, 'not allowed, switching to', allowedTypes[0]);
@@ -446,7 +403,7 @@ export default function ExpressionBuilder({
                     handleConstantChange('valueType', allowedTypes[0]);
                   }, 0);
                 }
-
+                
                 const typeOptions = [];
                 if (allowedTypes.includes('int64')) {
                   typeOptions.push(<option key="int64" value="int64">Integer</option>);
@@ -460,7 +417,7 @@ export default function ExpressionBuilder({
                 if (allowedTypes.includes('str')) {
                   typeOptions.push(<option key="str" value="str">String</option>);
                 }
-
+                
                 return typeOptions;
               })()}
             </select>
@@ -524,6 +481,8 @@ export default function ExpressionBuilder({
         </div>
       ) : null}
 
+
+
       {expr.type === 'dynamic' && (
         <div>
           <div style={{ marginBottom: '15px' }}>
@@ -565,7 +524,7 @@ export default function ExpressionBuilder({
               <div>
                 {getOperatorInfo(expr.operator).maxArgs > expr.args.length && (
                   <button
-                    onClick={handleAddArgument}
+                    onClick={addArgument}
                     style={{
                       padding: '4px 8px',
                       backgroundColor: '#28a745',
@@ -583,47 +542,86 @@ export default function ExpressionBuilder({
               </div>
             </div>
 
-            {expr.args?.map((arg, index) => (
-          <div key={index} style={{ marginBottom: '15px' }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              marginBottom: '8px',
-              gap: '10px'
-            }}>
-              <span style={{ 
-                fontWeight: 'bold',
-                minWidth: '80px',
-                fontSize: '13px',
-                color: '#495057'
-              }}>
-                Arg {index + 1}:
-              </span>
-              <button
-                onClick={() => removeArgument(index)}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                Remove
-              </button>
-            </div>
-            <ArgumentEditor
-              argIndex={index}
-              operator={expr.operator}
-              value={arg}
-              onChange={(newArg) => updateArgument(index, newArg)}
-              parentOperator={expr.operator}
-              availableColumns={safeAvailableColumns}
-            />
-          </div>
-        ))}
+            {expr.args.map((arg, index) => {
+              console.log('EXPRESSION BUILDER: Rendering arg', index, 'for operator', expr.operator);
+              
+              // Create context for this argument
+              const argContext = {
+                parentOperator: expr.operator,
+                argIndex: index,
+                requiredType: getRequiredTypeForArgument(expr.operator, index, parentContext)
+              };
+              
+              return (
+                <div key={index} style={{ 
+                  marginBottom: '10px',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  backgroundColor: '#fff'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                      Argument {index + 1}:
+                      <span style={{ fontSize: '11px', color: '#666', fontWeight: 'normal' }}>
+                        {' '}(requires: {Array.isArray(argContext.requiredType) ? argContext.requiredType.join(', ') : argContext.requiredType})
+                      </span>
+                    </span>
+                    <div>
+                      <button
+                        onClick={() => {
+                          console.log('EXPRESSION BUILDER: Opening modal for arg', index, 'with context:', argContext);
+                          openArgModal(index);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#007bff',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer',
+                          fontSize: '11px',
+                          marginRight: '5px'
+                        }}
+                      >
+                        Edit
+                      </button>
+                      {expr.args.length > getOperatorInfo(expr.operator).minArgs && (
+                        <button
+                          onClick={() => removeArgument(index)}
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                            fontSize: '11px'
+                          }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ 
+                    padding: '8px',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    color: '#495057',
+                    border: '1px solid #e9ecef'
+                  }}>
+                    {truncate(getExpressionSummary(arg))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -681,30 +679,3 @@ export default function ExpressionBuilder({
     </div>
   );
 }
-
-const ArgumentEditor = ({ argIndex, operator, value, onChange, parentOperator = null, availableColumns = [] }) => {
-    console.log('EXPRESSION BUILDER: ArgumentEditor rendering for:', operator, 'arg', argIndex);
-    console.log('EXPRESSION BUILDER: Current value:', value);
-    console.log('EXPRESSION BUILDER: parentOperator:', parentOperator);
-
-    // Build parent context for type constraint propagation
-    const parentContext = parentOperator ? {
-      operator: parentOperator,
-      requiredType: getRequiredTypeForArgument(parentOperator, argIndex)
-    } : null;
-
-    const requiredTypes = getRequiredTypeForArgument(operator, argIndex, parentContext);
-    console.log('EXPRESSION BUILDER: Required types for this argument:', requiredTypes);
-
-    return (
-      <div style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
-        <ExpressionBuilder
-            expr={value}
-            onChange={onChange}
-            availableColumns={availableColumns}
-            parentOperator={operator}
-            parentContext={parentContext}
-          />
-      </div>
-    );
-  };
