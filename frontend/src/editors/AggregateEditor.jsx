@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { deriveSchema } from '../utils/DeriveSchema';
 
@@ -8,13 +9,21 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
 
   const handleInputChange = (value) => {
     console.log('🔢 AGGREGATE EDITOR: Input changed to:', value);
-    onUpdate('input', value);
+    // Reset group and metrics when input changes
+    onBatchUpdate({
+      input: value,
+      group: [],
+      metrics: {}
+    });
   };
 
-  const handleGroupChange = (value) => {
-    const groupColumns = value.split(',').map(col => col.trim()).filter(col => col);
-    console.log('🔢 AGGREGATE EDITOR: Group columns changed to:', groupColumns);
-    onUpdate('group', groupColumns);
+  const handleGroupToggle = (columnName) => {
+    const currentGroup = step.group || [];
+    const newGroup = currentGroup.includes(columnName)
+      ? currentGroup.filter(col => col !== columnName)
+      : [...currentGroup, columnName];
+    console.log('🔢 AGGREGATE EDITOR: Group columns changed to:', newGroup);
+    onUpdate('group', newGroup);
   };
 
   const handleMetricAdd = () => {
@@ -70,6 +79,25 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
     return Array.isArray(derivedSchema) ? derivedSchema : [];
   };
 
+  // Get columns that are compatible with a specific aggregation function
+  const getCompatibleColumnsForFunction = (fn) => {
+    const availableColumns = getAvailableColumns();
+    
+    if (fn === 'count') {
+      // Count can work on any column or *
+      return [{ name: '*', dtype: 'any' }, ...availableColumns];
+    }
+    
+    // Mathematical aggregations (sum, avg, min, max, std, var) need numeric columns
+    const mathFunctions = ['sum', 'avg', 'min', 'max', 'std', 'var'];
+    if (mathFunctions.includes(fn)) {
+      return availableColumns.filter(col => col.dtype === 'numeric');
+    }
+    
+    // Default: return all columns for unknown functions
+    return availableColumns;
+  };
+
   const availableColumns = getAvailableColumns();
   const aggregationFunctions = ['count', 'sum', 'avg', 'min', 'max', 'std', 'var'];
 
@@ -97,121 +125,169 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
       </div>
 
       {/* Group By Columns */}
-      <div style={{ marginBottom: '12px' }}>
-        <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-          Group By Columns (comma-separated):
-        </label>
-        <input
-          type="text"
-          value={(step.group || []).join(', ')}
-          onChange={(e) => handleGroupChange(e.target.value)}
-          placeholder="e.g., member_id, gender"
-          style={{ width: '100%', padding: '4px' }}
-        />
-        {availableColumns.length > 0 && (
-          <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-            Available columns: {availableColumns.map(col => col.name).join(', ')}
+      {step.input && availableColumns.length > 0 && (
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
+            Group By Columns:
+          </label>
+          <div style={{ 
+            border: '1px solid #ddd', 
+            borderRadius: '4px', 
+            padding: '8px',
+            maxHeight: '150px',
+            overflowY: 'auto'
+          }}>
+            {availableColumns.map(col => (
+              <div key={col.name} style={{ marginBottom: '4px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={(step.group || []).includes(col.name)}
+                    onChange={() => handleGroupToggle(col.name)}
+                    style={{ marginRight: '8px' }}
+                  />
+                  <span style={{ flex: 1 }}>
+                    {col.name}
+                  </span>
+                  <span style={{ 
+                    fontSize: '12px', 
+                    color: '#666',
+                    fontStyle: 'italic'
+                  }}>
+                    ({col.dtype})
+                  </span>
+                </label>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+          {(step.group || []).length > 0 && (
+            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+              Selected: {(step.group || []).join(', ')}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Metrics */}
-      <div style={{ marginBottom: '12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <label style={{ fontWeight: 'bold' }}>Metrics:</label>
-          <button 
-            onClick={handleMetricAdd}
-            style={{ 
-              padding: '4px 8px', 
-              backgroundColor: '#007bff', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            + Add Metric
-          </button>
-        </div>
+      {step.input && (
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <label style={{ fontWeight: 'bold' }}>Metrics:</label>
+            <button 
+              onClick={handleMetricAdd}
+              style={{ 
+                padding: '4px 8px', 
+                backgroundColor: '#007bff', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              + Add Metric
+            </button>
+          </div>
 
-        {Object.entries(step.metrics || {}).map(([metricName, metric]) => (
-          <div key={metricName} style={{ 
-            border: '1px solid #eee', 
-            padding: '8px', 
-            marginBottom: '8px', 
-            borderRadius: '4px',
-            backgroundColor: '#f9f9f9'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-              <input
-                type="text"
-                value={metricName}
-                onChange={(e) => handleMetricNameChange(metricName, e.target.value)}
-                style={{ 
-                  padding: '4px', 
-                  marginRight: '8px', 
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontWeight: 'bold'
-                }}
-              />
-              <button
-                onClick={() => handleMetricRemove(metricName)}
-                style={{ 
-                  padding: '4px 8px', 
-                  backgroundColor: '#dc3545', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Remove
-              </button>
-            </div>
+          {Object.entries(step.metrics || {}).map(([metricName, metric]) => {
+            const compatibleColumns = getCompatibleColumnsForFunction(metric.fn || 'count');
             
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <select
-                value={metric.fn || 'count'}
-                onChange={(e) => handleMetricChange(metricName, 'fn', e.target.value)}
-                style={{ padding: '4px' }}
-              >
-                {aggregationFunctions.map(fn => (
-                  <option key={fn} value={fn}>{fn}</option>
-                ))}
-              </select>
-              
-              <span>of</span>
-              
-              <select
-                value={metric.col || '*'}
-                onChange={(e) => handleMetricChange(metricName, 'col', e.target.value)}
-                style={{ padding: '4px', flex: 1 }}
-                disabled={metric.fn === 'count'}
-              >
-                <option value="*">* (all rows)</option>
-                {availableColumns.map(col => (
-                  <option key={col.name} value={col.name}>
-                    {col.name} ({col.dtype})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        ))}
+            return (
+              <div key={metricName} style={{ 
+                border: '1px solid #eee', 
+                padding: '8px', 
+                marginBottom: '8px', 
+                borderRadius: '4px',
+                backgroundColor: '#f9f9f9'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                  <input
+                    type="text"
+                    value={metricName}
+                    onChange={(e) => handleMetricNameChange(metricName, e.target.value)}
+                    style={{ 
+                      padding: '4px', 
+                      marginRight: '8px', 
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontWeight: 'bold'
+                    }}
+                  />
+                  <button
+                    onClick={() => handleMetricRemove(metricName)}
+                    style={{ 
+                      padding: '4px 8px', 
+                      backgroundColor: '#dc3545', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select
+                    value={metric.fn || 'count'}
+                    onChange={(e) => {
+                      const newFn = e.target.value;
+                      // Reset column selection when function changes to ensure compatibility
+                      const newCompatibleColumns = getCompatibleColumnsForFunction(newFn);
+                      const newCol = newCompatibleColumns.length > 0 ? newCompatibleColumns[0].name : '*';
+                      
+                      handleMetricChange(metricName, 'fn', newFn);
+                      handleMetricChange(metricName, 'col', newCol);
+                    }}
+                    style={{ padding: '4px' }}
+                  >
+                    {aggregationFunctions.map(fn => (
+                      <option key={fn} value={fn}>{fn}</option>
+                    ))}
+                  </select>
+                  
+                  <span>of</span>
+                  
+                  <select
+                    value={metric.col || '*'}
+                    onChange={(e) => handleMetricChange(metricName, 'col', e.target.value)}
+                    style={{ padding: '4px', flex: 1 }}
+                  >
+                    {compatibleColumns.map(col => (
+                      <option key={col.name} value={col.name}>
+                        {col.name === '*' ? '* (all rows)' : `${col.name} (${col.dtype})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {compatibleColumns.length === 0 && metric.fn !== 'count' && (
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: '#dc3545', 
+                    marginTop: '4px',
+                    fontStyle: 'italic'
+                  }}>
+                    No compatible columns available for {metric.fn}() function
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
-        {Object.keys(step.metrics || {}).length === 0 && (
-          <div style={{ 
-            padding: '16px', 
-            textAlign: 'center', 
-            color: '#666',
-            border: '1px dashed #ddd',
-            borderRadius: '4px'
-          }}>
-            No metrics defined. Click "Add Metric" to create aggregations.
-          </div>
-        )}
-      </div>
+          {Object.keys(step.metrics || {}).length === 0 && (
+            <div style={{ 
+              padding: '16px', 
+              textAlign: 'center', 
+              color: '#666',
+              border: '1px dashed #ddd',
+              borderRadius: '4px'
+            }}>
+              No metrics defined. Click "Add Metric" to create aggregations.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Preview/Summary */}
       {step.input && (step.group?.length > 0 || Object.keys(step.metrics || {}).length > 0) && (
@@ -242,3 +318,4 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
 };
 
 export default AggregateEditor;
+
