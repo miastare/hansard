@@ -19,6 +19,11 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
     onUpdate(index, updatedStep);
   };
 
+  const handleBatchUpdate = (updates) => {
+    const updatedStep = { ...step, ...updates };
+    onUpdate(index, updatedStep);
+  };
+
 const renderEditor = () => {
     console.log(`🎭 STEP CARD [${index}]: Rendering editor for step ${step.id}, op: ${step.op}`);
 
@@ -54,7 +59,7 @@ const renderEditor = () => {
         console.log(`🎭 STEP CARD [${index}]: Available input step IDs:`, availableInputs?.map(s => s.id));
         console.log(`🎭 STEP CARD [${index}]: Current step.input:`, step.input);
         console.log(`🎭 STEP CARD [${index}]: TableSchemas available: ${Object.keys(tableSchemas || {}).length} tables`);
-        
+
         // Debug the input step resolution
         if (step.input && availableInputs) {
           const inputStep = availableInputs.find(s => s.id === step.input);
@@ -64,7 +69,7 @@ const renderEditor = () => {
             console.log(`🎭 STEP CARD [${index}]: Input step details - op: ${inputStep.op}, input: ${inputStep.input}, table: ${inputStep.table}`);
           }
         }
-        
+
         return (
           <MutateEditor 
             step={step} 

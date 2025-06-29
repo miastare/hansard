@@ -1,8 +1,7 @@
-
 import React, { useState, useCallback } from 'react';
 import { deriveSchema } from '../utils/DeriveSchema';
 
-export default function FilterEditor({ step, onUpdate, availableInputs, tableSchemas }) {
+export default function FilterEditor({ step, onUpdate, availableInputs, tableSchemas, onBatchUpdate }) {
   const [conditions, setConditions] = useState(step.conditions || []);
 
   // Get schema for the selected input (similar to MutateEditor logic)
@@ -10,15 +9,15 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
     // If step has a specific input, use that
     if (step.input && step.input !== '' && availableInputs) {
       const inputStep = availableInputs.find(s => String(s.id) === String(step.input));
-      
+
       if (inputStep) {
         if (inputStep.op === 'source' && inputStep.table) {
           const schemaWrapper = tableSchemas[inputStep.table];
-          
+
           if (schemaWrapper) {
             // Handle both wrapper format {cols: [...]} and direct array format
             const schema = schemaWrapper.cols || schemaWrapper;
-            
+
             if (Array.isArray(schema)) {
               return schema;
             } else {
@@ -30,7 +29,7 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
         } else {
           // For non-source steps (like mutate steps), derive the schema
           const derivedSchema = deriveSchema(inputStep, availableInputs, tableSchemas);
-          
+
           if (Array.isArray(derivedSchema)) {
             return derivedSchema;
           } else {
@@ -53,13 +52,18 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
   }, [onUpdate]);
 
   const updateInput = useCallback((newInput) => {
-    // Update the step input
-    onUpdate('input', newInput);
-    
     // Clear conditions when input changes since schema might be different
     setConditions([]);
-    onUpdate('conditions', []);
-  }, [onUpdate]);
+
+    // Update both input and conditions atomically to prevent race condition
+    if (onBatchUpdate) {
+      onBatchUpdate({ input: newInput, conditions: [] });
+    } else {
+      // Fallback to individual updates
+      onUpdate('input', newInput);
+      onUpdate('conditions', []);
+    }
+  }, [onUpdate, onBatchUpdate]);
 
   const addCondition = () => {
     const newConditions = [...conditions, { column: '', operator: '=', value: '' }];
@@ -255,7 +259,7 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
       >
         Add Condition
       </button>
-      
+
       {!step.input && (
         <div style={{ marginTop: '10px', fontSize: '14px', color: '#6c757d', fontStyle: 'italic' }}>
           Please select an input step before adding conditions
