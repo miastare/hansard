@@ -217,12 +217,12 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
               }}
             >
               <option value="">Select column</option>
-              {availableColumns && Array.isArray(availableColumns) ? availableColumns.map(col => {
+              {(availableColumns || []).map(col => {
                 console.log('EXPRESSION BUILDER: Rendering option for column:', col);
                 return (
                   <option key={col.name} value={col.name}>{col.name} ({col.dtype})</option>
                 );
-              }) : null}
+              })}
             </select>
           </div>
           <button 
@@ -451,7 +451,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns }) 
             <ExpressionBuilder
               expr={expr.args[editingArgIndex]}
               onChange={(newArg) => handleArgChange(editingArgIndex, newArg)}
-              availableColumns={availableColumns}
+              availableColumns={availableColumns || []}
             />
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
               <button
