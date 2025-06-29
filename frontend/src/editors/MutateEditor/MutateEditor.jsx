@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import ExpressionBuilder from './ExpressionBuilder';
 import { deriveSchema } from '../../utils/DeriveSchema';
+import generateId from '../../utils/GenerateId';
 
 export default function MutateEditor({ step, onChange, availableInputs, tableSchemas, inputSchema }) {
   console.log('MUTATE EDITOR: === RENDERING ===');
@@ -9,7 +10,28 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   console.log('MUTATE EDITOR: tableSchemas:', tableSchemas);
   console.log('MUTATE EDITOR: inputSchema prop:', inputSchema);
 
-  const [cols, setCols] = useState(step.cols || {});
+  // Convert legacy cols format to new format with stable IDs
+  const initializeColumnsWithIds = (cols) => {
+    if (!cols) return {};
+    
+    // Check if cols already has the new format (with _id properties)
+    const hasIds = Object.values(cols).some(col => col && typeof col === 'object' && col._id);
+    
+    if (hasIds) return cols;
+    
+    // Convert legacy format to new format
+    const newCols = {};
+    Object.entries(cols).forEach(([name, expr]) => {
+      const id = generateId('col');
+      newCols[name] = {
+        _id: id,
+        expr: expr
+      };
+    });
+    return newCols;
+  };
+
+  const [cols, setCols] = useState(() => initializeColumnsWithIds(step.cols));
 
   // Get schema for the selected input
   const getInputSchema = () => {
@@ -73,7 +95,12 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
 
   const updateStep = useCallback((newCols) => {
     setCols(newCols);
-    onChange({ ...step, cols: newCols });
+    // Convert back to legacy format for the step
+    const legacyCols = {};
+    Object.entries(newCols).forEach(([name, colData]) => {
+      legacyCols[name] = colData.expr;
+    });
+    onChange({ ...step, cols: legacyCols });
   }, [step, onChange]);
 
   const updateInput = useCallback((newInput) => {
@@ -84,20 +111,34 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   const addColumn = () => {
     const newName = `new_col_${Object.keys(cols).length + 1}`;
     const defaultExpr = { type: 'constant', valueType: 'int64', value: 0 };
-    const newCols = { ...cols, [newName]: defaultExpr };
+    const id = generateId('col');
+    const newCols = { 
+      ...cols, 
+      [newName]: {
+        _id: id,
+        expr: defaultExpr
+      }
+    };
     updateStep(newCols);
   };
 
   const updateColumnName = useCallback((oldName, newName) => {
     if (oldName === newName || newName === '') return;
     const newCols = { ...cols };
+    // Preserve the column data with its stable ID
     newCols[newName] = newCols[oldName];
     delete newCols[oldName];
     updateStep(newCols);
   }, [cols, updateStep]);
 
   const updateColumnExpr = (name, expr) => {
-    const newCols = { ...cols, [name]: expr };
+    const newCols = { 
+      ...cols, 
+      [name]: {
+        ...cols[name],
+        expr: expr
+      }
+    };
     updateStep(newCols);
   };
 
@@ -164,82 +205,87 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
         </div>
       </div>
 
-      {Object.entries(cols).map(([name, expr]) => (
-        <div key={`column-${name}`} style={{ 
-          marginBottom: '25px', 
-          border: '2px solid #e9ecef', 
-          padding: '20px',
-          borderRadius: '10px',
-          backgroundColor: '#fff',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ marginBottom: '15px' }}>
-            <label 
-              htmlFor={`column-name-input-${name}`}
-              style={{ 
+      {Object.entries(cols).map(([name, colData]) => {
+        const stableId = colData._id;
+        const expr = colData.expr;
+        
+        return (
+          <div key={`column-${stableId}`} style={{ 
+            marginBottom: '25px', 
+            border: '2px solid #e9ecef', 
+            padding: '20px',
+            borderRadius: '10px',
+            backgroundColor: '#fff',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ marginBottom: '15px' }}>
+              <label 
+                htmlFor={`column-name-input-${stableId}`}
+                style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  color: '#495057'
+                }}
+              >
+                Column name (LHS):
+              </label>
+              <input
+                id={`column-name-input-${stableId}`}
+                name={`column-name-${stableId}`}
+                type="text"
+                value={name}
+                onChange={(e) => updateColumnName(name, e.target.value)}
+                placeholder="Enter column name"
+                style={{ 
+                  padding: '10px', 
+                  border: '2px solid #ddd', 
+                  borderRadius: '6px',
+                  width: '250px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ 
                 display: 'block', 
                 marginBottom: '8px', 
                 fontWeight: 'bold',
                 fontSize: '14px',
                 color: '#495057'
+              }}>
+                Expression (RHS):
+              </label>
+              <ExpressionBuilder 
+                expr={expr} 
+                onChange={(newExpr) => {
+                  console.log('MUTATE EDITOR: updateColumnExpr called with:', name, newExpr);
+                  updateColumnExpr(name, newExpr);
+                }}
+                availableColumns={currentSchema || []}
+              />
+            </div>
+
+            <button 
+              onClick={() => removeColumn(name)} 
+              style={{ 
+                padding: '8px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
               }}
             >
-              Column name (LHS):
-            </label>
-            <input
-              id={`column-name-input-${name}`}
-              name={`column-name-${name}`}
-              type="text"
-              value={name}
-              onChange={(e) => updateColumnName(name, e.target.value)}
-              placeholder="Enter column name"
-              style={{ 
-                padding: '10px', 
-                border: '2px solid #ddd', 
-                borderRadius: '6px',
-                width: '250px',
-                fontSize: '14px'
-              }}
-            />
+              Remove Column
+            </button>
           </div>
-
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '8px', 
-              fontWeight: 'bold',
-              fontSize: '14px',
-              color: '#495057'
-            }}>
-              Expression (RHS):
-            </label>
-            <ExpressionBuilder 
-              expr={expr} 
-              onChange={(newExpr) => {
-                console.log('MUTATE EDITOR: updateColumnExpr called with:', name, newExpr);
-                updateColumnExpr(name, newExpr);
-              }}
-              availableColumns={currentSchema || []}
-            />
-          </div>
-
-          <button 
-            onClick={() => removeColumn(name)} 
-            style={{ 
-              padding: '8px 16px',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            Remove Column
-          </button>
-        </div>
-      ))}
+        );
+      })}
 
       <button 
         onClick={addColumn}
