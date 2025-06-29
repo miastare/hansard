@@ -57,9 +57,11 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
     onUpdate('input', newInput);
     
     // Clear conditions when input changes since schema might be different
-    setConditions([]);
-    onUpdate('conditions', []);
-  }, [onUpdate]);
+    if (newInput !== step.input) {
+      setConditions([]);
+      onUpdate('conditions', []);
+    }
+  }, [onUpdate, step.input]);
 
   const addCondition = () => {
     const newConditions = [...conditions, { column: '', operator: '=', value: '' }];
@@ -87,7 +89,11 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
         </label>
         <select 
           value={step.input || ''} 
-          onChange={(e) => updateInput(e.target.value)}
+          onChange={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            updateInput(e.target.value);
+          }}
           style={{ 
             width: '100%', 
             padding: '10px', 
