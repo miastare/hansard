@@ -118,56 +118,6 @@ export default function DSLBuilder() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.sidebar}>
-        <h3>Add Steps</h3>
-        <div className={styles.buttonGroup}>
-          {['source', 'filter', 'mutate', 'aggregate', 'join', 'division_votes'].map(op => (
-            <button key={op} onClick={() => addStep(op)} className={styles.addButton}>
-              Add {op}
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.controls}>
-          <button 
-            onClick={runPipeline} 
-            disabled={loading || steps.length === 0} 
-            className={styles.runButton}
-          >
-            {loading ? 'Running...' : 'Run Pipeline'}
-          </button>
-
-          <button 
-            onClick={clearAll} 
-            disabled={steps.length === 0} 
-            className={styles.clearButton}
-          >
-            Clear All
-          </button>
-        </div>
-
-        {error && (
-          <div className={styles.error}>
-            <h4>Error</h4>
-            <p>{error}</p>
-          </div>
-        )}
-
-        {results && (
-          <div className={styles.results}>
-            <h3>Results</h3>
-            <div className={styles.resultsContent}>
-              {Object.entries(results).map(([key, value]) => (
-                <div key={key}>
-                  <h4>{key}:</h4>
-                  <pre>{JSON.stringify(value, null, 2)}</pre>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
       <div className={styles.main}>
         <h2>DSL Pipeline Builder</h2>
         {steps.map((step, index) => {
@@ -226,6 +176,56 @@ export default function DSLBuilder() {
         {steps.length === 0 && (
           <div className={styles.empty}>
             <p>No steps added yet. Use the sidebar to add your first step.</p>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.sidebar}>
+        <h3>Add Steps</h3>
+        <div className={styles.buttonGroup}>
+          {['source', 'filter', 'mutate', 'aggregate', 'join', 'division_votes'].map(op => (
+            <button key={op} onClick={() => addStep(op)} className={styles.addButton}>
+              Add {op}
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.controls}>
+          <button 
+            onClick={runPipeline} 
+            disabled={loading || steps.length === 0} 
+            className={styles.runButton}
+          >
+            {loading ? 'Running...' : 'Run Pipeline'}
+          </button>
+
+          <button 
+            onClick={clearAll} 
+            disabled={steps.length === 0} 
+            className={styles.clearButton}
+          >
+            Clear All
+          </button>
+        </div>
+
+        {error && (
+          <div className={styles.error}>
+            <h4>Error</h4>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {results && (
+          <div className={styles.results}>
+            <h3>Results</h3>
+            <div className={styles.resultsContent}>
+              {Object.entries(results).map(([key, value]) => (
+                <div key={key}>
+                  <h4>{key}:</h4>
+                  <pre>{JSON.stringify(value, null, 2)}</pre>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
