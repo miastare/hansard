@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { deriveSchema } from "../utils/DeriveSchema";
 import Dropdown from "../components/Dropdown";
-import ColumnsPreview from "../components/ColumnsPreview";
+import WindowedColumnsPreview from "../components/WindowedColumnsPreview";
 
 export default function JoinEditor({
   step,
@@ -174,12 +174,8 @@ export default function JoinEditor({
         maxHeight: "60vh",
       }}
     >
-      <h4 style={{ margin: "0 0 24px 0", color: "#2d3748", fontSize: "18px" }}>
-        Join Step
-      </h4>
-
       {/* Input Sources Section - Side by Side Layout */}
-      <div style={{ marginBottom: "20px" }}>
+      <div style={{ marginBottom: "20px", marginLeft: "10%", width: "80%" }}>
         <label
           style={{
             display: "block",
@@ -327,8 +323,42 @@ export default function JoinEditor({
         </div>
       </div>
 
+      {/* Column Schema Previews */}
+      {inputs.length === 2 && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "16px",
+            marginBottom: "20px",
+            marginLeft: "10%",
+            width: "80%",
+          }}
+        >
+          <WindowedColumnsPreview
+            columns={leftSchema}
+            title={`Left Table (${inputs[0]})`}
+            isVisible={leftSchema.length > 0}
+            columnsPerWindow={4}
+          />
+          <WindowedColumnsPreview
+            columns={rightSchema}
+            title={`Right Table (${inputs[1]})`}
+            isVisible={rightSchema.length > 0}
+            columnsPerWindow={4}
+          />
+        </div>
+      )}
+
       {/* Join Type Section */}
-      <div style={{ marginBottom: "20px" }}>
+      <div
+        style={{
+          marginBottom: "20px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
         <label
           style={{
             display: "block",
@@ -350,82 +380,8 @@ export default function JoinEditor({
         </div>
       </div>
 
-      {/* Column Schema Previews */}
-      {inputs.length === 2 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "16px",
-            marginBottom: "20px",
-          }}
-        >
-          <ColumnsPreview
-            columns={leftSchema}
-            title={`Left Table (${inputs[0]})`}
-            isVisible={leftSchema.length > 0}
-          />
-          <ColumnsPreview
-            columns={rightSchema}
-            title={`Right Table (${inputs[1]})`}
-            isVisible={rightSchema.length > 0}
-          />
-        </div>
-      )}
-
-      {/* Available Common Columns Info */}
-      {inputs.length === 2 && (
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "12px",
-            backgroundColor: "#f8f9fa",
-            borderRadius: "8px",
-            border: "1px solid #e9ecef",
-          }}
-        >
-          <strong style={{ fontSize: "14px", color: "#495057" }}>
-            Available join columns:
-          </strong>
-          <div style={{ marginTop: "8px", fontSize: "13px", color: "#666" }}>
-            {commonColumns.length > 0 ? (
-              commonColumns.map((col) => (
-                <span
-                  key={col}
-                  style={{
-                    display: "inline-block",
-                    margin: "3px 6px 3px 0",
-                    padding: "4px 8px",
-                    backgroundColor: "#e9ecef",
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    border: "1px solid #dee2e6",
-                  }}
-                >
-                  {col}
-                </span>
-              ))
-            ) : (
-              <em>No common columns found between the selected inputs</em>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* By Columns Section */}
       <div style={{ marginBottom: "20px" }}>
-        <label
-          style={{
-            display: "block",
-            marginBottom: "8px",
-            fontWeight: "bold",
-            fontSize: "14px",
-            color: "#374151",
-          }}
-        >
-          Join By Columns:
-        </label>
-
         {byColumns.map((column, index) => (
           <div
             key={index}
@@ -519,6 +475,8 @@ export default function JoinEditor({
             gridTemplateColumns: "1fr 1fr",
             gap: "16px",
             maxWidth: "500px",
+            marginLeft: "10%",
+            width: "80%",
           }}
         >
           <div>
