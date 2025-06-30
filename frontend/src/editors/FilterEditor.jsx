@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { deriveSchema } from '../utils/DeriveSchema';
 
-export default function FilterEditor({ step, onUpdate, availableInputs, tableSchemas, onBatchUpdate, showAdvanced }) {
+export default function FilterEditor({ step, onUpdate, availableInputs, tableSchemas, onBatchUpdate }) {
   const [conditions, setConditions] = useState(step.conditions || []);
 
   // Get schema for the selected input (similar to MutateEditor logic)
@@ -103,38 +103,7 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
         </label>
       </div>
 
-      {showAdvanced && (
-        <div className="advancedSection">
-          <div className="advancedTitle">
-            📊 Available Boolean Columns
-          </div>
-          <div style={{ fontSize: '13px', color: '#666' }}>
-            {currentSchema && currentSchema.length > 0 ? (
-              currentSchema.filter(col => col.dtype === 'bool').length > 0 ? (
-                currentSchema.filter(col => col.dtype === 'bool').map(col => (
-                  <span key={col.name} style={{ 
-                    display: 'inline-block', 
-                    margin: '3px 8px 3px 0', 
-                    padding: '6px 12px', 
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)', 
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    border: '1px solid rgba(102, 126, 234, 0.2)',
-                    color: '#667eea',
-                    fontWeight: '600'
-                  }}>
-                    {col.name}
-                  </span>
-                ))
-              ) : (
-                <em>No boolean columns available in the selected input</em>
-              )
-            ) : (
-              <em>No schema available - please select an input step</em>
-            )}
-          </div>
-        </div>
-      )}
+      
 
       {conditions.map((condition, index) => (
         <div key={index} style={{ 

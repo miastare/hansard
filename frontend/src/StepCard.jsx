@@ -19,7 +19,6 @@ const StepCard = ({
   isInFocus,
   onToggleExpansion 
 }) => {
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   if (!step || !step.op) {
     return (
@@ -91,7 +90,6 @@ const StepCard = ({
             step={step}
             onChange={(updatedStep) => onUpdate(index, updatedStep)}
             requestSchema={requestSchema}
-            showAdvanced={showAdvanced}
           />
         );
       case 'filter':
@@ -102,7 +100,6 @@ const StepCard = ({
             onBatchUpdate={handleBatchUpdate}
             availableInputs={availableInputs || []}
             tableSchemas={tableSchemas || {}}
-            showAdvanced={showAdvanced}
           />
         );
       case 'mutate':
@@ -117,7 +114,6 @@ const StepCard = ({
             availableInputs={availableInputs || []}
             tableSchemas={tableSchemas || {}}
             inputSchema={null}
-            showAdvanced={showAdvanced}
           />
         );
       case 'aggregate':
@@ -128,7 +124,6 @@ const StepCard = ({
             onBatchUpdate={handleBatchUpdate}
             availableInputs={availableInputs || []}
             tableSchemas={tableSchemas || {}}
-            showAdvanced={showAdvanced}
           />
         );
       case 'join':
@@ -139,7 +134,6 @@ const StepCard = ({
             onBatchUpdate={handleBatchUpdate}
             availableInputs={availableInputs || []}
             tableSchemas={tableSchemas || {}}
-            showAdvanced={showAdvanced}
           />
         );
       case 'division_votes':
@@ -220,12 +214,6 @@ const StepCard = ({
             <h4 className={styles.editorTitle}>
               Configure {step.op} operation
             </h4>
-            <button 
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className={styles.toggleAdvanced}
-            >
-              {showAdvanced ? '🔼' : '🔽'} {showAdvanced ? 'Hide' : 'Show'} Advanced
-            </button>
           </div>
           <div className={styles.editorWrapper}>
             {renderEditor()}

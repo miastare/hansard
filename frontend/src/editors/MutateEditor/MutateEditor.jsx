@@ -12,12 +12,12 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   // Convert legacy cols format to new format with stable IDs
   const initializeColumnsWithIds = (cols) => {
     if (!cols) return {};
-    
+
     // Check if cols already has the new format (with _id properties)
     const hasIds = Object.values(cols).some(col => col && typeof col === 'object' && col._id);
-    
+
     if (hasIds) return cols;
-    
+
     // Convert legacy format to new format
     const newCols = {};
     Object.entries(cols).forEach(([name, expr]) => {
@@ -52,22 +52,22 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       console.log(`📊 SCHEMA [${step.id}]: Looking for input step with ID: ${step.input}`);
       const inputStep = availableInputs.find(s => s.id === step.input);
       console.log(`📊 SCHEMA [${step.id}]: Found inputStep:`, inputStep);
-      
+
       if (inputStep) {
         console.log(`📊 SCHEMA [${step.id}]: Processing inputStep - op: ${inputStep.op}, table: ${inputStep.table}`);
-        
+
         if (inputStep.op === 'source' && inputStep.table) {
           console.log(`📊 SCHEMA [${step.id}]: Input is source step, getting table schema for: ${inputStep.table}`);
           const schemaWrapper = tableSchemas[inputStep.table];
           console.log(`📊 SCHEMA [${step.id}]: Schema wrapper:`, schemaWrapper);
-          
+
           if (schemaWrapper) {
             // Handle both wrapper format {cols: [...]} and direct array format
             const schema = schemaWrapper.cols || schemaWrapper;
             console.log(`📊 SCHEMA [${step.id}]: Extracted schema:`, schema);
             console.log(`📊 SCHEMA [${step.id}]: Schema is array:`, Array.isArray(schema));
             console.log(`📊 SCHEMA [${step.id}]: Schema length:`, schema?.length);
-            
+
             if (Array.isArray(schema)) {
               console.log(`📊 SCHEMA [${step.id}]: ✅ Returning source schema with ${schema.length} columns`);
               return schema;
@@ -84,12 +84,12 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
           // For non-source steps (like other mutate steps), derive the schema
           console.log(`📊 SCHEMA [${step.id}]: Input is ${inputStep.op} step, deriving schema`);
           console.log(`📊 SCHEMA [${step.id}]: Calling deriveSchema with inputStep:`, inputStep);
-          
+
           const derivedSchema = deriveSchema(inputStep, availableInputs, tableSchemas);
           console.log(`📊 SCHEMA [${step.id}]: deriveSchema returned:`, derivedSchema);
           console.log(`📊 SCHEMA [${step.id}]: Derived schema is array:`, Array.isArray(derivedSchema));
           console.log(`📊 SCHEMA [${step.id}]: Derived schema length:`, derivedSchema?.length);
-          
+
           if (Array.isArray(derivedSchema)) {
             console.log(`📊 SCHEMA [${step.id}]: ✅ Returning derived schema with ${derivedSchema.length} columns`);
             return derivedSchema;
@@ -112,7 +112,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   const computedSchema = getInputSchema();
   const schema = inputSchema || computedSchema;
   const currentSchema = schema || [];
-  
+
   console.log(`🎯 FINAL SCHEMA [${step.id}]: Using ${inputSchema ? 'prop' : 'computed'} schema`);
   console.log(`🎯 FINAL SCHEMA [${step.id}]: currentSchema:`, currentSchema);
   console.log(`🎯 FINAL SCHEMA [${step.id}]: currentSchema length:`, currentSchema.length);
@@ -136,14 +136,14 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   const addColumn = () => {
     const existingInputColumns = currentSchema.map(col => col.name);
     let newName = `new_col_${Object.keys(cols).length + 1}`;
-    
+
     // Ensure the generated name doesn't conflict with input columns
     let counter = Object.keys(cols).length + 1;
     while (existingInputColumns.includes(newName)) {
       counter++;
       newName = `new_col_${counter}`;
     }
-    
+
     const defaultExpr = { type: 'constant', valueType: 'int64', value: 0 };
     const id = generateId('col');
     const newCols = { 
@@ -158,21 +158,21 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
 
   const updateColumnName = useCallback((oldName, newName) => {
     if (oldName === newName) return;
-    
+
     const stableId = cols[oldName]?._id;
-    
+
     // Clear any existing timeout for this column
     if (validationTimeouts.current[stableId]) {
       clearTimeout(validationTimeouts.current[stableId]);
     }
-    
+
     // Clear existing error immediately when typing
     setValidationErrors(prev => {
       const newErrors = { ...prev };
       delete newErrors[stableId];
       return newErrors;
     });
-    
+
     if (newName === '') {
       // Always update the step even for empty names
       const newCols = { ...cols };
@@ -181,13 +181,13 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       updateStep(newCols);
       return;
     }
-    
+
     // Always update the step first (allow typing)
     const newCols = { ...cols };
     newCols[newName] = newCols[oldName];
     delete newCols[oldName];
     updateStep(newCols);
-    
+
     // Check for conflicts after a delay
     const existingInputColumns = currentSchema.map(col => col.name);
     if (existingInputColumns.includes(newName)) {
@@ -213,7 +213,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
 
   const removeColumn = (name) => {
     const stableId = cols[name]?._id;
-    
+
     // Clear timeout and error for this column
     if (stableId && validationTimeouts.current[stableId]) {
       clearTimeout(validationTimeouts.current[stableId]);
@@ -224,7 +224,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       delete newErrors[stableId];
       return newErrors;
     });
-    
+
     const newCols = { ...cols };
     delete newCols[name];
     updateStep(newCols);
@@ -300,7 +300,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
         const stableId = colData._id;
         const expr = colData.expr;
         const hasError = validationErrors[stableId];
-        
+
         return (
           <div key={`column-${stableId}`} style={{ 
             marginBottom: '25px', 
