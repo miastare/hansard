@@ -308,7 +308,12 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
   }, []);
 
   return (
-    <div>
+    <div style={{ 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      maxHeight: '70vh'
+    }}>
       <h4 style={{ margin: '0 0 24px 0', color: '#2d3748', fontSize: '18px' }}>Mutate Columns</h4>
 
       {/* Input Selection Row */}
@@ -317,7 +322,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
         alignItems: 'flex-start', 
         gap: '20px', 
         marginBottom: '24px',
-        flexWrap: 'wrap'
+        flexShrink: 0
       }}>
         <div style={{ flex: '0 0 300px' }}>
           <label style={{ 
@@ -463,211 +468,226 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
         )}
       </div>
 
-      {/* Column Definitions */}
-      {Object.entries(cols).map(([name, colData]) => {
-        const stableId = colData._id;
-        const expr = colData.expr;
-        const hasError = validationErrors[stableId];
-        const isExpanded = expandedColumns[stableId];
-        const isExpressionExpanded = expandedExpressions[stableId];
+      {/* Scrollable Column Definitions Container */}
+      <div style={{ 
+        flex: '1', 
+        overflowY: 'auto', 
+        marginBottom: '20px',
+        paddingRight: '8px'
+      }}>
+        {Object.entries(cols).map(([name, colData]) => {
+          const stableId = colData._id;
+          const expr = colData.expr;
+          const hasError = validationErrors[stableId];
+          const isExpanded = expandedColumns[stableId];
+          const isExpressionExpanded = expandedExpressions[stableId];
 
-        return (
-          <div key={`column-${stableId}`} style={{ 
-            marginBottom: '20px', 
-            border: hasError ? '2px solid #ef4444' : '2px solid rgba(203, 213, 225, 0.4)', 
-            borderRadius: '12px',
-            backgroundColor: '#fff',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-            overflow: 'hidden'
-          }}>
-            {/* Column Header */}
-            <div 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '16px 20px',
-                background: isExpanded ? 'rgba(248, 250, 252, 0.5)' : 'rgba(248, 250, 252, 0.8)',
-                borderBottom: isExpanded ? '1px solid rgba(203, 213, 225, 0.3)' : 'none',
-                cursor: 'pointer'
-              }}
-              onClick={() => toggleColumnExpansion(stableId)}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                <span style={{ fontSize: '16px' }}>
-                  {isExpanded ? '🔽' : '▶️'}
-                </span>
-                <span style={{ fontWeight: '600', color: '#374151' }}>
-                  Column: {name || 'unnamed'}
-                </span>
-                {hasError && (
-                  <span style={{ color: '#ef4444', fontSize: '12px' }}>⚠️ Error</span>
-                )}
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeColumn(name);
-                }}
+          return (
+            <div key={`column-${stableId}`} style={{ 
+              marginBottom: '20px', 
+              border: hasError ? '2px solid #ef4444' : '2px solid rgba(203, 213, 225, 0.4)', 
+              borderRadius: '12px',
+              backgroundColor: '#fff',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              overflow: 'hidden'
+            }}>
+              {/* Column Header */}
+              <div 
                 style={{
-                  padding: '8px 12px',
-                  background: '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: '500'
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px 20px',
+                  background: isExpanded ? 'rgba(248, 250, 252, 0.5)' : 'rgba(248, 250, 252, 0.8)',
+                  borderBottom: isExpanded ? '1px solid rgba(203, 213, 225, 0.3)' : 'none',
+                  cursor: 'pointer'
                 }}
+                onClick={() => toggleColumnExpansion(stableId)}
               >
-                🗑️ Remove
-              </button>
-            </div>
-
-            {/* Column Body */}
-            {isExpanded && (
-              <div style={{ padding: '20px' }}>
-                {/* Column Name Input */}
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    color: hasError ? '#ef4444' : '#374151'
-                  }}>
-                    Column name (LHS):
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => updateColumnName(name, e.target.value)}
-                      placeholder="Enter column name"
-                      style={{ 
-                        padding: '12px 16px', 
-                        border: hasError ? '2px solid #ef4444' : '2px solid #e2e8f0', 
-                        borderRadius: '8px',
-                        width: '250px',
-                        fontSize: '14px',
-                        background: 'rgba(255, 255, 255, 0.8)'
-                      }}
-                    />
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                  <span style={{ fontSize: '16px' }}>
+                    {isExpanded ? '🔽' : '▶️'}
+                  </span>
+                  <span style={{ fontWeight: '600', color: '#374151' }}>
+                    Column: {name || 'unnamed'}
+                  </span>
                   {hasError && (
-                    <div style={{
-                      marginTop: '8px',
-                      color: '#ef4444',
-                      fontSize: '12px',
-                      fontWeight: '500'
-                    }}>
-                      {hasError}
-                    </div>
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>⚠️ Error</span>
                   )}
                 </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeColumn(name);
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    background: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}
+                >
+                  🗑️ Remove
+                </button>
+              </div>
 
-                {/* Expression Section */}
-                {!hasError && (
-                  <div>
-                    <div 
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '12px',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => toggleExpressionExpansion(stableId)}
-                    >
-                      <label style={{ 
-                        fontWeight: '600',
-                        fontSize: '14px',
-                        color: '#374151',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-                        <span>{isExpressionExpanded ? '🔽' : '▶️'}</span>
-                        Expression (RHS):
-                      </label>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleExpressionExpansion(stableId);
+              {/* Column Body */}
+              {isExpanded && (
+                <div style={{ padding: '20px' }}>
+                  {/* Column Name Input */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '8px', 
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      color: hasError ? '#ef4444' : '#374151'
+                    }}>
+                      Column name (LHS):
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => updateColumnName(name, e.target.value)}
+                        placeholder="Enter column name"
+                        style={{ 
+                          padding: '12px 16px', 
+                          border: hasError ? '2px solid #ef4444' : '2px solid #e2e8f0', 
+                          borderRadius: '8px',
+                          width: '250px',
+                          fontSize: '14px',
+                          background: 'rgba(255, 255, 255, 0.8)'
                         }}
-                        style={{
-                          padding: '4px 8px',
-                          background: 'rgba(59, 130, 246, 0.1)',
-                          color: '#3b82f6',
-                          border: '1px solid rgba(59, 130, 246, 0.2)',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {isExpressionExpanded ? 'Collapse' : 'Expand'}
-                      </button>
+                      />
                     </div>
-
-                    {isExpressionExpanded && (
+                    {hasError && (
                       <div style={{
-                        background: 'rgba(248, 250, 252, 0.5)',
-                        border: '1px solid rgba(203, 213, 225, 0.3)',
-                        borderRadius: '8px',
-                        padding: '16px'
+                        marginTop: '8px',
+                        color: '#ef4444',
+                        fontSize: '12px',
+                        fontWeight: '500'
                       }}>
-                        <ExpressionBuilder 
-                          expr={expr} 
-                          onChange={(newExpr) => updateColumnExpr(name, newExpr)}
-                          availableColumns={currentSchema || []}
-                        />
+                        {hasError}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* Expression Section */}
+                  {!hasError && (
+                    <div>
+                      <div 
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '12px',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => toggleExpressionExpansion(stableId)}
+                      >
+                        <label style={{ 
+                          fontWeight: '600',
+                          fontSize: '14px',
+                          color: '#374151',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          <span>{isExpressionExpanded ? '🔽' : '▶️'}</span>
+                          Expression (RHS):
+                        </label>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpressionExpansion(stableId);
+                          }}
+                          style={{
+                            padding: '4px 8px',
+                            background: 'rgba(59, 130, 246, 0.1)',
+                            color: '#3b82f6',
+                            border: '1px solid rgba(59, 130, 246, 0.2)',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {isExpressionExpanded ? 'Collapse' : 'Expand'}
+                        </button>
+                      </div>
+
+                      {isExpressionExpanded && (
+                        <div style={{
+                          background: 'rgba(248, 250, 252, 0.5)',
+                          border: '1px solid rgba(203, 213, 225, 0.3)',
+                          borderRadius: '8px',
+                          padding: '16px'
+                        }}>
+                          <ExpressionBuilder 
+                            expr={expr} 
+                            onChange={(newExpr) => updateColumnExpr(name, newExpr)}
+                            availableColumns={currentSchema || []}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Fixed Footer with Add Column Button */}
+      <div style={{ 
+        flexShrink: 0,
+        borderTop: '1px solid rgba(203, 213, 225, 0.3)',
+        paddingTop: '16px',
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)'
+      }}>
+        <button 
+          onClick={addColumn}
+          disabled={!step.input}
+          style={{
+            padding: '12px 24px',
+            background: step.input 
+              ? 'linear-gradient(135deg, #667eea, #764ba2)' 
+              : '#cbd5e1',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: step.input ? 'pointer' : 'not-allowed',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: step.input ? '0 4px 12px rgba(102, 126, 234, 0.3)' : 'none'
+          }}
+        >
+          ➕ Add Column
+        </button>
+
+        {!step.input && (
+          <div style={{ 
+            marginTop: '16px', 
+            padding: '12px 16px', 
+            backgroundColor: 'rgba(251, 211, 141, 0.1)', 
+            border: '1px solid rgba(251, 211, 141, 0.3)',
+            borderRadius: '8px',
+            fontSize: '14px', 
+            color: '#92400e',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            ⚠️ Please select an input step before adding columns
           </div>
-        );
-      })}
-
-      {/* Add Column Button */}
-      <button 
-        onClick={addColumn}
-        disabled={!step.input}
-        style={{
-          padding: '12px 24px',
-          background: step.input 
-            ? 'linear-gradient(135deg, #667eea, #764ba2)' 
-            : '#cbd5e1',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: step.input ? 'pointer' : 'not-allowed',
-          fontSize: '14px',
-          fontWeight: '600',
-          boxShadow: step.input ? '0 4px 12px rgba(102, 126, 234, 0.3)' : 'none'
-        }}
-      >
-        ➕ Add Column
-      </button>
-
-      {!step.input && (
-        <div style={{ 
-          marginTop: '16px', 
-          padding: '12px 16px', 
-          backgroundColor: 'rgba(251, 211, 141, 0.1)', 
-          border: '1px solid rgba(251, 211, 141, 0.3)',
-          borderRadius: '8px',
-          fontSize: '14px', 
-          color: '#92400e',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          ⚠️ Please select an input step before adding columns
-        </div>
-      )}
+        )}
+      </div>
 
       {/* All Columns Modal */}
       {showAllColumnsModal && (
