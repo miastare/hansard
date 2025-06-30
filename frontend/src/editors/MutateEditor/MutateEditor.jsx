@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import ExpressionBuilder from "./ExpressionBuilder";
 import { deriveSchema } from "../../utils/DeriveSchema";
 import generateId from "../../utils/GenerateId";
@@ -430,9 +431,11 @@ export default function MutateEditor({
           gap: "20px",
           marginBottom: "24px",
           flexShrink: 0,
+          position: "relative",
+          justifyContent: "space-around",
         }}
       >
-        <div style={{ flex: "0 0 300px" }}>
+        <div style={{ flex: "0 0 300px", position: "relative" }}>
           <label
             style={{
               display: "block",
@@ -444,174 +447,190 @@ export default function MutateEditor({
           >
             🔗 Input step:
           </label>
-          <Dropdown
-            value={step.input || ""}
-            onChange={updateInput}
-            options={inputOptions}
-            placeholder="Select input step"
-            onHover={handleInputHover}
-          />
-        </div>
-      </div>
-
-      {/* Available Columns Preview */}
-      {currentSchema.length > 0 && (
-        <div style={{ flex: "1", minWidth: "300px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "8px",
-            }}
-          >
-            <span
-              style={{
-                fontWeight: "600",
-                fontSize: "14px",
-                color: "#374151",
-              }}
-            >
-              📊 Available columns ({currentSchema.length})
-            </span>
-            <button
-              onClick={() => setShowAllColumnsModal(true)}
-              style={{
-                padding: "4px 12px",
-                background: "rgba(59, 130, 246, 0.1)",
-                color: "#3b82f6",
-                border: "1px solid rgba(59, 130, 246, 0.2)",
-                borderRadius: "6px",
-                fontSize: "12px",
-                cursor: "pointer",
-              }}
-            >
-              View All
-            </button>
+          <div style={{ position: "relative", zIndex: 100 }}>
+            <Dropdown
+              value={step.input || ""}
+              onChange={updateInput}
+              options={inputOptions}
+              placeholder="Select input step"
+              onHover={handleInputHover}
+            />
           </div>
+        </div>
 
-          {/* Windowed Column Display */}
-          <div
-            style={{
-              background: "rgba(248, 250, 252, 0.8)",
-              border: "1px solid rgba(203, 213, 225, 0.4)",
-              borderRadius: "8px",
-              padding: "12px",
-            }}
-          >
+        {/* Available Columns Preview - only when input is selected */}
+        {(step.input || hoveredInput) && currentSchema.length > 0 ? (
+          <div style={{ flex: "1", minWidth: "280px", maxWidth: "350px" }}>
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: "8px",
-                marginBottom: windowedColumns.length > 0 ? "12px" : "0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "8px",
               }}
             >
-              {windowedColumns.map((col) => (
+              <span
+                style={{
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  color: "#374151",
+                }}
+              >
+                📊 Available columns ({currentSchema.length})
+              </span>
+              <button
+                onClick={() => setShowAllColumnsModal(true)}
+                style={{
+                  padding: "4px 12px",
+                  background: "rgba(59, 130, 246, 0.1)",
+                  color: "#3b82f6",
+                  border: "1px solid rgba(59, 130, 246, 0.2)",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                View All
+              </button>
+            </div>
+
+            {/* Windowed Column Display */}
+            <div
+              style={{
+                background: "rgba(248, 250, 252, 0.8)",
+                border: "1px solid rgba(203, 213, 225, 0.4)",
+                borderRadius: "8px",
+                padding: "12px",
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gap: "8px",
+                  marginBottom: windowedColumns.length > 0 ? "12px" : "0",
+                }}
+              >
+                {windowedColumns.map((col) => (
+                  <div
+                    key={col.name}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "6px 10px",
+                      background: "rgba(255, 255, 255, 0.8)",
+                      border: "1px solid rgba(203, 213, 225, 0.3)",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                    }}
+                  >
+                    <span style={{ fontWeight: "500", color: "#374151" }}>
+                      {col.name}
+                    </span>
+                    <span
+                      style={{
+                        color:
+                          col.dtype === "str"
+                            ? "#10b981"
+                            : col.dtype === "numeric" || col.dtype === "int64"
+                              ? "#3b82f6"
+                              : col.dtype === "bool"
+                                ? "#f59e0b"
+                                : "#6b7280",
+                        fontSize: "11px",
+                      }}
+                    >
+                      {col.dtype}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Navigation */}
+              {totalWindows > 1 && (
                 <div
-                  key={col.name}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "6px 10px",
-                    background: "rgba(255, 255, 255, 0.8)",
-                    border: "1px solid rgba(203, 213, 225, 0.3)",
-                    borderRadius: "6px",
                     fontSize: "12px",
+                    color: "#6b7280",
                   }}
                 >
-                  <span style={{ fontWeight: "500", color: "#374151" }}>
-                    {col.name}
-                  </span>
-                  <span
+                  <button
+                    onClick={() =>
+                      setColumnWindowStart(
+                        Math.max(0, columnWindowStart - COLUMNS_PER_WINDOW),
+                      )
+                    }
+                    disabled={columnWindowStart === 0}
                     style={{
-                      color:
-                        col.dtype === "str"
-                          ? "#10b981"
-                          : col.dtype === "numeric" || col.dtype === "int64"
-                            ? "#3b82f6"
-                            : col.dtype === "bool"
-                              ? "#f59e0b"
-                              : "#6b7280",
+                      padding: "4px 8px",
+                      background:
+                        columnWindowStart === 0 ? "#f3f4f6" : "#e5e7eb",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor:
+                        columnWindowStart === 0 ? "not-allowed" : "pointer",
                       fontSize: "11px",
                     }}
                   >
-                    {col.dtype}
+                    ← Prev
+                  </button>
+                  <span>
+                    {currentWindow} of {totalWindows}
                   </span>
+                  <button
+                    onClick={() =>
+                      setColumnWindowStart(
+                        Math.min(
+                          currentSchema.length - COLUMNS_PER_WINDOW,
+                          columnWindowStart + COLUMNS_PER_WINDOW,
+                        ),
+                      )
+                    }
+                    disabled={
+                      columnWindowStart + COLUMNS_PER_WINDOW >=
+                      currentSchema.length
+                    }
+                    style={{
+                      padding: "4px 8px",
+                      background:
+                        columnWindowStart + COLUMNS_PER_WINDOW >=
+                        currentSchema.length
+                          ? "#f3f4f6"
+                          : "#e5e7eb",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor:
+                        columnWindowStart + COLUMNS_PER_WINDOW >=
+                        currentSchema.length
+                          ? "not-allowed"
+                          : "pointer",
+                      fontSize: "11px",
+                    }}
+                  >
+                    Next →
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
-
-            {/* Navigation */}
-            {totalWindows > 1 && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  fontSize: "12px",
-                  color: "#6b7280",
-                }}
-              >
-                <button
-                  onClick={() =>
-                    setColumnWindowStart(
-                      Math.max(0, columnWindowStart - COLUMNS_PER_WINDOW),
-                    )
-                  }
-                  disabled={columnWindowStart === 0}
-                  style={{
-                    padding: "4px 8px",
-                    background: columnWindowStart === 0 ? "#f3f4f6" : "#e5e7eb",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: columnWindowStart === 0 ? "not-allowed" : "pointer",
-                    fontSize: "11px",
-                  }}
-                >
-                  ← Prev
-                </button>
-                <span>
-                  {currentWindow} of {totalWindows}
-                </span>
-                <button
-                  onClick={() =>
-                    setColumnWindowStart(
-                      Math.min(
-                        currentSchema.length - COLUMNS_PER_WINDOW,
-                        columnWindowStart + COLUMNS_PER_WINDOW,
-                      ),
-                    )
-                  }
-                  disabled={
-                    columnWindowStart + COLUMNS_PER_WINDOW >=
-                    currentSchema.length
-                  }
-                  style={{
-                    padding: "4px 8px",
-                    background:
-                      columnWindowStart + COLUMNS_PER_WINDOW >=
-                      currentSchema.length
-                        ? "#f3f4f6"
-                        : "#e5e7eb",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor:
-                      columnWindowStart + COLUMNS_PER_WINDOW >=
-                      currentSchema.length
-                        ? "not-allowed"
-                        : "pointer",
-                    fontSize: "11px",
-                  }}
-                >
-                  Next →
-                </button>
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        ) : (
+          <div
+            style={{
+              flex: "1",
+              minWidth: "280px",
+              maxWidth: "350px",
+              height: "150px", // Adjust height as needed
+              visibility: "hidden", // Make it invisible
+            }}
+          >
+            {/* This div acts as a placeholder to maintain layout */}
+          </div>
+        )}
+      </div>
 
       {/* Scrollable Column Definitions Container */}
       <div
@@ -878,8 +897,8 @@ export default function MutateEditor({
         )}
       </div>
 
-      {/* All Columns Modal */}
-      {showAllColumnsModal && (
+      {/* All Columns Modal using React Portal */}
+      {showAllColumnsModal && createPortal(
         <div
           style={{
             position: "fixed",
@@ -887,56 +906,115 @@ export default function MutateEditor({
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(0, 0, 0, 0.5)",
+            background: "rgba(0, 0, 0, 0.7)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 1000,
+            zIndex: 9999,
+            padding: "20px",
           }}
+          onClick={() => setShowAllColumnsModal(false)}
         >
           <div
             style={{
               background: "white",
-              borderRadius: "12px",
-              padding: "24px",
-              maxWidth: "600px",
-              width: "90%",
-              maxHeight: "80%",
-              overflow: "auto",
+              borderRadius: "16px",
+              padding: "32px",
+              width: "95vw",
+              height: "90vh",
+              maxWidth: "1200px",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: "20px",
+                marginBottom: "24px",
+                borderBottom: "2px solid rgba(229, 231, 235, 0.8)",
+                paddingBottom: "16px",
               }}
             >
-              <h3 style={{ margin: 0, color: "#374151" }}>
-                All Available Columns ({currentSchema.length})
-              </h3>
+              <h2 style={{ margin: 0, color: "#1f2937", fontSize: "24px" }}>
+                📊 All Available Columns ({currentSchema.length})
+              </h2>
               <button
                 onClick={() => setShowAllColumnsModal(false)}
                 style={{
-                  padding: "8px 12px",
+                  padding: "12px 20px",
                   background: "#ef4444",
                   color: "white",
                   border: "none",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   cursor: "pointer",
+                  fontSize: "16px",
+                  fontWeight: "600",
                 }}
               >
                 ✕ Close
               </button>
             </div>
-            <ColumnsPreview
-              columns={currentSchema}
-              title="Available Columns"
-              isVisible={true}
-            />
+            <div
+              style={{
+                flex: 1,
+                overflow: "auto",
+                paddingRight: "8px",
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                  gap: "16px",
+                }}
+              >
+                {currentSchema.map((col) => (
+                  <div
+                    key={col.name}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "16px 20px",
+                      background: "rgba(248, 250, 252, 0.8)",
+                      border: "2px solid rgba(203, 213, 225, 0.3)",
+                      borderRadius: "12px",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <span style={{ fontWeight: "600", color: "#374151", fontSize: "15px" }}>
+                      {col.name}
+                    </span>
+                    <span
+                      style={{
+                        color:
+                          col.dtype === "str"
+                            ? "#10b981"
+                            : col.dtype === "numeric" || col.dtype === "int64"
+                              ? "#3b82f6"
+                              : col.dtype === "bool"
+                                ? "#f59e0b"
+                                : "#6b7280",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        padding: "4px 8px",
+                        background: "rgba(255, 255, 255, 0.8)",
+                        borderRadius: "6px",
+                      }}
+                    >
+                      {col.dtype}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
