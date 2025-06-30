@@ -673,42 +673,83 @@ export default function MutateEditor({
                 padding: "20px",
               }}
             >
-              {/* Column Name Row */}
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    color: hasError ? "#ef4444" : "#374151",
-                  }}
-                >
-                  Column name (LHS):
-                </label>
+              {/* LHS = RHS Row */}
+              {!hasError ? (
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: "12px",
+                    marginBottom: "8px",
                   }}
                 >
+                  {/* LHS Input */}
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => updateColumnName(name, e.target.value)}
-                    placeholder="Enter column name"
+                    placeholder="column_name"
                     style={{
                       padding: "12px 16px",
-                      border: hasError
-                        ? "2px solid #ef4444"
-                        : "2px solid #e2e8f0",
+                      border: "2px solid #e2e8f0",
                       borderRadius: "8px",
-                      flex: "1",
                       fontSize: "14px",
                       background: "rgba(255, 255, 255, 0.8)",
+                      minWidth: "120px",
+                      maxWidth: "200px",
+                      width: `${Math.max(120, Math.min(200, name.length * 8 + 32))}px`,
                     }}
                   />
+                  
+                  {/* Equals Sign */}
+                  <span
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: "bold",
+                      color: "#374151",
+                      minWidth: "20px",
+                      textAlign: "center",
+                    }}
+                  >
+                    =
+                  </span>
+                  
+                  {/* RHS Expression */}
+                  <div
+                    onClick={() => openExpressionModal(stableId)}
+                    style={{
+                      flex: "1",
+                      padding: "12px 16px",
+                      border: "2px solid #e2e8f0",
+                      borderRadius: "8px",
+                      backgroundColor: "#f9fafb",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      color: "#6b7280",
+                      transition: "all 0.2s ease",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      minWidth: "200px",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.borderColor = "#3b82f6";
+                      e.target.style.backgroundColor = "#eff6ff";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.borderColor = "#e2e8f0";
+                      e.target.style.backgroundColor = "#f9fafb";
+                    }}
+                  >
+                    <span>
+                      {truncate(getExpressionSummary(expr))}
+                    </span>
+                    <span style={{ color: "#3b82f6", fontSize: "12px" }}>
+                      Click to edit →
+                    </span>
+                  </div>
+                  
+                  {/* Delete Button */}
                   <button
                     onClick={() => removeColumn(name)}
                     style={{
@@ -720,79 +761,79 @@ export default function MutateEditor({
                       cursor: "pointer",
                       fontSize: "12px",
                       fontWeight: "500",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     🗑️ Remove
                   </button>
                 </div>
-                {hasError && (
-                  <div
-                    style={{
-                      marginTop: "8px",
-                      color: "#ef4444",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                    }}
-                  >
-                    {hasError}
-                  </div>
-                )}
-              </div>
-
-              {/* Expression Row */}
-              {!hasError && (
+              ) : (
+                /* Error state - keep original layout for errors */
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "8px",
-                      fontWeight: "600",
-                      fontSize: "14px",
-                      color: "#374151",
-                    }}
-                  >
-                    Expression (RHS):
-                  </label>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      onClick={() => openExpressionModal(stableId)}
+                  <div style={{ marginBottom: "16px" }}>
+                    <label
                       style={{
-                        flex: "1",
-                        padding: "12px 16px",
-                        border: "2px solid #e2e8f0",
-                        borderRadius: "8px",
-                        backgroundColor: "#f9fafb",
-                        cursor: "pointer",
+                        display: "block",
+                        marginBottom: "8px",
+                        fontWeight: "600",
                         fontSize: "14px",
-                        color: "#6b7280",
-                        transition: "all 0.2s ease",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.borderColor = "#3b82f6";
-                        e.target.style.backgroundColor = "#eff6ff";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.borderColor = "#e2e8f0";
-                        e.target.style.backgroundColor = "#f9fafb";
+                        color: "#ef4444",
                       }}
                     >
-                      <span>
-                        {truncate(getExpressionSummary(expr))}
-                      </span>
-                      <span style={{ color: "#3b82f6", fontSize: "12px" }}>
-                        Click to edit →
-                      </span>
+                      Column name (LHS):
+                    </label>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => updateColumnName(name, e.target.value)}
+                        placeholder="Enter column name"
+                        style={{
+                          padding: "12px 16px",
+                          border: "2px solid #ef4444",
+                          borderRadius: "8px",
+                          flex: "1",
+                          fontSize: "14px",
+                          background: "rgba(255, 255, 255, 0.8)",
+                        }}
+                      />
+                      <button
+                        onClick={() => removeColumn(name)}
+                        style={{
+                          padding: "12px 16px",
+                          background: "#ef4444",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                          fontWeight: "500",
+                        }}
+                      >
+                        🗑️ Remove
+                      </button>
                     </div>
                   </div>
+                </div>
+              )}
+              
+              {/* Error Message */}
+              {hasError && (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    color: "#ef4444",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {hasError}
                 </div>
               )}
             </div>
