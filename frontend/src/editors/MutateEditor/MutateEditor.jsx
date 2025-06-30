@@ -460,14 +460,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
           </div>
         )}
 
-        {/* Hovered Input Schema Preview */}
-        {hoveredInput && (
-          <ColumnsPreview 
-            columns={hoveredInput.schema} 
-            title={`${hoveredInput.inputStep.id} columns`}
-            isVisible={true}
-          />
-        )}
+        
       </div>
 
       {/* Scrollable Column Definitions Container */}
