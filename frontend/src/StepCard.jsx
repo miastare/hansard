@@ -1,17 +1,33 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import SourceEditor from './editors/SourceEditor';
 import FilterEditor from './editors/FilterEditor';
 import MutateEditor from './editors/MutateEditor/MutateEditor';
 import AggregateEditor from './editors/AggregateEditor';
 import JoinEditor from './editors/JoinEditor';
+import styles from './DSLBuilder.module.css';
 
-const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchemas, requestSchema }) => {
-  // Safety check to prevent undefined errors
+const StepCard = ({ 
+  step, 
+  index, 
+  onUpdate, 
+  onRemove, 
+  availableInputs, 
+  tableSchemas, 
+  requestSchema,
+  isExpanded,
+  isInFocus,
+  onToggleExpansion 
+}) => {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   if (!step || !step.op) {
     return (
-      <div className="step-card error">
+      <div className={`${styles.stepCard} ${styles.errorCard}`}>
         <p>Invalid step configuration</p>
-        <button onClick={() => onRemove(index)}>Remove</button>
+        <button onClick={() => onRemove(index)} className={styles.dangerButton}>
+          🗑️ Remove
+        </button>
       </div>
     );
   }
@@ -26,23 +42,59 @@ const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchem
     onUpdate(index, updatedStep);
   };
 
-const renderEditor = () => {
-    console.log(`🎭 STEP CARD [${index}]: Rendering editor for step ${step.id}, op: ${step.op}`);
+  const getOperationIcon = (op) => {
+    const icons = {
+      source: '📋',
+      filter: '🔍',
+      mutate: '🔧',
+      aggregate: '📊',
+      join: '🔗',
+      division_votes: '🗳️'
+    };
+    return icons[op] || '❓';
+  };
 
+  const getOperationSummary = () => {
+    switch (step.op) {
+      case 'source':
+        return step.table ? `Table: ${step.table}` : 'No table selected';
+      case 'filter':
+        const conditionCount = step.conditions?.length || 0;
+        return `${conditionCount} condition${conditionCount !== 1 ? 's' : ''}`;
+      case 'mutate':
+        const colCount = Object.keys(step.cols || {}).length;
+        const colNames = Object.keys(step.cols || {}).slice(0, 2).join(', ');
+        return colCount > 0 
+          ? `${colCount} column${colCount !== 1 ? 's' : ''}: ${colNames}${colCount > 2 ? '...' : ''}`
+          : 'No columns defined';
+      case 'aggregate':
+        const groupCount = step.group?.length || 0;
+        const metricCount = Object.keys(step.metrics || {}).length;
+        return `Group by ${groupCount}, ${metricCount} metric${metricCount !== 1 ? 's' : ''}`;
+      case 'join':
+        const inputCount = step.inputs?.length || 0;
+        const joinType = step.how || 'outer';
+        return `${joinType} join of ${inputCount} table${inputCount !== 1 ? 's' : ''}`;
+      case 'division_votes':
+        const divisionCount = step.division_ids?.length || 0;
+        return `${divisionCount} division${divisionCount !== 1 ? 's' : ''}`;
+      default:
+        return 'Unknown operation';
+    }
+  };
+
+  const renderEditor = () => {
     switch (step.op) {
       case 'source':
         return (
           <SourceEditor
             step={step}
-            onChange={(updatedStep) => {
-              console.log(`🎭 STEP CARD [${index}]: SourceEditor onChange called`);
-              onUpdate(index, updatedStep);
-            }}
+            onChange={(updatedStep) => onUpdate(index, updatedStep)}
             requestSchema={requestSchema}
+            showAdvanced={showAdvanced}
           />
         );
       case 'filter':
-        console.log(`🎭 STEP CARD [${index}]: Rendering FilterEditor with availableInputs: ${availableInputs?.length || 0} steps`);
         return (
           <FilterEditor
             step={step}
@@ -50,28 +102,13 @@ const renderEditor = () => {
             onBatchUpdate={handleBatchUpdate}
             availableInputs={availableInputs || []}
             tableSchemas={tableSchemas || {}}
+            showAdvanced={showAdvanced}
           />
         );
       case 'mutate':
         const updateStep = (updatedStep) => {
-          console.log(`🎭 STEP CARD [${index}]: MutateEditor onChange called`);
           onUpdate(index, updatedStep);
         };
-
-        console.log(`🎭 STEP CARD [${index}]: Rendering MutateEditor with availableInputs: ${availableInputs?.length || 0} steps`);
-        console.log(`🎭 STEP CARD [${index}]: Available input step IDs:`, availableInputs?.map(s => s.id));
-        console.log(`🎭 STEP CARD [${index}]: Current step.input:`, step.input);
-        console.log(`🎭 STEP CARD [${index}]: TableSchemas available: ${Object.keys(tableSchemas || {}).length} tables`);
-
-        // Debug the input step resolution
-        if (step.input && availableInputs) {
-          const inputStep = availableInputs.find(s => s.id === step.input);
-          console.log(`🎭 STEP CARD [${index}]: Looking for input step with ID: ${step.input}`);
-          console.log(`🎭 STEP CARD [${index}]: Found input step:`, inputStep);
-          if (inputStep) {
-            console.log(`🎭 STEP CARD [${index}]: Input step details - op: ${inputStep.op}, input: ${inputStep.input}, table: ${inputStep.table}`);
-          }
-        }
 
         return (
           <MutateEditor 
@@ -80,10 +117,10 @@ const renderEditor = () => {
             availableInputs={availableInputs || []}
             tableSchemas={tableSchemas || {}}
             inputSchema={null}
+            showAdvanced={showAdvanced}
           />
         );
       case 'aggregate':
-        console.log(`🎭 STEP CARD [${index}]: Rendering AggregateEditor with availableInputs: ${availableInputs?.length || 0} steps`);
         return (
           <AggregateEditor
             step={step}
@@ -91,10 +128,10 @@ const renderEditor = () => {
             onBatchUpdate={handleBatchUpdate}
             availableInputs={availableInputs || []}
             tableSchemas={tableSchemas || {}}
+            showAdvanced={showAdvanced}
           />
         );
       case 'join':
-        console.log(`🎭 STEP CARD [${index}]: Rendering JoinEditor with availableInputs: ${availableInputs?.length || 0} steps`);
         return (
           <JoinEditor
             step={step}
@@ -102,27 +139,37 @@ const renderEditor = () => {
             onBatchUpdate={handleBatchUpdate}
             availableInputs={availableInputs || []}
             tableSchemas={tableSchemas || {}}
+            showAdvanced={showAdvanced}
           />
         );
       case 'division_votes':
         return (
-          <div>
-            <label>
-              Division IDs:
-              <input 
-                type="text" 
-                value={(step.division_ids || []).join(', ')} 
-                onChange={(e) => handleUpdate('division_ids', e.target.value.split(', ').map(Number).filter(Boolean))}
-                placeholder="Enter comma-separated division IDs"
-              />
-            </label>
-            <label>
-              House:
-              <select value={step.house || 1} onChange={(e) => handleUpdate('house', Number(e.target.value))}>
-                <option value={1}>Commons</option>
-                <option value={2}>Lords</option>
-              </select>
-            </label>
+          <div className={styles.editorContent}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                <span className={styles.labelText}>Division IDs:</span>
+                <input 
+                  type="text" 
+                  value={(step.division_ids || []).join(', ')} 
+                  onChange={(e) => handleUpdate('division_ids', e.target.value.split(', ').map(Number).filter(Boolean))}
+                  placeholder="Enter comma-separated division IDs"
+                  className={styles.input}
+                />
+              </label>
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                <span className={styles.labelText}>House:</span>
+                <select 
+                  value={step.house || 1} 
+                  onChange={(e) => handleUpdate('house', Number(e.target.value))}
+                  className={styles.select}
+                >
+                  <option value={1}>Commons</option>
+                  <option value={2}>Lords</option>
+                </select>
+              </label>
+            </div>
           </div>
         );
       default:
@@ -131,16 +178,60 @@ const renderEditor = () => {
   };
 
   return (
-    <div className="step-card">
-      <div className="step-header">
-        <h3>Step {index + 1}: {step.op} ({step.id || 'unnamed'})</h3>
-        <button onClick={() => onRemove(index)} className="remove-btn">
-          Remove
-        </button>
+    <div className={`
+      ${styles.stepCard} 
+      ${isInFocus ? styles.focusCard : ''} 
+      ${isExpanded ? styles.expandedCard : styles.collapsedCard}
+    `}>
+      <div className={styles.cardHeader} onClick={onToggleExpansion}>
+        <div className={styles.cardHeaderMain}>
+          <div className={styles.stepIcon}>
+            {getOperationIcon(step.op)}
+          </div>
+          <div className={styles.stepInfo}>
+            <h3 className={styles.stepTitle}>
+              Step {index + 1}: {step.op}
+            </h3>
+            <p className={styles.stepSummary}>
+              {getOperationSummary()}
+            </p>
+          </div>
+        </div>
+        <div className={styles.cardHeaderActions}>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(index);
+            }} 
+            className={styles.removeButton}
+            title="Remove step"
+          >
+            🗑️
+          </button>
+          <button className={styles.expandButton} title={isExpanded ? "Collapse" : "Expand"}>
+            {isExpanded ? '🔼' : '🔽'}
+          </button>
+        </div>
       </div>
-      <div className="step-body">
-        {renderEditor()}
-      </div>
+
+      {isExpanded && (
+        <div className={styles.cardBody}>
+          <div className={styles.editorHeader}>
+            <h4 className={styles.editorTitle}>
+              Configure {step.op} operation
+            </h4>
+            <button 
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className={styles.toggleAdvanced}
+            >
+              {showAdvanced ? '🔼' : '🔽'} {showAdvanced ? 'Hide' : 'Show'} Advanced
+            </button>
+          </div>
+          <div className={styles.editorWrapper}>
+            {renderEditor()}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

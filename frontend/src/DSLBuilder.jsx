@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import StepCard from './StepCard';
 import { deriveSchema } from './utils/DeriveSchema';
@@ -11,6 +12,8 @@ export default function DSLBuilder() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [tableSchemas, requestSchema] = useSchemaCache();
+  const [expandedCard, setExpandedCard] = useState(null);
+  const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
 
   const addStep = useCallback((op) => {
     const newStep = {
@@ -23,7 +26,14 @@ export default function DSLBuilder() {
       ...(op === 'join' && { inputs: [], on: [], how: 'outer' }),
       ...(op === 'division_votes' && { division_ids: [], house: 1, weights: { AYE: 1, NO: -1, NOTREC: 0 } }),
     };
-    setSteps(prev => [...prev, newStep]);
+    
+    setSteps(prev => {
+      const newSteps = [...prev, newStep];
+      // Expand the new card and move carousel to it
+      setExpandedCard(newSteps.length - 1);
+      setCurrentCarouselIndex(newSteps.length - 1);
+      return newSteps;
+    });
   }, []);
 
   const updateStep = useCallback((index, updatedStep) => {
@@ -35,17 +45,48 @@ export default function DSLBuilder() {
   }, []);
 
   const removeStep = useCallback((index) => {
-    setSteps(prev => prev.filter((_, i) => i !== index));
-  }, []);
-
-  const moveStep = useCallback((fromIndex, toIndex) => {
     setSteps(prev => {
-      const newSteps = [...prev];
-      const [movedStep] = newSteps.splice(fromIndex, 1);
-      newSteps.splice(toIndex, 0, movedStep);
+      const newSteps = prev.filter((_, i) => i !== index);
+      // Adjust expanded card and carousel index
+      if (expandedCard === index) {
+        setExpandedCard(null);
+      } else if (expandedCard !== null && expandedCard > index) {
+        setExpandedCard(expandedCard - 1);
+      }
+      
+      if (currentCarouselIndex >= newSteps.length && newSteps.length > 0) {
+        setCurrentCarouselIndex(newSteps.length - 1);
+      } else if (newSteps.length === 0) {
+        setCurrentCarouselIndex(0);
+        setExpandedCard(null);
+      }
+      
       return newSteps;
     });
-  }, []);
+  }, [expandedCard, currentCarouselIndex]);
+
+  const toggleCardExpansion = (index) => {
+    if (expandedCard === index) {
+      setExpandedCard(null);
+    } else {
+      setExpandedCard(index);
+      setCurrentCarouselIndex(index);
+    }
+  };
+
+  const navigateCarousel = (direction) => {
+    if (steps.length === 0) return;
+    
+    let newIndex;
+    if (direction === 'prev') {
+      newIndex = currentCarouselIndex > 0 ? currentCarouselIndex - 1 : steps.length - 1;
+    } else {
+      newIndex = currentCarouselIndex < steps.length - 1 ? currentCarouselIndex + 1 : 0;
+    }
+    
+    setCurrentCarouselIndex(newIndex);
+    setExpandedCard(newIndex);
+  };
 
   const runPipeline = async () => {
     if (steps.length === 0) {
@@ -82,110 +123,95 @@ export default function DSLBuilder() {
     setSteps([]);
     setResults(null);
     setError(null);
+    setExpandedCard(null);
+    setCurrentCarouselIndex(0);
   };
 
   const getAvailableInputs = useCallback((currentIndex) => {
-    console.log(`DSL BUILDER: getAvailableInputs called for index ${currentIndex}`);
-    console.log(`DSL BUILDER: Current steps state:`, steps);
-    console.log(`DSL BUILDER: steps.slice(0, ${currentIndex}):`, steps.slice(0, currentIndex));
-    
     const availableInputs = steps.slice(0, currentIndex).map((step, idx) => ({
       id: step.id || `step_${step.op}_${idx}`,
       op: step.op,
-      table: step.table, // Include table for source steps
-      input: step.input, // Include input for chained steps
-      cols: step.cols // Include cols for mutate steps
+      table: step.table,
+      input: step.input,
+      cols: step.cols
     }));
-    console.log(`DSL BUILDER: getAvailableInputs for index ${currentIndex}:`, availableInputs);
-    console.log(`DSL BUILDER: Available inputs with all properties:`, availableInputs.map(inp => ({
-      id: inp.id,
-      op: inp.op,
-      input: inp.input,
-      table: inp.table,
-      hascols: !!inp.cols
-    })));
     return availableInputs;
   }, [steps]);
-
-  const getDerivedSchema = useCallback((stepId) => {
-    const stepIndex = steps.findIndex(s => s.id === stepId);
-    if (stepIndex === -1) return null;
-
-    const step = steps[stepIndex];
-    const availableInputs = getAvailableInputs(stepIndex);
-    return deriveSchema(step, availableInputs, tableSchemas || {});
-  }, [steps, tableSchemas]);
 
   return (
     <div className={styles.container}>
       <div className={styles.main}>
-        <h2>DSL Pipeline Builder</h2>
-        {steps.map((step, index) => {
-          // Calculate availableInputs fresh each render to ensure current step data
-          const availableInputs = steps.slice(0, index).map((step, idx) => ({
-            id: step.id || `step_${step.op}_${idx}`,
-            op: step.op,
-            table: step.table, // Include table for source steps
-            input: step.input, // Include input for chained steps
-            cols: step.cols // Include cols for mutate steps
-          }));
-          
-          console.log(`DSL BUILDER: === RENDERING STEP ${index} ===`);
-          console.log(`DSL BUILDER: Step ${index} (${step.op}), availableInputs:`, availableInputs);
-          console.log(`DSL BUILDER: Step ${index} details:`, step);
-          console.log(`DSL BUILDER: Fresh availableInputs with inputs:`, availableInputs.map(inp => ({
-            id: inp.id,
-            op: inp.op,
-            input: inp.input,
-            table: inp.table
-          })));
-          console.log(`DSL BUILDER: tableSchemas:`, tableSchemas);
-          console.log(`DSL BUILDER: tableSchemas keys:`, Object.keys(tableSchemas || {}));
-          console.log(`DSL BUILDER: tableSchemas values:`, Object.values(tableSchemas || {}));
-          console.log(`DSL BUILDER: requestSchema function:`, typeof requestSchema);
-          
-          // Log specific schema for this step if it's a mutate step
-          if (step.op === 'mutate' && step.input) {
-            const inputStep = availableInputs.find(inp => inp.id === step.input);
-            if (inputStep && inputStep.table && tableSchemas) {
-              console.log(`DSL BUILDER: Schema for step ${index} input table ${inputStep.table}:`, tableSchemas[inputStep.table]);
-            }
-            if (inputStep) {
-              console.log(`DSL BUILDER: Found input step for mutate ${step.id}:`, {
-                id: inputStep.id,
-                op: inputStep.op,
-                input: inputStep.input,
-                table: inputStep.table
-              });
-            }
-          }
+        <div className={styles.header}>
+          <h2>DSL Pipeline Builder</h2>
+          {steps.length > 0 && (
+            <div className={styles.carouselControls}>
+              <button 
+                onClick={() => navigateCarousel('prev')} 
+                className={styles.carouselBtn}
+                title="Previous step"
+              >
+                ←
+              </button>
+              <span className={styles.carouselIndicator}>
+                {currentCarouselIndex + 1} of {steps.length}
+              </span>
+              <button 
+                onClick={() => navigateCarousel('next')} 
+                className={styles.carouselBtn}
+                title="Next step"
+              >
+                →
+              </button>
+            </div>
+          )}
+        </div>
 
-          return (
-            <StepCard
-              key={step.id || index}
-              step={step}
-              index={index}
-              onUpdate={updateStep}
-              onRemove={removeStep}
-              availableInputs={availableInputs}
-              tableSchemas={tableSchemas || {}}
-              requestSchema={requestSchema || (() => {})}
-            />
-          );
-        })}
-        {steps.length === 0 && (
-          <div className={styles.empty}>
-            <p>No steps added yet. Use the sidebar to add your first step.</p>
-          </div>
-        )}
+        <div className={styles.carousel}>
+          {steps.map((step, index) => {
+            const availableInputs = getAvailableInputs(index);
+            const isExpanded = expandedCard === index;
+            const isInFocus = currentCarouselIndex === index;
+            
+            return (
+              <StepCard
+                key={step.id || index}
+                step={step}
+                index={index}
+                onUpdate={updateStep}
+                onRemove={removeStep}
+                availableInputs={availableInputs}
+                tableSchemas={tableSchemas || {}}
+                requestSchema={requestSchema || (() => {})}
+                isExpanded={isExpanded}
+                isInFocus={isInFocus}
+                onToggleExpansion={() => toggleCardExpansion(index)}
+              />
+            );
+          })}
+          {steps.length === 0 && (
+            <div className={styles.empty}>
+              <div className={styles.emptyIcon}>📊</div>
+              <h3>No Pipeline Steps</h3>
+              <p>Start building your data pipeline by adding your first step from the sidebar.</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className={styles.sidebar}>
         <h3>Add Steps</h3>
         <div className={styles.buttonGroup}>
-          {['source', 'filter', 'mutate', 'aggregate', 'join', 'division_votes'].map(op => (
+          {[
+            { op: 'source', icon: '📋', label: 'Source' },
+            { op: 'filter', icon: '🔍', label: 'Filter' },
+            { op: 'mutate', icon: '🔧', label: 'Mutate' },
+            { op: 'aggregate', icon: '📊', label: 'Aggregate' },
+            { op: 'join', icon: '🔗', label: 'Join' },
+            { op: 'division_votes', icon: '🗳️', label: 'Division Votes' }
+          ].map(({ op, icon, label }) => (
             <button key={op} onClick={() => addStep(op)} className={styles.addButton}>
-              Add {op}
+              <span className={styles.buttonIcon}>{icon}</span>
+              <span>Add {label}</span>
             </button>
           ))}
         </div>
@@ -196,7 +222,8 @@ export default function DSLBuilder() {
             disabled={loading || steps.length === 0} 
             className={styles.runButton}
           >
-            {loading ? 'Running...' : 'Run Pipeline'}
+            <span className={styles.buttonIcon}>▶️</span>
+            <span>{loading ? 'Running...' : 'Run Pipeline'}</span>
           </button>
 
           <button 
@@ -204,20 +231,21 @@ export default function DSLBuilder() {
             disabled={steps.length === 0} 
             className={styles.clearButton}
           >
-            Clear All
+            <span className={styles.buttonIcon}>🗑️</span>
+            <span>Clear All</span>
           </button>
         </div>
 
         {error && (
           <div className={styles.error}>
-            <h4>Error</h4>
+            <h4>⚠️ Error</h4>
             <p>{error}</p>
           </div>
         )}
 
         {results && (
           <div className={styles.results}>
-            <h3>Results</h3>
+            <h3>✅ Results</h3>
             <div className={styles.resultsContent}>
               {Object.entries(results).map(([key, value]) => (
                 <div key={key}>

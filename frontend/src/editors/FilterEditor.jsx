@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { deriveSchema } from '../utils/DeriveSchema';
 
-export default function FilterEditor({ step, onUpdate, availableInputs, tableSchemas, onBatchUpdate }) {
+export default function FilterEditor({ step, onUpdate, availableInputs, tableSchemas, onBatchUpdate, showAdvanced }) {
   const [conditions, setConditions] = useState(step.conditions || []);
 
   // Get schema for the selected input (similar to MutateEditor logic)
@@ -82,115 +82,101 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
   };
 
   return (
-    <div>
-      <h4>Filter Step</h4>
-
-      <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
-          Input step:
+    <div className="editorContent">
+      <div className="formGroup">
+        <label className="label">
+          <span className="labelText">🔗 Input step:</span>
+          <select 
+            value={step.input || ''} 
+            onChange={(e) => {
+              updateInput(e.target.value);
+            }}
+            className="select"
+          >
+            <option value="">Select input step</option>
+            {availableInputs?.map(input => (
+              <option key={input.id} value={input.id}>
+                {input.id} ({input.op})
+              </option>
+            ))}
+          </select>
         </label>
-        <select 
-          value={step.input || ''} 
-          onChange={(e) => {
-            updateInput(e.target.value);
-          }}
-          style={{ 
-            width: '100%', 
-            padding: '10px', 
-            border: '1px solid #ddd', 
-            borderRadius: '6px',
-            fontSize: '14px'
-          }}
-        >
-          <option value="">Select input</option>
-          {availableInputs?.map(input => (
-            <option key={input.id} value={input.id}>
-              {input.id} ({input.op})
-            </option>
-          ))}
-        </select>
       </div>
 
-      <div style={{ 
-        marginBottom: '20px', 
-        padding: '15px', 
-        backgroundColor: '#f8f9fa', 
-        borderRadius: '8px',
-        border: '1px solid #e9ecef'
-      }}>
-        <strong style={{ fontSize: '14px', color: '#495057' }}>Available boolean columns:</strong>
-        <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
-          {currentSchema && currentSchema.length > 0 ? (
-            currentSchema.filter(col => col.dtype === 'bool').length > 0 ? (
-              currentSchema.filter(col => col.dtype === 'bool').map(col => (
-                <span key={col.name} style={{ 
-                  display: 'inline-block', 
-                  margin: '3px 8px 3px 0', 
-                  padding: '4px 8px', 
-                  backgroundColor: '#e9ecef', 
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  border: '1px solid #dee2e6'
-                }}>
-                  {col.name} (bool)
-                </span>
-              ))
+      {showAdvanced && (
+        <div className="advancedSection">
+          <div className="advancedTitle">
+            📊 Available Boolean Columns
+          </div>
+          <div style={{ fontSize: '13px', color: '#666' }}>
+            {currentSchema && currentSchema.length > 0 ? (
+              currentSchema.filter(col => col.dtype === 'bool').length > 0 ? (
+                currentSchema.filter(col => col.dtype === 'bool').map(col => (
+                  <span key={col.name} style={{ 
+                    display: 'inline-block', 
+                    margin: '3px 8px 3px 0', 
+                    padding: '6px 12px', 
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)', 
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    border: '1px solid rgba(102, 126, 234, 0.2)',
+                    color: '#667eea',
+                    fontWeight: '600'
+                  }}>
+                    {col.name}
+                  </span>
+                ))
+              ) : (
+                <em>No boolean columns available in the selected input</em>
+              )
             ) : (
-              <em>No boolean columns available in the selected input</em>
-            )
-          ) : (
-            <em>No schema available - please select an input step</em>
-          )}
+              <em>No schema available - please select an input step</em>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {conditions.map((condition, index) => (
         <div key={index} style={{ 
           marginBottom: '20px', 
-          border: '2px solid #e9ecef', 
+          border: '2px solid rgba(102, 126, 234, 0.1)', 
           padding: '20px',
-          borderRadius: '10px',
-          backgroundColor: '#fff',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          borderRadius: '12px',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+          backdropFilter: 'blur(10px)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1', minWidth: '300px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>
-                Boolean Column:
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '15px', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1', minWidth: '250px' }}>
+              <label className="label">
+                <span className="labelText">🔍 Boolean Column:</span>
+                <select
+                  value={condition.column || ''}
+                  onChange={(e) => updateCondition(index, 'column', e.target.value)}
+                  className="select"
+                >
+                  <option value="">Select boolean column</option>
+                  {currentSchema?.filter(col => col.dtype === 'bool').map(col => (
+                    <option key={col.name} value={col.name}>{col.name}</option>
+                  ))}
+                </select>
               </label>
-              <select
-                value={condition.column || ''}
-                onChange={(e) => updateCondition(index, 'column', e.target.value)}
-                style={{ 
-                  width: '100%',
-                  padding: '8px', 
-                  border: '1px solid #ccc', 
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="">Select boolean column</option>
-                {currentSchema?.filter(col => col.dtype === 'bool').map(col => (
-                  <option key={col.name} value={col.name}>{col.name}</option>
-                ))}
-              </select>
             </div>
 
             <div style={{ flex: '0 0 auto' }}>
               <button 
                 onClick={() => removeCondition(index)}
+                className="dangerButton"
                 style={{
-                  padding: '8px 12px',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: '12px 16px',
                   fontSize: '14px',
-                  marginTop: '20px'
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                Remove
+                🗑️ Remove
               </button>
             </div>
           </div>
@@ -200,23 +186,30 @@ export default function FilterEditor({ step, onUpdate, availableInputs, tableSch
       <button 
         onClick={addCondition}
         disabled={!step.input}
+        className="button"
         style={{
-          padding: '12px 24px',
-          backgroundColor: step.input ? '#007bff' : '#6c757d',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
+          background: step.input ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#cbd5e1',
           cursor: step.input ? 'pointer' : 'not-allowed',
-          fontSize: '15px',
-          fontWeight: '500'
         }}
       >
-        Add Condition
+        ➕ Add Condition
       </button>
 
       {!step.input && (
-        <div style={{ marginTop: '10px', fontSize: '14px', color: '#6c757d', fontStyle: 'italic' }}>
-          Please select an input step before adding conditions
+        <div style={{ 
+          marginTop: '16px', 
+          padding: '12px', 
+          backgroundColor: 'rgba(251, 211, 141, 0.2)', 
+          border: '1px solid rgba(251, 211, 141, 0.3)',
+          borderRadius: '8px',
+          fontSize: '14px', 
+          color: '#92400e', 
+          fontStyle: 'italic',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          ⚠️ Please select an input step before adding conditions
         </div>
       )}
     </div>
