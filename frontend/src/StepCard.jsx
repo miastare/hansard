@@ -1,101 +1,52 @@
-
 import React, { useState } from 'react';
-import SourceEditor from './editors/SourceEditor';
-import FilterEditor from './editors/FilterEditor';
-import MutateEditor from './editors/MutateEditor/MutateEditor';
-import AggregateEditor from './editors/AggregateEditor';
-import JoinEditor from './editors/JoinEditor';
+import { 
+  SourceEditor, 
+  FilterEditor, 
+  MutateEditor, 
+  AggregateEditor, 
+  JoinEditor 
+} from './editors';
 import styles from './DSLBuilder.module.css';
 
-const StepCard = ({ 
+export default function StepCard({ 
   step, 
-  index, 
   onUpdate, 
-  onRemove, 
+  onDelete, 
   availableInputs, 
   tableSchemas, 
-  requestSchema,
-  isExpanded,
-  isInFocus,
-  onToggleExpansion 
-}) => {
-
-  if (!step || !step.op) {
-    return (
-      <div className={`${styles.stepCard} ${styles.errorCard}`}>
-        <p>Invalid step configuration</p>
-        <button onClick={() => onRemove(index)} className={styles.dangerButton}>
-          🗑️ Remove
-        </button>
-      </div>
-    );
-  }
+  requestSchema 
+}) {
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const handleUpdate = (field, value) => {
+    console.log(`STEP CARD: Updating step ${step.id} field ${field} to:`, value);
     const updatedStep = { ...step, [field]: value };
-    onUpdate(index, updatedStep);
+    console.log(`STEP CARD: Updated step object:`, updatedStep);
+    onUpdate(updatedStep);
   };
 
   const handleBatchUpdate = (updates) => {
+    console.log(`STEP CARD: Batch updating step ${step.id} with:`, updates);
     const updatedStep = { ...step, ...updates };
-    onUpdate(index, updatedStep);
-  };
-
-  const getOperationIcon = (op) => {
-    const icons = {
-      source: '📋',
-      filter: '🔍',
-      mutate: '🔧',
-      aggregate: '📊',
-      join: '🔗',
-      division_votes: '🗳️'
-    };
-    return icons[op] || '❓';
-  };
-
-  const getOperationSummary = () => {
-    switch (step.op) {
-      case 'source':
-        return step.table ? `Table: ${step.table}` : 'No table selected';
-      case 'filter':
-        const conditionCount = step.conditions?.length || 0;
-        return `${conditionCount} condition${conditionCount !== 1 ? 's' : ''}`;
-      case 'mutate':
-        const colCount = Object.keys(step.cols || {}).length;
-        const colNames = Object.keys(step.cols || {}).slice(0, 2).join(', ');
-        return colCount > 0 
-          ? `${colCount} column${colCount !== 1 ? 's' : ''}: ${colNames}${colCount > 2 ? '...' : ''}`
-          : 'No columns defined';
-      case 'aggregate':
-        const groupCount = step.group?.length || 0;
-        const metricCount = Object.keys(step.metrics || {}).length;
-        return `Group by ${groupCount}, ${metricCount} metric${metricCount !== 1 ? 's' : ''}`;
-      case 'join':
-        const inputCount = step.inputs?.length || 0;
-        const joinType = step.how || 'outer';
-        return `${joinType} join of ${inputCount} table${inputCount !== 1 ? 's' : ''}`;
-      case 'division_votes':
-        const divisionCount = step.division_ids?.length || 0;
-        return `${divisionCount} division${divisionCount !== 1 ? 's' : ''}`;
-      default:
-        return 'Unknown operation';
-    }
+    console.log(`STEP CARD: Batch updated step object:`, updatedStep);
+    onUpdate(updatedStep);
   };
 
   const renderEditor = () => {
     switch (step.op) {
       case 'source':
         return (
-          <SourceEditor
-            step={step}
-            onChange={(updatedStep) => onUpdate(index, updatedStep)}
+          <SourceEditor 
+            step={step} 
+            onChange={onUpdate} 
+            tableSchemas={tableSchemas || {}}
             requestSchema={requestSchema}
           />
         );
       case 'filter':
         return (
-          <FilterEditor
-            step={step}
+          <FilterEditor 
+            step={step} 
             onUpdate={handleUpdate}
             onBatchUpdate={handleBatchUpdate}
             availableInputs={availableInputs || []}
@@ -104,7 +55,8 @@ const StepCard = ({
         );
       case 'mutate':
         const updateStep = (updatedStep) => {
-          onUpdate(index, updatedStep);
+          console.log(`MUTATE STEP CARD: Received updated step:`, updatedStep);
+          onUpdate(updatedStep);
         };
 
         return (
@@ -151,77 +103,58 @@ const StepCard = ({
                 />
               </label>
             </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                <span className={styles.labelText}>House:</span>
-                <select 
-                  value={step.house || 1} 
-                  onChange={(e) => handleUpdate('house', Number(e.target.value))}
-                  className={styles.select}
-                >
-                  <option value={1}>Commons</option>
-                  <option value={2}>Lords</option>
-                </select>
-              </label>
-            </div>
           </div>
         );
       default:
-        return <div>Unsupported operation: {step.op}</div>;
+        return (
+          <div className={styles.editorContent}>
+            <p>Unknown operation: {step.op}</p>
+          </div>
+        );
     }
   };
 
   return (
-    <div className={`
-      ${styles.stepCard} 
-      ${isInFocus ? styles.focusCard : ''} 
-      ${isExpanded ? styles.expandedCard : styles.collapsedCard}
-    `}>
-      <div className={styles.cardHeader} onClick={onToggleExpansion}>
-        <div className={styles.cardHeaderMain}>
-          <div className={styles.stepIcon}>
-            {getOperationIcon(step.op)}
-          </div>
-          <div className={styles.stepInfo}>
-            <h3 className={styles.stepTitle}>
-              Step {index + 1}: {step.op}
-            </h3>
-            <p className={styles.stepSummary}>
-              {getOperationSummary()}
-            </p>
-          </div>
+    <div className={`${styles.card} ${styles.stepCard}`}>
+      <div className={styles.cardHeader} onClick={() => setIsExpanded(!isExpanded)}>
+        <div className={styles.stepInfo}>
+          <h3 className={styles.stepTitle}>
+            Step {step.id}: {step.op.charAt(0).toUpperCase() + step.op.slice(1)}
+          </h3>
+          {step.op === 'source' && step.table && (
+            <span className={styles.stepSubtitle}>Table: {step.table}</span>
+          )}
+          {step.op !== 'source' && step.input && (
+            <span className={styles.stepSubtitle}>Input: {step.input}</span>
+          )}
         </div>
-        <div className={styles.cardHeaderActions}>
+        <div className={styles.cardActions}>
           <button 
+            className={styles.toggleButton}
             onClick={(e) => {
               e.stopPropagation();
-              onRemove(index);
-            }} 
-            className={styles.removeButton}
-            title="Remove step"
+              setIsExpanded(!isExpanded);
+            }}
+          >
+            {isExpanded ? '▼' : '▶'}
+          </button>
+          <button 
+            className={styles.deleteButton} 
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(step.id);
+            }}
           >
             🗑️
-          </button>
-          <button className={styles.expandButton} title={isExpanded ? "Collapse" : "Expand"}>
-            {isExpanded ? '🔼' : '🔽'}
           </button>
         </div>
       </div>
 
       {isExpanded && (
-        <div className={styles.cardBody}>
-          <div className={styles.editorHeader}>
-            <h4 className={styles.editorTitle}>
-              Configure {step.op} operation
-            </h4>
-          </div>
-          <div className={styles.editorWrapper}>
-            {renderEditor()}
-          </div>
+        <div className={styles.cardContent}>
+          {renderEditor()}
         </div>
       )}
     </div>
   );
-};
-
-export default StepCard;
+}
