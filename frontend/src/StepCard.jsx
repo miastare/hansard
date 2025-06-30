@@ -3,6 +3,7 @@ import SourceEditor from './editors/SourceEditor';
 import FilterEditor from './editors/FilterEditor';
 import MutateEditor from './editors/MutateEditor/MutateEditor';
 import AggregateEditor from './editors/AggregateEditor';
+import JoinEditor from './editors/JoinEditor';
 
 const StepCard = ({ step, index, onUpdate, onRemove, availableInputs, tableSchemas, requestSchema }) => {
   // Safety check to prevent undefined errors
@@ -93,19 +94,15 @@ const renderEditor = () => {
           />
         );
       case 'join':
+        console.log(`🎭 STEP CARD [${index}]: Rendering JoinEditor with availableInputs: ${availableInputs?.length || 0} steps`);
         return (
-          <div>
-            <label>
-              Inputs:
-              <input 
-                type="text" 
-                value={(step.inputs || []).join(', ')} 
-                onChange={(e) => handleUpdate('inputs', e.target.value.split(', ').filter(Boolean))}
-                placeholder="Enter comma-separated inputs"
-              />
-            </label>
-            {/* Add more join fields as needed */}
-          </div>
+          <JoinEditor
+            step={step}
+            onUpdate={handleUpdate}
+            onBatchUpdate={handleBatchUpdate}
+            availableInputs={availableInputs || []}
+            tableSchemas={tableSchemas || {}}
+          />
         );
       case 'division_votes':
         return (

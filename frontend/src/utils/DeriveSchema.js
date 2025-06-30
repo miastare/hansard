@@ -174,6 +174,84 @@ export function deriveSchema(step, steps, tableCatalog) {
     return outputSchema;
   }
 
+  if (step.op === "join") {
+    console.log(`🔍 DERIVE SCHEMA: Processing join step ${step.id}`);
+    console.log(`🔍 DERIVE SCHEMA: Join step inputs:`, step.inputs);
+    console.log(`🔍 DERIVE SCHEMA: Join step how:`, step.how);
+    console.log(`🔍 DERIVE SCHEMA: Join step on:`, step.on);
+    console.log(`🔍 DERIVE SCHEMA: Join step suffixes:`, step.suffixes);
+    
+    if (!step.inputs || step.inputs.length !== 2) {
+      console.log(`🔍 DERIVE SCHEMA: ❌ Join step must have exactly 2 inputs`);
+      return [];
+    }
+    
+    const leftInputStep = steps.find(s => s.id === step.inputs[0]);
+    const rightInputStep = steps.find(s => s.id === step.inputs[1]);
+    
+    if (!leftInputStep || !rightInputStep) {
+      console.log(`🔍 DERIVE SCHEMA: ❌ Could not find input steps for join`);
+      console.log(`🔍 DERIVE SCHEMA: Left input found:`, !!leftInputStep);
+      console.log(`🔍 DERIVE SCHEMA: Right input found:`, !!rightInputStep);
+      return [];
+    }
+    
+    console.log(`🔍 DERIVE SCHEMA: Found join input steps:`, { left: leftInputStep.id, right: rightInputStep.id });
+    
+    // Get schemas for both inputs
+    const leftSchema = deriveSchema(leftInputStep, steps, tableCatalog);
+    const rightSchema = deriveSchema(rightInputStep, steps, tableCatalog);
+    
+    console.log(`🔍 DERIVE SCHEMA: Left schema (${leftSchema.length} columns):`, leftSchema);
+    console.log(`🔍 DERIVE SCHEMA: Right schema (${rightSchema.length} columns):`, rightSchema);
+    
+    const outputSchema = [];
+    const suffixes = step.suffixes || { left: '_x', right: '_y' };
+    const joinColumns = step.on || [];
+    
+    // Add all columns from left table
+    leftSchema.forEach(col => {
+      // If it's a join column, add it without suffix
+      if (joinColumns.includes(col.name)) {
+        outputSchema.push({ name: col.name, dtype: col.dtype });
+      } else {
+        // Check if this column name exists in right table (not including join columns)
+        const rightColExists = rightSchema.some(rightCol => 
+          rightCol.name === col.name && !joinColumns.includes(rightCol.name)
+        );
+        
+        if (rightColExists) {
+          // Add with left suffix
+          outputSchema.push({ name: `${col.name}${suffixes.left}`, dtype: col.dtype });
+        } else {
+          // Add without suffix
+          outputSchema.push({ name: col.name, dtype: col.dtype });
+        }
+      }
+    });
+    
+    // Add columns from right table (excluding join columns which were already added)
+    rightSchema.forEach(col => {
+      if (!joinColumns.includes(col.name)) {
+        // Check if this column name exists in left table (not including join columns)
+        const leftColExists = leftSchema.some(leftCol => 
+          leftCol.name === col.name && !joinColumns.includes(leftCol.name)
+        );
+        
+        if (leftColExists) {
+          // Add with right suffix
+          outputSchema.push({ name: `${col.name}${suffixes.right}`, dtype: col.dtype });
+        } else {
+          // Add without suffix
+          outputSchema.push({ name: col.name, dtype: col.dtype });
+        }
+      }
+    });
+    
+    console.log(`🔍 DERIVE SCHEMA: ✅ Final join output schema (${outputSchema.length} columns):`, outputSchema);
+    return outputSchema;
+  }
+
   console.log(`🔍 DERIVE SCHEMA: ❌ Unhandled step type: ${step.op}`);
   return [];
 }
