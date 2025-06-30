@@ -312,7 +312,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       height: '100%', 
       display: 'flex', 
       flexDirection: 'column',
-      maxHeight: '70vh'
+      maxHeight: '60vh'
     }}>
       <h4 style={{ margin: '0 0 24px 0', color: '#2d3748', fontSize: '18px' }}>Mutate Columns</h4>
 
@@ -343,120 +343,7 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
           />
         </div>
 
-        {/* Columns Preview */}
-        {currentSchema.length > 0 && (
-          <div style={{ flex: '1', minWidth: '300px' }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              marginBottom: '8px' 
-            }}>
-              <span style={{ 
-                fontWeight: '600', 
-                fontSize: '14px', 
-                color: '#374151' 
-              }}>
-                📊 Available columns ({currentSchema.length})
-              </span>
-              <button
-                onClick={() => setShowAllColumnsModal(true)}
-                style={{
-                  padding: '4px 12px',
-                  background: 'rgba(59, 130, 246, 0.1)',
-                  color: '#3b82f6',
-                  border: '1px solid rgba(59, 130, 246, 0.2)',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                View All
-              </button>
-            </div>
-
-            {/* Windowed Column Display */}
-            <div style={{
-              background: 'rgba(248, 250, 252, 0.8)',
-              border: '1px solid rgba(203, 213, 225, 0.4)',
-              borderRadius: '8px',
-              padding: '12px'
-            }}>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(2, 1fr)', 
-                gap: '8px',
-                marginBottom: windowedColumns.length > 0 ? '12px' : '0'
-              }}>
-                {windowedColumns.map(col => (
-                  <div key={col.name} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '6px 10px',
-                    background: 'rgba(255, 255, 255, 0.8)',
-                    border: '1px solid rgba(203, 213, 225, 0.3)',
-                    borderRadius: '6px',
-                    fontSize: '12px'
-                  }}>
-                    <span style={{ fontWeight: '500', color: '#374151' }}>{col.name}</span>
-                    <span style={{ 
-                      color: col.dtype === 'str' ? '#10b981' : 
-                             col.dtype === 'numeric' || col.dtype === 'int64' ? '#3b82f6' : 
-                             col.dtype === 'bool' ? '#f59e0b' : '#6b7280',
-                      fontSize: '11px'
-                    }}>
-                      {col.dtype}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Navigation */}
-              {totalWindows > 1 && (
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  fontSize: '12px',
-                  color: '#6b7280'
-                }}>
-                  <button
-                    onClick={() => setColumnWindowStart(Math.max(0, columnWindowStart - COLUMNS_PER_WINDOW))}
-                    disabled={columnWindowStart === 0}
-                    style={{
-                      padding: '4px 8px',
-                      background: columnWindowStart === 0 ? '#f3f4f6' : '#e5e7eb',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: columnWindowStart === 0 ? 'not-allowed' : 'pointer',
-                      fontSize: '11px'
-                    }}
-                  >
-                    ← Prev
-                  </button>
-                  <span>
-                    {currentWindow} of {totalWindows}
-                  </span>
-                  <button
-                    onClick={() => setColumnWindowStart(Math.min(currentSchema.length - COLUMNS_PER_WINDOW, columnWindowStart + COLUMNS_PER_WINDOW))}
-                    disabled={columnWindowStart + COLUMNS_PER_WINDOW >= currentSchema.length}
-                    style={{
-                      padding: '4px 8px',
-                      background: columnWindowStart + COLUMNS_PER_WINDOW >= currentSchema.length ? '#f3f4f6' : '#e5e7eb',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: columnWindowStart + COLUMNS_PER_WINDOW >= currentSchema.length ? 'not-allowed' : 'pointer',
-                      fontSize: '11px'
-                    }}
-                  >
-                    Next →
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        
 
         {/* Hovered Input Schema Preview */}
         {hoveredInput && (
