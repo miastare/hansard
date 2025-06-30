@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import { deriveSchema } from "../utils/DeriveSchema";
 import Dropdown from "../components/Dropdown";
 import WindowedColumnsPreview from "../components/WindowedColumnsPreview";
@@ -19,7 +19,7 @@ export default function JoinEditor({
   const [suffixes, setSuffixes] = useState(
     step.suffixes || { left: "_x", right: "_y" },
   );
-  const [hoveredInput, setHoveredInput] = useState(null);
+  const hoveredInputRef = useRef(null);
   
   // Collapsible section states
   const [isInputSourcesExpanded, setIsInputSourcesExpanded] = useState(true);
@@ -135,32 +135,26 @@ export default function JoinEditor({
   // Handle input hover for columns preview
   const handleInputHover = useCallback((option) => {
     if (!option) {
-      setHoveredInput(prev => (prev ? null : prev));
+      hoveredInputRef.current = null;
       return;
     }
 
-    setHoveredInput(prev => {
-      // Prevent unnecessary updates if hovering the same option
-      if (prev?.inputStep?.id === option.value) return prev;
-      
-      const inputStep = availableInputs.find((s) => s.id === option.value);
-      if (inputStep) {
-        let schema = [];
-        if (inputStep.op === "source" && inputStep.table) {
-          const schemaWrapper = tableSchemas[inputStep.table];
-          if (schemaWrapper) {
-            schema = schemaWrapper.cols || schemaWrapper;
-          }
-        } else {
-          schema = deriveSchema(inputStep, availableInputs, tableSchemas);
+    const inputStep = availableInputs.find((s) => s.id === option.value);
+    if (inputStep) {
+      let schema = [];
+      if (inputStep.op === "source" && inputStep.table) {
+        const schemaWrapper = tableSchemas[inputStep.table];
+        if (schemaWrapper) {
+          schema = schemaWrapper.cols || schemaWrapper;
         }
-        return {
-          inputStep,
-          schema: Array.isArray(schema) ? schema : [],
-        };
+      } else {
+        schema = deriveSchema(inputStep, availableInputs, tableSchemas);
       }
-      return null;
-    });
+      hoveredInputRef.current = {
+        inputStep,
+        schema: Array.isArray(schema) ? schema : [],
+      };
+    }
   }, [availableInputs, tableSchemas]);
 
   // Collapsible section component
