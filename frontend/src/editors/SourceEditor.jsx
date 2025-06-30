@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Dropdown from "../components/Dropdown";
 
 const AVAILABLE_TABLES = [
@@ -421,8 +422,8 @@ export default function SourceEditor({
         )}
       </div>
 
-      {/* All Columns Modal */}
-      {showAllColumnsModal && (
+      {/* All Columns Modal using React Portal */}
+      {showAllColumnsModal && createPortal(
         <div
           style={{
             position: "fixed",
@@ -430,44 +431,53 @@ export default function SourceEditor({
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(0, 0, 0, 0.5)",
+            background: "rgba(0, 0, 0, 0.7)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 1000,
+            zIndex: 9999,
+            padding: "20px",
           }}
+          onClick={() => setShowAllColumnsModal(false)}
         >
           <div
             style={{
               background: "white",
-              borderRadius: "12px",
-              padding: "24px",
-              maxWidth: "600px",
-              width: "90%",
-              maxHeight: "80%",
-              overflow: "auto",
+              borderRadius: "16px",
+              padding: "32px",
+              width: "95vw",
+              height: "90vh",
+              maxWidth: "1200px",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: "20px",
+                marginBottom: "24px",
+                borderBottom: "2px solid rgba(229, 231, 235, 0.8)",
+                paddingBottom: "16px",
               }}
             >
-              <h3 style={{ margin: 0, color: "#374151" }}>
-                All Table Columns ({currentSchema.length})
-              </h3>
+              <h2 style={{ margin: 0, color: "#1f2937", fontSize: "24px" }}>
+                📊 All Table Columns ({currentSchema.length})
+              </h2>
               <button
                 onClick={() => setShowAllColumnsModal(false)}
                 style={{
-                  padding: "8px 12px",
+                  padding: "12px 20px",
                   background: "#ef4444",
                   color: "white",
                   border: "none",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   cursor: "pointer",
+                  fontSize: "16px",
+                  fontWeight: "600",
                 }}
               >
                 ✕ Close
@@ -475,48 +485,61 @@ export default function SourceEditor({
             </div>
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-                gap: "12px",
+                flex: 1,
+                overflow: "auto",
+                paddingRight: "8px",
               }}
             >
-              {currentSchema.map((col) => (
-                <div
-                  key={col.name}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 16px",
-                    background: "rgba(248, 250, 252, 0.8)",
-                    border: "1px solid rgba(203, 213, 225, 0.3)",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <span style={{ fontWeight: "500", color: "#374151" }}>
-                    {col.name}
-                  </span>
-                  <span
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                  gap: "16px",
+                }}
+              >
+                {currentSchema.map((col) => (
+                  <div
+                    key={col.name}
                     style={{
-                      color:
-                        col.dtype === "str"
-                          ? "#10b981"
-                          : col.dtype === "numeric" || col.dtype === "int64"
-                            ? "#3b82f6"
-                            : col.dtype === "bool"
-                              ? "#f59e0b"
-                              : "#6b7280",
-                      fontSize: "12px",
-                      fontWeight: "500",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "16px 20px",
+                      background: "rgba(248, 250, 252, 0.8)",
+                      border: "2px solid rgba(203, 213, 225, 0.3)",
+                      borderRadius: "12px",
+                      transition: "all 0.2s ease",
                     }}
                   >
-                    {col.dtype}
-                  </span>
-                </div>
-              ))}
+                    <span style={{ fontWeight: "600", color: "#374151", fontSize: "15px" }}>
+                      {col.name}
+                    </span>
+                    <span
+                      style={{
+                        color:
+                          col.dtype === "str"
+                            ? "#10b981"
+                            : col.dtype === "numeric" || col.dtype === "int64"
+                              ? "#3b82f6"
+                              : col.dtype === "bool"
+                                ? "#f59e0b"
+                                : "#6b7280",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        padding: "4px 8px",
+                        background: "rgba(255, 255, 255, 0.8)",
+                        borderRadius: "6px",
+                      }}
+                    >
+                      {col.dtype}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
