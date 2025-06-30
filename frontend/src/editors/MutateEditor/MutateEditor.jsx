@@ -49,8 +49,7 @@ export default function MutateEditor({
   const [hoveredInput, setHoveredInput] = useState(null);
   const [columnWindowStart, setColumnWindowStart] = useState(0);
   const [showAllColumnsModal, setShowAllColumnsModal] = useState(false);
-  const [expandedColumns, setExpandedColumns] = useState({}); // Track which columns are expanded
-  const [expandedExpressions, setExpandedExpressions] = useState({}); // Track which expressions are expanded
+  const [editingExpressionId, setEditingExpressionId] = useState(null); // Track which expression is being edited in modal
   const validationTimeouts = useRef({});
 
   const COLUMNS_PER_WINDOW = 4;
@@ -257,10 +256,6 @@ export default function MutateEditor({
       },
     };
     updateStep(newCols);
-
-    // Auto-expand the new column
-    setExpandedColumns((prev) => ({ ...prev, [id]: true }));
-    setExpandedExpressions((prev) => ({ ...prev, [id]: true }));
   };
 
   const updateColumnName = useCallback(
@@ -335,29 +330,22 @@ export default function MutateEditor({
       return newErrors;
     });
 
-    // Clear expansion state
-    setExpandedColumns((prev) => {
-      const newExpanded = { ...prev };
-      delete newExpanded[stableId];
-      return newExpanded;
-    });
-    setExpandedExpressions((prev) => {
-      const newExpanded = { ...prev };
-      delete newExpanded[stableId];
-      return newExpanded;
-    });
+    // Clear modal state if this expression was being edited
+    if (editingExpressionId === stableId) {
+      setEditingExpressionId(null);
+    }
 
     const newCols = { ...cols };
     delete newCols[name];
     updateStep(newCols);
   };
 
-  const toggleColumnExpansion = (id) => {
-    setExpandedColumns((prev) => ({ ...prev, [id]: !prev[id] }));
+  const openExpressionModal = (id) => {
+    setEditingExpressionId(id);
   };
 
-  const toggleExpressionExpansion = (id) => {
-    setExpandedExpressions((prev) => ({ ...prev, [id]: !prev[id] }));
+  const closeExpressionModal = () => {
+    setEditingExpressionId(null);
   };
 
   // Prepare dropdown options
@@ -645,199 +633,166 @@ export default function MutateEditor({
           const stableId = colData._id;
           const expr = colData.expr;
           const hasError = validationErrors[stableId];
-          const isExpanded = expandedColumns[stableId];
-          const isExpressionExpanded = expandedExpressions[stableId];
+
+          // Helper function to get expression summary
+          const getExpressionSummary = (expr) => {
+            if (!expr || typeof expr !== 'object') {
+              return 'Invalid expression';
+            }
+
+            if (expr.type === 'constant') {
+              return `${expr.value} (${expr.valueType})`;
+            } else if (expr.type === 'column') {
+              return `Column: ${expr.columnName || 'unnamed'}`;
+            } else if (expr.type === 'dynamic') {
+              if (!expr.args || !Array.isArray(expr.args)) {
+                return `${expr.operator || 'unknown'}(no args)`;
+              }
+              const argSummaries = expr.args.map(arg => getExpressionSummary(arg)).join(', ');
+              return `${expr.operator || 'unknown'}(${argSummaries})`;
+            } else {
+              return 'Unknown expression type';
+            }
+          };
+
+          const truncate = (text, maxLength = 60) => {
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+          };
 
           return (
             <div
               key={`column-${stableId}`}
               style={{
-                marginBottom: "20px",
+                marginBottom: "16px",
                 border: hasError
                   ? "2px solid #ef4444"
                   : "2px solid rgba(203, 213, 225, 0.4)",
                 borderRadius: "12px",
                 backgroundColor: "#fff",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                overflow: "hidden",
+                padding: "20px",
               }}
             >
-              {/* Column Header */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "16px 20px",
-                  background: isExpanded
-                    ? "rgba(248, 250, 252, 0.5)"
-                    : "rgba(248, 250, 252, 0.8)",
-                  borderBottom: isExpanded
-                    ? "1px solid rgba(203, 213, 225, 0.3)"
-                    : "none",
-                  cursor: "pointer",
-                }}
-                onClick={() => toggleColumnExpansion(stableId)}
-              >
+              {/* Column Name Row */}
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: "600",
+                    fontSize: "14px",
+                    color: hasError ? "#ef4444" : "#374151",
+                  }}
+                >
+                  Column name (LHS):
+                </label>
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: "12px",
-                    flex: 1,
                   }}
                 >
-                  <span style={{ fontSize: "16px" }}>
-                    {isExpanded ? "🔽" : "▶️"}
-                  </span>
-                  <span style={{ fontWeight: "600", color: "#374151" }}>
-                    Column: {name || "unnamed"}
-                  </span>
-                  {hasError && (
-                    <span style={{ color: "#ef4444", fontSize: "12px" }}>
-                      ⚠️ Error
-                    </span>
-                  )}
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => updateColumnName(name, e.target.value)}
+                    placeholder="Enter column name"
+                    style={{
+                      padding: "12px 16px",
+                      border: hasError
+                        ? "2px solid #ef4444"
+                        : "2px solid #e2e8f0",
+                      borderRadius: "8px",
+                      flex: "1",
+                      fontSize: "14px",
+                      background: "rgba(255, 255, 255, 0.8)",
+                    }}
+                  />
+                  <button
+                    onClick={() => removeColumn(name)}
+                    style={{
+                      padding: "12px 16px",
+                      background: "#ef4444",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: "500",
+                    }}
+                  >
+                    🗑️ Remove
+                  </button>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeColumn(name);
-                  }}
-                  style={{
-                    padding: "8px 12px",
-                    background: "#ef4444",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    fontWeight: "500",
-                  }}
-                >
-                  🗑️ Remove
-                </button>
+                {hasError && (
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      color: "#ef4444",
+                      fontSize: "12px",
+                      fontWeight: "500",
+                    }}
+                  >
+                    {hasError}
+                  </div>
+                )}
               </div>
 
-              {/* Column Body */}
-              {isExpanded && (
-                <div style={{ padding: "20px" }}>
-                  {/* Column Name Input */}
-                  <div style={{ marginBottom: "20px" }}>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "8px",
-                        fontWeight: "600",
-                        fontSize: "14px",
-                        color: hasError ? "#ef4444" : "#374151",
-                      }}
-                    >
-                      Column name (LHS):
-                    </label>
+              {/* Expression Row */}
+              {!hasError && (
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: "600",
+                      fontSize: "14px",
+                      color: "#374151",
+                    }}
+                  >
+                    Expression (RHS):
+                  </label>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
                     <div
+                      onClick={() => openExpressionModal(stableId)}
                       style={{
+                        flex: "1",
+                        padding: "12px 16px",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "8px",
+                        backgroundColor: "#f9fafb",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        color: "#6b7280",
+                        transition: "all 0.2s ease",
                         display: "flex",
                         alignItems: "center",
-                        gap: "12px",
+                        justifyContent: "space-between",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.borderColor = "#3b82f6";
+                        e.target.style.backgroundColor = "#eff6ff";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.borderColor = "#e2e8f0";
+                        e.target.style.backgroundColor = "#f9fafb";
                       }}
                     >
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => updateColumnName(name, e.target.value)}
-                        placeholder="Enter column name"
-                        style={{
-                          padding: "12px 16px",
-                          border: hasError
-                            ? "2px solid #ef4444"
-                            : "2px solid #e2e8f0",
-                          borderRadius: "8px",
-                          width: "250px",
-                          fontSize: "14px",
-                          background: "rgba(255, 255, 255, 0.8)",
-                        }}
-                      />
+                      <span>
+                        {truncate(getExpressionSummary(expr))}
+                      </span>
+                      <span style={{ color: "#3b82f6", fontSize: "12px" }}>
+                        Click to edit →
+                      </span>
                     </div>
-                    {hasError && (
-                      <div
-                        style={{
-                          marginTop: "8px",
-                          color: "#ef4444",
-                          fontSize: "12px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        {hasError}
-                      </div>
-                    )}
                   </div>
-
-                  {/* Expression Section */}
-                  {!hasError && (
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: "12px",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => toggleExpressionExpansion(stableId)}
-                      >
-                        <label
-                          style={{
-                            fontWeight: "600",
-                            fontSize: "14px",
-                            color: "#374151",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                          }}
-                        >
-                          <span>{isExpressionExpanded ? "🔽" : "▶️"}</span>
-                          Expression (RHS):
-                        </label>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleExpressionExpansion(stableId);
-                          }}
-                          style={{
-                            padding: "4px 8px",
-                            background: "rgba(59, 130, 246, 0.1)",
-                            color: "#3b82f6",
-                            border: "1px solid rgba(59, 130, 246, 0.2)",
-                            borderRadius: "4px",
-                            fontSize: "11px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          {isExpressionExpanded ? "Collapse" : "Expand"}
-                        </button>
-                      </div>
-
-                      {isExpressionExpanded && (
-                        <div
-                          style={{
-                            background: "rgba(248, 250, 252, 0.5)",
-                            border: "1px solid rgba(203, 213, 225, 0.3)",
-                            borderRadius: "8px",
-                            padding: "16px",
-                          }}
-                        >
-                          <ExpressionBuilder
-                            expr={expr}
-                            onChange={(newExpr) =>
-                              updateColumnExpr(name, newExpr)
-                            }
-                            availableColumns={currentSchema || []}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -1021,6 +976,103 @@ export default function MutateEditor({
                   ))}
                 </div>
               </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Expression Editing Modal using React Portal */}
+      {editingExpressionId &&
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.8)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000, // Higher than columns modal
+              padding: "20px",
+            }}
+            onClick={closeExpressionModal}
+          >
+            <div
+              style={{
+                background: "white",
+                borderRadius: "16px",
+                padding: "32px",
+                width: "95vw",
+                height: "90vh",
+                maxWidth: "1400px",
+                display: "flex",
+                flexDirection: "column",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {(() => {
+                // Find the column being edited
+                const columnEntry = Object.entries(cols).find(([name, colData]) => 
+                  colData._id === editingExpressionId
+                );
+                
+                if (!columnEntry) return null;
+                
+                const [columnName, colData] = columnEntry;
+                const expr = colData.expr;
+
+                return (
+                  <>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "24px",
+                        borderBottom: "2px solid rgba(229, 231, 235, 0.8)",
+                        paddingBottom: "16px",
+                      }}
+                    >
+                      <h2 style={{ margin: 0, color: "#1f2937", fontSize: "24px" }}>
+                        🔧 Edit Expression for "{columnName}"
+                      </h2>
+                      <button
+                        onClick={closeExpressionModal}
+                        style={{
+                          padding: "12px 20px",
+                          background: "#10b981",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          fontSize: "16px",
+                          fontWeight: "600",
+                        }}
+                      >
+                        ✓ Done
+                      </button>
+                    </div>
+                    <div
+                      style={{
+                        flex: 1,
+                        overflow: "auto",
+                        paddingRight: "8px",
+                      }}
+                    >
+                      <ExpressionBuilder
+                        expr={expr}
+                        onChange={(newExpr) => updateColumnExpr(columnName, newExpr)}
+                        availableColumns={currentSchema || []}
+                        modalDepth={1}
+                      />
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>,
           document.body,

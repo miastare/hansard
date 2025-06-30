@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { getOperatorInfo, getCompatibleOperators, getTypeFromValue, getRequiredTypeForArgument, getExpressionType } from '../../utils/ExpressionUtils';
 
-export default function ExpressionBuilder({ expr, onChange, availableColumns, parentOperator = null, argIndex = null, parentContext = null }) {
+export default function ExpressionBuilder({ expr, onChange, availableColumns, parentOperator = null, argIndex = null, parentContext = null, modalDepth = 0 }) {
   // Ensure availableColumns is always an array
   const safeAvailableColumns = availableColumns || [];
 
@@ -696,7 +696,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
       )}
 
       {showModal && (
-        <Modal onClose={closeModal}>
+        <Modal onClose={closeModal} depth={modalDepth + 1}>
           <div style={{ padding: '20px', minWidth: '500px' }}>
             <h3 style={{ marginBottom: '20px' }}>
               Edit Argument {editingArgIndex + 1}
@@ -760,6 +760,7 @@ export default function ExpressionBuilder({ expr, onChange, availableColumns, pa
                 return parentContext;
               })()}
               availableColumns={safeAvailableColumns}
+              modalDepth={modalDepth + 1}
             />
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
               <button

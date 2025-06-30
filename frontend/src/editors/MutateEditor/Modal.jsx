@@ -1,7 +1,10 @@
 
 import React from 'react';
 
-export default function Modal({ children, onClose }) {
+export default function Modal({ children, onClose, depth = 0 }) {
+  // Base z-index of 10000, with 100 added for each level of depth
+  const zIndex = 10000 + (depth * 100);
+  
   return (
     <div 
       style={{
@@ -14,7 +17,7 @@ export default function Modal({ children, onClose }) {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 1000
+        zIndex: zIndex
       }}
       onClick={onClose}
     >
