@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import StepCard from './StepCard';
 import { deriveSchema } from './utils/DeriveSchema';
@@ -26,7 +25,7 @@ export default function DSLBuilder() {
       ...(op === 'join' && { inputs: [], on: [], how: 'outer' }),
       ...(op === 'division_votes' && { division_ids: [], house: 1, weights: { AYE: 1, NO: -1, NOTREC: 0 } }),
     };
-    
+
     setSteps(prev => {
       const newSteps = [...prev, newStep];
       // Expand the new card and move carousel to it
@@ -53,14 +52,14 @@ export default function DSLBuilder() {
       } else if (expandedCard !== null && expandedCard > index) {
         setExpandedCard(expandedCard - 1);
       }
-      
+
       if (currentCarouselIndex >= newSteps.length && newSteps.length > 0) {
         setCurrentCarouselIndex(newSteps.length - 1);
       } else if (newSteps.length === 0) {
         setCurrentCarouselIndex(0);
         setExpandedCard(null);
       }
-      
+
       return newSteps;
     });
   }, [expandedCard, currentCarouselIndex]);
@@ -76,14 +75,14 @@ export default function DSLBuilder() {
 
   const navigateCarousel = (direction) => {
     if (steps.length === 0) return;
-    
+
     let newIndex;
     if (direction === 'prev') {
       newIndex = currentCarouselIndex > 0 ? currentCarouselIndex - 1 : steps.length - 1;
     } else {
       newIndex = currentCarouselIndex < steps.length - 1 ? currentCarouselIndex + 1 : 0;
     }
-    
+
     setCurrentCarouselIndex(newIndex);
     setExpandedCard(newIndex);
   };
@@ -167,24 +166,33 @@ export default function DSLBuilder() {
         </div>
 
         <div className={styles.carousel}>
-          {steps.map((step, index) => {
-            const availableInputs = getAvailableInputs(index);
-            const isExpanded = expandedCard === index;
-            const isInFocus = currentCarouselIndex === index;
-            
+          {steps.map((step, stepIndex) => {
+            const availableInputs = getAvailableInputs(stepIndex);
+
+            // Log available inputs for debugging
+            console.log(`DSL BUILDER: Available inputs for step ${stepIndex}, op: ${step.op}`);
+            console.log(`DSL BUILDER: availableInputs:`, availableInputs);
+            console.log(`DSL BUILDER: tableSchemas:`, tableSchemas);
+            console.log(`DSL BUILDER: step.input:`, step.input);
+            console.log(`DSL BUILDER: requestSchema function:`, requestSchema);
+
+            // Log specific schema information for mutate steps
+            if (step.op === 'mutate' && step.input) {
+              const inputStep = availableInputs.find(s => s.id === step.input);
+              if (inputStep && inputStep.table && tableSchemas) {
+                console.log(`DSL BUILDER: Schema for step ${stepIndex} input table ${inputStep.table}:`, tableSchemas[inputStep.table]);
+              }
+            }
+
             return (
               <StepCard
-                key={step.id || index}
+                key={step.id}
                 step={step}
-                index={index}
-                onUpdate={updateStep}
-                onRemove={removeStep}
+                onUpdate={(updatedStep) => updateStep(stepIndex, updatedStep)}
+                onDelete={(stepId) => removeStep(stepIndex)}
                 availableInputs={availableInputs}
                 tableSchemas={tableSchemas || {}}
                 requestSchema={requestSchema || (() => {})}
-                isExpanded={isExpanded}
-                isInFocus={isInFocus}
-                onToggleExpansion={() => toggleCardExpansion(index)}
               />
             );
           })}
