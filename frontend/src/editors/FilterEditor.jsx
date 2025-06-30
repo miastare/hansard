@@ -157,6 +157,7 @@ export default function FilterEditor({
           gap: "20px",
           marginBottom: "24px",
           flexShrink: 0,
+          justifyContent: "space-around",
         }}
       >
         <div style={{ flex: "0 0 300px" }}>
