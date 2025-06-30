@@ -48,8 +48,6 @@ export default function SourceEditor({ step, onChange, tableSchemas, requestSche
   }, [table]);
 
   const selectedSchema = tableSchemas?.[table];
-
-  const selectedSchema = tableSchemas?.[table];
   const currentSchema = selectedSchema?.cols || selectedSchema || [];
 
   // Get columns for current window
