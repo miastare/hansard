@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import { deriveSchema } from "../utils/DeriveSchema";
 import Dropdown from "../components/Dropdown";
@@ -19,6 +20,12 @@ export default function JoinEditor({
     step.suffixes || { left: "_x", right: "_y" },
   );
   const [hoveredInput, setHoveredInput] = useState(null);
+  
+  // Collapsible section states
+  const [isInputSourcesExpanded, setIsInputSourcesExpanded] = useState(true);
+  const [isJoinTypeExpanded, setIsJoinTypeExpanded] = useState(true);
+  const [isJoinColumnsExpanded, setIsJoinColumnsExpanded] = useState(true);
+  const [isSuffixesExpanded, setIsSuffixesExpanded] = useState(true);
 
   // Get schemas for the selected inputs
   const getInputSchemas = () => {
@@ -91,24 +98,6 @@ export default function JoinEditor({
     updateStep({ suffixes: newSuffixes });
   };
 
-  const addByColumn = () => {
-    if (commonColumns.length > 0) {
-      const newByColumns = [...byColumns, commonColumns[0]];
-      updateByColumns(newByColumns);
-    }
-  };
-
-  const updateByColumn = (index, value) => {
-    const newByColumns = [...byColumns];
-    newByColumns[index] = value;
-    updateByColumns(newByColumns);
-  };
-
-  const removeByColumn = (index) => {
-    const newByColumns = byColumns.filter((_, i) => i !== index);
-    updateByColumns(newByColumns);
-  };
-
   const updateInput = (index, inputId) => {
     const newInputs = [...inputs];
     newInputs[index] = inputId;
@@ -118,6 +107,14 @@ export default function JoinEditor({
   const removeInput = (index) => {
     const newInputs = inputs.filter((_, i) => i !== index);
     updateInputs(newInputs);
+  };
+
+  // Handle multi-select for join columns
+  const handleJoinColumnSelect = (columnName) => {
+    const newByColumns = byColumns.includes(columnName)
+      ? byColumns.filter(col => col !== columnName)
+      : [...byColumns, columnName];
+    updateByColumns(newByColumns);
   };
 
   // Prepare dropdown options
@@ -134,12 +131,6 @@ export default function JoinEditor({
     { value: "right", label: "Right Join", icon: "➡️" },
     { value: "outer", label: "Full Outer Join", icon: "🔄" },
   ];
-
-  const byColumnOptions = commonColumns.map((col) => ({
-    value: col,
-    label: col,
-    icon: "📊",
-  }));
 
   // Handle input hover for columns preview
   const handleInputHover = (option) => {
@@ -165,34 +156,71 @@ export default function JoinEditor({
     }
   };
 
+  // Collapsible section component
+  const CollapsibleSection = ({ title, isExpanded, onToggle, children }) => (
+    <div style={{ marginBottom: "20px" }}>
+      <button
+        onClick={() => onToggle(!isExpanded)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          width: "100%",
+          padding: "12px 16px",
+          backgroundColor: "#f8f9fa",
+          border: "1px solid #e9ecef",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontSize: "14px",
+          fontWeight: "600",
+          color: "#495057",
+          transition: "all 0.2s ease",
+        }}
+        onMouseOver={(e) => e.target.style.backgroundColor = "#e9ecef"}
+        onMouseOut={(e) => e.target.style.backgroundColor = "#f8f9fa"}
+      >
+        <span style={{ 
+          fontSize: "12px", 
+          transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+          transition: "transform 0.2s ease"
+        }}>
+          ▶
+        </span>
+        <span>{title}</span>
+      </button>
+      {isExpanded && (
+        <div style={{ 
+          marginTop: "16px",
+          padding: "0 8px"
+        }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div
       style={{
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        maxHeight: "60vh",
+        maxHeight: "80vh",
+        overflowY: "auto",
+        padding: "16px",
       }}
     >
-      {/* Input Sources Section - Side by Side Layout */}
-      <div style={{ marginBottom: "20px", marginLeft: "10%", width: "80%" }}>
-        <label
-          style={{
-            display: "block",
-            marginBottom: "12px",
-            fontWeight: "bold",
-            fontSize: "14px",
-            color: "#374151",
-          }}
-        >
-          Input Sources:
-        </label>
-
+      {/* Input Sources Section */}
+      <CollapsibleSection
+        title="Input Sources"
+        isExpanded={isInputSourcesExpanded}
+        onToggle={setIsInputSourcesExpanded}
+      >
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: "16px",
+            gap: "20px",
           }}
         >
           {/* Left Input */}
@@ -200,7 +228,7 @@ export default function JoinEditor({
             <label
               style={{
                 display: "block",
-                marginBottom: "6px",
+                marginBottom: "8px",
                 fontSize: "13px",
                 fontWeight: "500",
                 color: "#6b7280",
@@ -217,9 +245,9 @@ export default function JoinEditor({
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
-                    padding: "8px 12px",
+                    padding: "10px 14px",
                     backgroundColor: "#f8f9fa",
-                    borderRadius: "6px",
+                    borderRadius: "8px",
                     border: "1px solid #e9ecef",
                   }}
                 >
@@ -263,7 +291,7 @@ export default function JoinEditor({
             <label
               style={{
                 display: "block",
-                marginBottom: "6px",
+                marginBottom: "8px",
                 fontSize: "13px",
                 fontWeight: "500",
                 color: "#6b7280",
@@ -280,9 +308,9 @@ export default function JoinEditor({
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
-                    padding: "8px 12px",
+                    padding: "10px 14px",
                     backgroundColor: "#f8f9fa",
-                    borderRadius: "6px",
+                    borderRadius: "8px",
                     border: "1px solid #e9ecef",
                   }}
                 >
@@ -321,56 +349,40 @@ export default function JoinEditor({
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Column Schema Previews */}
-      {inputs.length === 2 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "16px",
-            marginBottom: "20px",
-            marginLeft: "10%",
-            width: "80%",
-          }}
-        >
-          <WindowedColumnsPreview
-            columns={leftSchema}
-            title={`Left Table (${inputs[0]})`}
-            isVisible={leftSchema.length > 0}
-            columnsPerWindow={4}
-          />
-          <WindowedColumnsPreview
-            columns={rightSchema}
-            title={`Right Table (${inputs[1]})`}
-            isVisible={rightSchema.length > 0}
-            columnsPerWindow={4}
-          />
-        </div>
-      )}
+        {/* Column Schema Previews */}
+        {inputs.length === 2 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "16px",
+              marginTop: "20px",
+            }}
+          >
+            <WindowedColumnsPreview
+              columns={leftSchema}
+              title={`Left Table (${inputs[0]})`}
+              isVisible={leftSchema.length > 0}
+              columnsPerWindow={4}
+            />
+            <WindowedColumnsPreview
+              columns={rightSchema}
+              title={`Right Table (${inputs[1]})`}
+              isVisible={rightSchema.length > 0}
+              columnsPerWindow={4}
+            />
+          </div>
+        )}
+      </CollapsibleSection>
 
       {/* Join Type Section */}
-      <div
-        style={{
-          marginBottom: "20px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
+      <CollapsibleSection
+        title="Join Type"
+        isExpanded={isJoinTypeExpanded}
+        onToggle={setIsJoinTypeExpanded}
       >
-        <label
-          style={{
-            display: "block",
-            marginBottom: "8px",
-            fontWeight: "bold",
-            fontSize: "14px",
-            color: "#374151",
-          }}
-        >
-          Join Type:
-        </label>
-        <div style={{ maxWidth: "300px" }}>
+        <div style={{ maxWidth: "300px", margin: "0 auto" }}>
           <Dropdown
             value={joinType}
             onChange={updateJoinType}
@@ -378,112 +390,130 @@ export default function JoinEditor({
             placeholder="Select join type"
           />
         </div>
-      </div>
+      </CollapsibleSection>
 
-      {/* By Columns Section */}
-      <div style={{ marginBottom: "20px" }}>
-        {byColumns.map((column, index) => (
-          <div
-            key={index}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginBottom: "10px",
-            }}
-          >
-            <div style={{ flex: 1, maxWidth: "300px" }}>
-              <Dropdown
-                value={column}
-                onChange={(value) => updateByColumn(index, value)}
-                options={byColumnOptions}
-                placeholder="Select column"
-              />
+      {/* Join Columns Section */}
+      <CollapsibleSection
+        title="Join Columns"
+        isExpanded={isJoinColumnsExpanded}
+        onToggle={setIsJoinColumnsExpanded}
+      >
+        <div>
+          {inputs.length === 2 && commonColumns.length > 0 ? (
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "12px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  color: "#374151",
+                }}
+              >
+                Select columns to join on:
+              </label>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                {commonColumns.map((column) => (
+                  <label
+                    key={column}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "10px 14px",
+                      backgroundColor: byColumns.includes(column) ? "#e3f2fd" : "#f8f9fa",
+                      border: byColumns.includes(column) ? "2px solid #2196f3" : "1px solid #e9ecef",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseOver={(e) => {
+                      if (!byColumns.includes(column)) {
+                        e.target.style.backgroundColor = "#e9ecef";
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (!byColumns.includes(column)) {
+                        e.target.style.backgroundColor = "#f8f9fa";
+                      }
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={byColumns.includes(column)}
+                      onChange={() => handleJoinColumnSelect(column)}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#2196f3",
+                      }}
+                    />
+                    <span>📊 {column}</span>
+                  </label>
+                ))}
+              </div>
+              {byColumns.length > 0 && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "8px 12px",
+                    backgroundColor: "#e8f5e8",
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    color: "#2e7d32",
+                  }}
+                >
+                  Selected: {byColumns.join(", ")}
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => removeByColumn(index)}
+          ) : (
+            <div
               style={{
-                padding: "8px 12px",
-                backgroundColor: "#dc3545",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
+                padding: "20px",
+                textAlign: "center",
+                backgroundColor: "#f8f9fa",
+                borderRadius: "8px",
+                border: "1px solid #e9ecef",
                 fontSize: "14px",
+                color: "#6c757d",
               }}
             >
-              Remove
-            </button>
-          </div>
-        ))}
+              {inputs.length < 2
+                ? "Please select exactly 2 input sources to configure join columns"
+                : "No common columns available for joining"}
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
 
-        <button
-          onClick={addByColumn}
-          disabled={inputs.length < 2 || commonColumns.length === 0}
-          style={{
-            padding: "10px 20px",
-            backgroundColor:
-              inputs.length === 2 && commonColumns.length > 0
-                ? "#007bff"
-                : "#6c757d",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor:
-              inputs.length === 2 && commonColumns.length > 0
-                ? "pointer"
-                : "not-allowed",
-            fontSize: "14px",
-            fontWeight: "500",
-          }}
-        >
-          Add Join Column
-        </button>
-
-        {(inputs.length < 2 || commonColumns.length === 0) && (
-          <div
-            style={{
-              marginTop: "10px",
-              fontSize: "13px",
-              color: "#6c757d",
-              fontStyle: "italic",
-            }}
-          >
-            {inputs.length < 2
-              ? "Please select exactly 2 input sources before adding join columns"
-              : "No common columns available for joining"}
-          </div>
-        )}
-      </div>
-
-      {/* Suffixes Section - Side by Side */}
-      <div style={{ marginBottom: "20px" }}>
-        <label
-          style={{
-            display: "block",
-            marginBottom: "8px",
-            fontWeight: "bold",
-            fontSize: "14px",
-            color: "#374151",
-          }}
-        >
-          Column Name Suffixes:
-        </label>
+      {/* Column Name Suffixes Section */}
+      <CollapsibleSection
+        title="Column Name Suffixes"
+        isExpanded={isSuffixesExpanded}
+        onToggle={setIsSuffixesExpanded}
+      >
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: "16px",
-            maxWidth: "500px",
-            marginLeft: "10%",
-            width: "80%",
+            gap: "20px",
+            maxWidth: "600px",
+            margin: "0 auto",
           }}
         >
           <div>
             <label
               style={{
                 display: "block",
-                marginBottom: "6px",
+                marginBottom: "8px",
                 fontSize: "13px",
                 fontWeight: "500",
                 color: "#6b7280",
@@ -498,23 +528,30 @@ export default function JoinEditor({
               placeholder="e.g. _x"
               style={{
                 width: "100%",
-                padding: "8px 12px",
+                padding: "10px 14px",
                 border: "1px solid #d1d5db",
-                borderRadius: "6px",
+                borderRadius: "8px",
                 fontSize: "14px",
                 backgroundColor: "#fff",
-                transition: "border-color 0.2s ease",
+                transition: "all 0.2s ease",
                 outline: "none",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
               }}
-              onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-              onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
+              onFocus={(e) => {
+                e.target.style.borderColor = "#3b82f6";
+                e.target.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "#d1d5db";
+                e.target.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
+              }}
             />
           </div>
           <div>
             <label
               style={{
                 display: "block",
-                marginBottom: "6px",
+                marginBottom: "8px",
                 fontSize: "13px",
                 fontWeight: "500",
                 color: "#6b7280",
@@ -529,32 +566,43 @@ export default function JoinEditor({
               placeholder="e.g. _y"
               style={{
                 width: "100%",
-                padding: "8px 12px",
+                padding: "10px 14px",
                 border: "1px solid #d1d5db",
-                borderRadius: "6px",
+                borderRadius: "8px",
                 fontSize: "14px",
                 backgroundColor: "#fff",
-                transition: "border-color 0.2s ease",
+                transition: "all 0.2s ease",
                 outline: "none",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
               }}
-              onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-              onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
+              onFocus={(e) => {
+                e.target.style.borderColor = "#3b82f6";
+                e.target.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "#d1d5db";
+                e.target.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
+              }}
             />
           </div>
         </div>
         {suffixes.left === suffixes.right && suffixes.left !== "" && (
           <div
             style={{
-              marginTop: "8px",
+              marginTop: "12px",
+              padding: "8px 12px",
+              backgroundColor: "#fff3cd",
+              border: "1px solid #ffeaa7",
+              borderRadius: "6px",
               fontSize: "13px",
-              color: "#dc3545",
-              fontStyle: "italic",
+              color: "#856404",
+              textAlign: "center",
             }}
           >
             ⚠️ Left and right suffixes should be different
           </div>
         )}
-      </div>
+      </CollapsibleSection>
     </div>
   );
 }
