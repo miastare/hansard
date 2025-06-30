@@ -1,7 +1,10 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import ExpressionBuilder from './ExpressionBuilder';
 import { deriveSchema } from '../../utils/DeriveSchema';
 import generateId from '../../utils/GenerateId';
+import Dropdown from '../../components/Dropdown';
+import ColumnsPreview from '../../components/ColumnsPreview';
 
 export default function MutateEditor({ step, onChange, availableInputs, tableSchemas, inputSchema }) {
   console.log(`🔄 MUTATE EDITOR [${step.id}]: === RENDERING ===`);
@@ -32,7 +35,14 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
 
   const [cols, setCols] = useState(() => initializeColumnsWithIds(step.cols));
   const [validationErrors, setValidationErrors] = useState({});
+  const [hoveredInput, setHoveredInput] = useState(null);
+  const [columnWindowStart, setColumnWindowStart] = useState(0);
+  const [showAllColumnsModal, setShowAllColumnsModal] = useState(false);
+  const [expandedColumns, setExpandedColumns] = useState({}); // Track which columns are expanded
+  const [expandedExpressions, setExpandedExpressions] = useState({}); // Track which expressions are expanded
   const validationTimeouts = useRef({});
+
+  const COLUMNS_PER_WINDOW = 4;
 
   // Get schema for the selected input
   const getInputSchema = () => {
@@ -154,6 +164,10 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       }
     };
     updateStep(newCols);
+
+    // Auto-expand the new column
+    setExpandedColumns(prev => ({ ...prev, [id]: true }));
+    setExpandedExpressions(prev => ({ ...prev, [id]: true }));
   };
 
   const updateColumnName = useCallback((oldName, newName) => {
@@ -225,9 +239,63 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
       return newErrors;
     });
 
+    // Clear expansion state
+    setExpandedColumns(prev => {
+      const newExpanded = { ...prev };
+      delete newExpanded[stableId];
+      return newExpanded;
+    });
+    setExpandedExpressions(prev => {
+      const newExpanded = { ...prev };
+      delete newExpanded[stableId];
+      return newExpanded;
+    });
+
     const newCols = { ...cols };
     delete newCols[name];
     updateStep(newCols);
+  };
+
+  const toggleColumnExpansion = (id) => {
+    setExpandedColumns(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleExpressionExpansion = (id) => {
+    setExpandedExpressions(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Prepare dropdown options
+  const inputOptions = availableInputs?.map(input => ({
+    value: input.id,
+    label: `${input.id} (${input.op})`,
+    icon: input.op === 'source' ? '📋' : '🔧'
+  })) || [];
+
+  // Get columns for current window
+  const windowedColumns = currentSchema.slice(columnWindowStart, columnWindowStart + COLUMNS_PER_WINDOW);
+  const totalWindows = Math.ceil(currentSchema.length / COLUMNS_PER_WINDOW);
+  const currentWindow = Math.floor(columnWindowStart / COLUMNS_PER_WINDOW) + 1;
+
+  // Handle input hover for columns preview
+  const handleInputHover = (option) => {
+    if (option && availableInputs) {
+      const inputStep = availableInputs.find(s => s.id === option.value);
+      if (inputStep) {
+        // Get schema for hovered input
+        let schema = [];
+        if (inputStep.op === 'source' && inputStep.table) {
+          const schemaWrapper = tableSchemas[inputStep.table];
+          if (schemaWrapper) {
+            schema = schemaWrapper.cols || schemaWrapper;
+          }
+        } else {
+          schema = deriveSchema(inputStep, availableInputs, tableSchemas);
+        }
+        setHoveredInput({ inputStep, schema: Array.isArray(schema) ? schema : [] });
+      }
+    } else {
+      setHoveredInput(null);
+    }
   };
 
   // Cleanup timeouts on unmount
@@ -241,170 +309,420 @@ export default function MutateEditor({ step, onChange, availableInputs, tableSch
 
   return (
     <div>
-      <h4>Mutate Columns</h4>
+      <h4 style={{ margin: '0 0 24px 0', color: '#2d3748', fontSize: '18px' }}>Mutate Columns</h4>
 
-      <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
-          Input step:
-        </label>
-        <select 
-          value={step.input || ''} 
-          onChange={(e) => updateInput(e.target.value)}
-          style={{ 
-            width: '100%', 
-            padding: '10px', 
-            border: '1px solid #ddd', 
-            borderRadius: '6px',
-            fontSize: '14px'
-          }}
-        >
-          <option value="">Select input</option>
-          {availableInputs?.map(input => (
-            <option key={input.id} value={input.id}>
-              {input.id} ({input.op})
-            </option>
-          ))}
-        </select>
-      </div>
-
+      {/* Input Selection Row */}
       <div style={{ 
-        marginBottom: '20px', 
-        padding: '15px', 
-        backgroundColor: '#f8f9fa', 
-        borderRadius: '8px',
-        border: '1px solid #e9ecef'
+        display: 'flex', 
+        alignItems: 'flex-start', 
+        gap: '20px', 
+        marginBottom: '24px',
+        flexWrap: 'wrap'
       }}>
-        <strong style={{ fontSize: '14px', color: '#495057' }}>Available columns:</strong>
-        <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
-          {currentSchema && currentSchema.length > 0 ? (
-            currentSchema.map(col => (
-              <span key={col.name} style={{ 
-                display: 'inline-block', 
-                margin: '3px 8px 3px 0', 
-                padding: '4px 8px', 
-                backgroundColor: '#e9ecef', 
-                borderRadius: '4px',
-                fontSize: '12px',
-                border: '1px solid #dee2e6'
-              }}>
-                {col.name} ({col.dtype})
-              </span>
-            ))
-          ) : (
-            <em>No schema available</em>
-          )}
+        <div style={{ flex: '0 0 300px' }}>
+          <label style={{ 
+            display: 'block', 
+            marginBottom: '8px', 
+            fontWeight: '600', 
+            fontSize: '14px',
+            color: '#374151'
+          }}>
+            🔗 Input step:
+          </label>
+          <Dropdown
+            value={step.input || ''}
+            onChange={updateInput}
+            options={inputOptions}
+            placeholder="Select input step"
+            onHover={handleInputHover}
+          />
         </div>
+
+        {/* Columns Preview */}
+        {currentSchema.length > 0 && (
+          <div style={{ flex: '1', minWidth: '300px' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              marginBottom: '8px' 
+            }}>
+              <span style={{ 
+                fontWeight: '600', 
+                fontSize: '14px', 
+                color: '#374151' 
+              }}>
+                📊 Available columns ({currentSchema.length})
+              </span>
+              <button
+                onClick={() => setShowAllColumnsModal(true)}
+                style={{
+                  padding: '4px 12px',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  color: '#3b82f6',
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                View All
+              </button>
+            </div>
+
+            {/* Windowed Column Display */}
+            <div style={{
+              background: 'rgba(248, 250, 252, 0.8)',
+              border: '1px solid rgba(203, 213, 225, 0.4)',
+              borderRadius: '8px',
+              padding: '12px'
+            }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(2, 1fr)', 
+                gap: '8px',
+                marginBottom: windowedColumns.length > 0 ? '12px' : '0'
+              }}>
+                {windowedColumns.map(col => (
+                  <div key={col.name} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '6px 10px',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    border: '1px solid rgba(203, 213, 225, 0.3)',
+                    borderRadius: '6px',
+                    fontSize: '12px'
+                  }}>
+                    <span style={{ fontWeight: '500', color: '#374151' }}>{col.name}</span>
+                    <span style={{ 
+                      color: col.dtype === 'str' ? '#10b981' : 
+                             col.dtype === 'numeric' || col.dtype === 'int64' ? '#3b82f6' : 
+                             col.dtype === 'bool' ? '#f59e0b' : '#6b7280',
+                      fontSize: '11px'
+                    }}>
+                      {col.dtype}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Navigation */}
+              {totalWindows > 1 && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  fontSize: '12px',
+                  color: '#6b7280'
+                }}>
+                  <button
+                    onClick={() => setColumnWindowStart(Math.max(0, columnWindowStart - COLUMNS_PER_WINDOW))}
+                    disabled={columnWindowStart === 0}
+                    style={{
+                      padding: '4px 8px',
+                      background: columnWindowStart === 0 ? '#f3f4f6' : '#e5e7eb',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: columnWindowStart === 0 ? 'not-allowed' : 'pointer',
+                      fontSize: '11px'
+                    }}
+                  >
+                    ← Prev
+                  </button>
+                  <span>
+                    {currentWindow} of {totalWindows}
+                  </span>
+                  <button
+                    onClick={() => setColumnWindowStart(Math.min(currentSchema.length - COLUMNS_PER_WINDOW, columnWindowStart + COLUMNS_PER_WINDOW))}
+                    disabled={columnWindowStart + COLUMNS_PER_WINDOW >= currentSchema.length}
+                    style={{
+                      padding: '4px 8px',
+                      background: columnWindowStart + COLUMNS_PER_WINDOW >= currentSchema.length ? '#f3f4f6' : '#e5e7eb',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: columnWindowStart + COLUMNS_PER_WINDOW >= currentSchema.length ? 'not-allowed' : 'pointer',
+                      fontSize: '11px'
+                    }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Hovered Input Schema Preview */}
+        {hoveredInput && (
+          <ColumnsPreview 
+            columns={hoveredInput.schema} 
+            title={`${hoveredInput.inputStep.id} columns`}
+            isVisible={true}
+          />
+        )}
       </div>
 
+      {/* Column Definitions */}
       {Object.entries(cols).map(([name, colData]) => {
         const stableId = colData._id;
         const expr = colData.expr;
         const hasError = validationErrors[stableId];
+        const isExpanded = expandedColumns[stableId];
+        const isExpressionExpanded = expandedExpressions[stableId];
 
         return (
           <div key={`column-${stableId}`} style={{ 
-            marginBottom: '25px', 
-            border: hasError ? '2px solid #dc3545' : '2px solid #e9ecef', 
-            padding: '20px',
-            borderRadius: '10px',
+            marginBottom: '20px', 
+            border: hasError ? '2px solid #ef4444' : '2px solid rgba(203, 213, 225, 0.4)', 
+            borderRadius: '12px',
             backgroundColor: '#fff',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            overflow: 'hidden'
           }}>
-            <div style={{ marginBottom: '15px' }}>
-              <label 
-                htmlFor={`column-name-input-${stableId}`}
-                style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                  color: hasError ? '#dc3545' : '#495057'
+            {/* Column Header */}
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                background: isExpanded ? 'rgba(248, 250, 252, 0.5)' : 'rgba(248, 250, 252, 0.8)',
+                borderBottom: isExpanded ? '1px solid rgba(203, 213, 225, 0.3)' : 'none',
+                cursor: 'pointer'
+              }}
+              onClick={() => toggleColumnExpansion(stableId)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                <span style={{ fontSize: '16px' }}>
+                  {isExpanded ? '🔽' : '▶️'}
+                </span>
+                <span style={{ fontWeight: '600', color: '#374151' }}>
+                  Column: {name || 'unnamed'}
+                </span>
+                {hasError && (
+                  <span style={{ color: '#ef4444', fontSize: '12px' }}>⚠️ Error</span>
+                )}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeColumn(name);
                 }}
-              >
-                Column name (LHS):
-              </label>
-              <input
-                id={`column-name-input-${stableId}`}
-                name={`column-name-${stableId}`}
-                type="text"
-                value={name}
-                onChange={(e) => updateColumnName(name, e.target.value)}
-                placeholder="Enter column name"
-                style={{ 
-                  padding: '10px', 
-                  border: hasError ? '2px solid #dc3545' : '2px solid #ddd', 
+                style={{
+                  padding: '8px 12px',
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
                   borderRadius: '6px',
-                  width: '250px',
-                  fontSize: '14px'
-                }}
-              />
-              {hasError && (
-                <div style={{
-                  marginTop: '5px',
-                  color: '#dc3545',
+                  cursor: 'pointer',
                   fontSize: '12px',
                   fontWeight: '500'
-                }}>
-                  {hasError}
-                </div>
-              )}
+                }}
+              >
+                🗑️ Remove
+              </button>
             </div>
 
-            {!hasError && (
-              <>
-                <div style={{ marginBottom: '15px' }}>
+            {/* Column Body */}
+            {isExpanded && (
+              <div style={{ padding: '20px' }}>
+                {/* Column Name Input */}
+                <div style={{ marginBottom: '20px' }}>
                   <label style={{ 
                     display: 'block', 
                     marginBottom: '8px', 
-                    fontWeight: 'bold',
+                    fontWeight: '600',
                     fontSize: '14px',
-                    color: '#495057'
+                    color: hasError ? '#ef4444' : '#374151'
                   }}>
-                    Expression (RHS):
+                    Column name (LHS):
                   </label>
-                  <ExpressionBuilder 
-                    expr={expr} 
-                    onChange={(newExpr) => updateColumnExpr(name, newExpr)}
-                    availableColumns={currentSchema || []}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => updateColumnName(name, e.target.value)}
+                      placeholder="Enter column name"
+                      style={{ 
+                        padding: '12px 16px', 
+                        border: hasError ? '2px solid #ef4444' : '2px solid #e2e8f0', 
+                        borderRadius: '8px',
+                        width: '250px',
+                        fontSize: '14px',
+                        background: 'rgba(255, 255, 255, 0.8)'
+                      }}
+                    />
+                  </div>
+                  {hasError && (
+                    <div style={{
+                      marginTop: '8px',
+                      color: '#ef4444',
+                      fontSize: '12px',
+                      fontWeight: '500'
+                    }}>
+                      {hasError}
+                    </div>
+                  )}
                 </div>
 
-                <button 
-                  onClick={() => removeColumn(name)} 
-                  style={{ 
-                    padding: '8px 16px',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500'
-                  }}
-                >
-                  Remove Column
-                </button>
-              </>
+                {/* Expression Section */}
+                {!hasError && (
+                  <div>
+                    <div 
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '12px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => toggleExpressionExpansion(stableId)}
+                    >
+                      <label style={{ 
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        color: '#374151',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span>{isExpressionExpanded ? '🔽' : '▶️'}</span>
+                        Expression (RHS):
+                      </label>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpressionExpansion(stableId);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          background: 'rgba(59, 130, 246, 0.1)',
+                          color: '#3b82f6',
+                          border: '1px solid rgba(59, 130, 246, 0.2)',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {isExpressionExpanded ? 'Collapse' : 'Expand'}
+                      </button>
+                    </div>
+
+                    {isExpressionExpanded && (
+                      <div style={{
+                        background: 'rgba(248, 250, 252, 0.5)',
+                        border: '1px solid rgba(203, 213, 225, 0.3)',
+                        borderRadius: '8px',
+                        padding: '16px'
+                      }}>
+                        <ExpressionBuilder 
+                          expr={expr} 
+                          onChange={(newExpr) => updateColumnExpr(name, newExpr)}
+                          availableColumns={currentSchema || []}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         );
       })}
 
+      {/* Add Column Button */}
       <button 
         onClick={addColumn}
+        disabled={!step.input}
         style={{
           padding: '12px 24px',
-          backgroundColor: '#007bff',
+          background: step.input 
+            ? 'linear-gradient(135deg, #667eea, #764ba2)' 
+            : '#cbd5e1',
           color: 'white',
           border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontSize: '15px',
-          fontWeight: '500'
+          borderRadius: '8px',
+          cursor: step.input ? 'pointer' : 'not-allowed',
+          fontSize: '14px',
+          fontWeight: '600',
+          boxShadow: step.input ? '0 4px 12px rgba(102, 126, 234, 0.3)' : 'none'
         }}
       >
-        Add Column
+        ➕ Add Column
       </button>
+
+      {!step.input && (
+        <div style={{ 
+          marginTop: '16px', 
+          padding: '12px 16px', 
+          backgroundColor: 'rgba(251, 211, 141, 0.1)', 
+          border: '1px solid rgba(251, 211, 141, 0.3)',
+          borderRadius: '8px',
+          fontSize: '14px', 
+          color: '#92400e',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          ⚠️ Please select an input step before adding columns
+        </div>
+      )}
+
+      {/* All Columns Modal */}
+      {showAllColumnsModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80%',
+            overflow: 'auto'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ margin: 0, color: '#374151' }}>
+                All Available Columns ({currentSchema.length})
+              </h3>
+              <button
+                onClick={() => setShowAllColumnsModal(false)}
+                style={{
+                  padding: '8px 12px',
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                ✕ Close
+              </button>
+            </div>
+            <ColumnsPreview 
+              columns={currentSchema} 
+              title="Available Columns"
+              isVisible={true}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
