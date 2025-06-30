@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { deriveSchema } from '../utils/DeriveSchema';
 
@@ -50,7 +48,7 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
 
   const handleMetricNameChange = (oldName, newName) => {
     if (oldName === newName || !newName.trim()) return;
-    
+
     const newMetrics = { ...(step.metrics || {}) };
     newMetrics[newName] = newMetrics[oldName];
     delete newMetrics[oldName];
@@ -68,32 +66,32 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
   // Get available columns for the selected input
   const getAvailableColumns = () => {
     if (!step.input) return [];
-    
+
     const inputStep = availableInputs.find(inp => inp.id === step.input);
     if (!inputStep) return [];
 
     // Use schema derivation for all step types
     const derivedSchema = deriveSchema(inputStep, availableInputs, tableSchemas);
     console.log('🔢 AGGREGATE EDITOR: Derived schema for input step:', derivedSchema);
-    
+
     return Array.isArray(derivedSchema) ? derivedSchema : [];
   };
 
   // Get columns that are compatible with a specific aggregation function
   const getCompatibleColumnsForFunction = (fn) => {
     const availableColumns = getAvailableColumns();
-    
+
     if (fn === 'count') {
       // Count can work on any column or *
       return [{ name: '*', dtype: 'any' }, ...availableColumns];
     }
-    
+
     // Mathematical aggregations (sum, avg, min, max, std, var) need numeric columns
     const mathFunctions = ['sum', 'avg', 'min', 'max', 'std', 'var'];
     if (mathFunctions.includes(fn)) {
       return availableColumns.filter(col => col.dtype === 'numeric');
     }
-    
+
     // Default: return all columns for unknown functions
     return availableColumns;
   };
@@ -104,7 +102,7 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
   return (
     <div style={{ padding: '16px', border: '1px solid #ddd', borderRadius: '4px' }}>
       <h4>Aggregate Configuration</h4>
-      
+
       {/* Input Selection */}
       <div style={{ marginBottom: '12px' }}>
         <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
@@ -190,7 +188,7 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
 
           {Object.entries(step.metrics || {}).map(([metricName, metric]) => {
             const compatibleColumns = getCompatibleColumnsForFunction(metric.fn || 'count');
-            
+
             return (
               <div key={metricName} style={{ 
                 border: '1px solid #eee', 
@@ -226,7 +224,7 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
                     Remove
                   </button>
                 </div>
-                
+
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <select
                     value={metric.fn || 'count'}
@@ -235,9 +233,18 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
                       // Reset column selection when function changes to ensure compatibility
                       const newCompatibleColumns = getCompatibleColumnsForFunction(newFn);
                       const newCol = newCompatibleColumns.length > 0 ? newCompatibleColumns[0].name : '*';
-                      
-                      handleMetricChange(metricName, 'fn', newFn);
-                      handleMetricChange(metricName, 'col', newCol);
+
+                      // Update both function and column atomically to avoid race conditions
+                      const newMetrics = {
+                        ...(step.metrics || {}),
+                        [metricName]: {
+                          ...(step.metrics?.[metricName] || {}),
+                          fn: newFn,
+                          col: newCol
+                        }
+                      };
+                      console.log('🔢 AGGREGATE EDITOR: Updating metric function and column atomically:', metricName, 'fn =', newFn, 'col =', newCol);
+                      onUpdate('metrics', newMetrics);
                     }}
                     style={{ padding: '4px' }}
                   >
@@ -245,9 +252,9 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
                       <option key={fn} value={fn}>{fn}</option>
                     ))}
                   </select>
-                  
+
                   <span>of</span>
-                  
+
                   <select
                     value={metric.col || '*'}
                     onChange={(e) => handleMetricChange(metricName, 'col', e.target.value)}
@@ -260,7 +267,7 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
                     ))}
                   </select>
                 </div>
-                
+
                 {compatibleColumns.length === 0 && metric.fn !== 'count' && (
                   <div style={{ 
                     fontSize: '12px', 
@@ -318,4 +325,3 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
 };
 
 export default AggregateEditor;
-
