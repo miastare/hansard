@@ -1,6 +1,8 @@
 
 import React, { useState, useCallback } from 'react';
 import { deriveSchema } from '../utils/DeriveSchema';
+import Dropdown from '../components/Dropdown';
+import ColumnsPreview from '../components/ColumnsPreview';
 
 export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInputs, tableSchemas }) {
   console.log('🔗 JOIN EDITOR: Rendering with step:', step);
@@ -9,6 +11,7 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
   const [joinType, setJoinType] = useState(step.how || 'inner');
   const [byColumns, setByColumns] = useState(step.on || []);
   const [suffixes, setSuffixes] = useState(step.suffixes || { left: '_x', right: '_y' });
+  const [hoveredInput, setHoveredInput] = useState(null);
 
   // Get schemas for the selected inputs
   const getInputSchemas = () => {
@@ -85,11 +88,10 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
     updateByColumns(newByColumns);
   };
 
-  const addInput = (inputId) => {
-    if (inputs.length < 2 && !inputs.includes(inputId)) {
-      const newInputs = [...inputs, inputId];
-      updateInputs(newInputs);
-    }
+  const updateInput = (index, inputId) => {
+    const newInputs = [...inputs];
+    newInputs[index] = inputId;
+    updateInputs(newInputs);
   };
 
   const removeInput = (index) => {
@@ -97,106 +99,191 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
     updateInputs(newInputs);
   };
 
-  return (
-    <div>
-      <h4>Join Step</h4>
+  // Prepare dropdown options
+  const inputOptions = availableInputs?.map(input => ({
+    value: input.id,
+    label: `${input.id} (${input.op})`,
+    icon: input.op === 'source' ? '📋' : '🔧'
+  })) || [];
 
-      {/* Input Sources Section */}
+  const joinTypeOptions = [
+    { value: 'inner', label: 'Inner Join', icon: '🔗' },
+    { value: 'left', label: 'Left Join', icon: '⬅️' },
+    { value: 'right', label: 'Right Join', icon: '➡️' },
+    { value: 'outer', label: 'Full Outer Join', icon: '🔄' }
+  ];
+
+  const byColumnOptions = commonColumns.map(col => ({
+    value: col,
+    label: col,
+    icon: '📊'
+  }));
+
+  // Handle input hover for columns preview
+  const handleInputHover = (option) => {
+    if (option && availableInputs) {
+      const inputStep = availableInputs.find(s => s.id === option.value);
+      if (inputStep) {
+        let schema = [];
+        if (inputStep.op === 'source' && inputStep.table) {
+          const schemaWrapper = tableSchemas[inputStep.table];
+          if (schemaWrapper) {
+            schema = schemaWrapper.cols || schemaWrapper;
+          }
+        } else {
+          schema = deriveSchema(inputStep, availableInputs, tableSchemas);
+        }
+        setHoveredInput({
+          inputStep,
+          schema: Array.isArray(schema) ? schema : []
+        });
+      }
+    } else {
+      setHoveredInput(null);
+    }
+  };
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', maxHeight: '60vh' }}>
+      <h4 style={{ margin: '0 0 24px 0', color: '#2d3748', fontSize: '18px' }}>Join Step</h4>
+
+      {/* Input Sources Section - Side by Side Layout */}
       <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
-          Input Sources (select exactly 2):
+        <label style={{ display: 'block', marginBottom: '12px', fontWeight: 'bold', fontSize: '14px', color: '#374151' }}>
+          Input Sources:
         </label>
         
-        {inputs.map((inputId, index) => (
-          <div key={index} style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '10px', 
-            marginBottom: '10px',
-            padding: '10px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '6px',
-            border: '1px solid #e9ecef'
-          }}>
-            <span style={{ fontWeight: 'bold', minWidth: '50px' }}>
-              {index === 0 ? 'Left:' : 'Right:'}
-            </span>
-            <span style={{ flex: 1, padding: '5px 10px', backgroundColor: '#fff', borderRadius: '4px' }}>
-              {inputId} ({availableInputs.find(inp => inp.id === inputId)?.op || 'unknown'})
-            </span>
-            <button
-              onClick={() => removeInput(index)}
-              style={{
-                padding: '5px 10px',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              Remove
-            </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          {/* Left Input */}
+          <div>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '500', color: '#6b7280' }}>
+              Left Table:
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {inputs[0] ? (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  padding: '8px 12px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '6px',
+                  border: '1px solid #e9ecef'
+                }}>
+                  <span style={{ flex: 1, fontSize: '14px' }}>
+                    {inputs[0]} ({availableInputs.find(inp => inp.id === inputs[0])?.op || 'unknown'})
+                  </span>
+                  <button
+                    onClick={() => removeInput(0)}
+                    style={{
+                      padding: '4px 8px',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <Dropdown
+                  value=""
+                  onChange={(value) => updateInput(0, value)}
+                  options={inputOptions.filter(opt => !inputs.includes(opt.value))}
+                  placeholder="Select left input"
+                  onHover={handleInputHover}
+                />
+              )}
+            </div>
           </div>
-        ))}
 
-        {inputs.length < 2 && (
-          <div style={{ marginTop: '10px' }}>
-            <select 
-              value=""
-              onChange={(e) => {
-                if (e.target.value) {
-                  addInput(e.target.value);
-                }
-              }}
-              style={{ 
-                width: '100%', 
-                padding: '8px', 
-                border: '1px solid #ddd', 
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            >
-              <option value="">Select input to add</option>
-              {availableInputs?.filter(input => !inputs.includes(input.id)).map(input => (
-                <option key={input.id} value={input.id}>
-                  {input.id} ({input.op})
-                </option>
-              ))}
-            </select>
+          {/* Right Input */}
+          <div>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '500', color: '#6b7280' }}>
+              Right Table:
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {inputs[1] ? (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  padding: '8px 12px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '6px',
+                  border: '1px solid #e9ecef'
+                }}>
+                  <span style={{ flex: 1, fontSize: '14px' }}>
+                    {inputs[1]} ({availableInputs.find(inp => inp.id === inputs[1])?.op || 'unknown'})
+                  </span>
+                  <button
+                    onClick={() => removeInput(1)}
+                    style={{
+                      padding: '4px 8px',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <Dropdown
+                  value=""
+                  onChange={(value) => updateInput(1, value)}
+                  options={inputOptions.filter(opt => !inputs.includes(opt.value))}
+                  placeholder="Select right input"
+                  onHover={handleInputHover}
+                />
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Join Type Section */}
       <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px', color: '#374151' }}>
           Join Type:
         </label>
-        <select
-          value={joinType}
-          onChange={(e) => updateJoinType(e.target.value)}
-          style={{ 
-            width: '100%', 
-            padding: '8px', 
-            border: '1px solid #ddd', 
-            borderRadius: '4px',
-            fontSize: '14px'
-          }}
-        >
-          <option value="inner">Inner Join</option>
-          <option value="left">Left Join</option>
-          <option value="right">Right Join</option>
-          <option value="outer">Full Outer Join</option>
-        </select>
+        <div style={{ maxWidth: '300px' }}>
+          <Dropdown
+            value={joinType}
+            onChange={updateJoinType}
+            options={joinTypeOptions}
+            placeholder="Select join type"
+          />
+        </div>
       </div>
+
+      {/* Column Schema Previews */}
+      {inputs.length === 2 && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+          <ColumnsPreview 
+            columns={leftSchema} 
+            title={`Left Table (${inputs[0]})`}
+            isVisible={leftSchema.length > 0}
+          />
+          <ColumnsPreview 
+            columns={rightSchema} 
+            title={`Right Table (${inputs[1]})`}
+            isVisible={rightSchema.length > 0}
+          />
+        </div>
+      )}
 
       {/* Available Common Columns Info */}
       {inputs.length === 2 && (
         <div style={{ 
           marginBottom: '20px', 
-          padding: '15px', 
+          padding: '12px', 
           backgroundColor: '#f8f9fa', 
           borderRadius: '8px',
           border: '1px solid #e9ecef'
@@ -207,7 +294,7 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
               commonColumns.map(col => (
                 <span key={col} style={{ 
                   display: 'inline-block', 
-                  margin: '3px 8px 3px 0', 
+                  margin: '3px 6px 3px 0', 
                   padding: '4px 8px', 
                   backgroundColor: '#e9ecef', 
                   borderRadius: '4px',
@@ -226,7 +313,7 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
 
       {/* By Columns Section */}
       <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px', color: '#374151' }}>
           Join By Columns:
         </label>
         
@@ -235,28 +322,16 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
             display: 'flex', 
             alignItems: 'center', 
             gap: '10px', 
-            marginBottom: '10px',
-            padding: '10px',
-            backgroundColor: '#fff',
-            borderRadius: '6px',
-            border: '2px solid #e9ecef'
+            marginBottom: '10px'
           }}>
-            <select
-              value={column}
-              onChange={(e) => updateByColumn(index, e.target.value)}
-              style={{ 
-                flex: 1,
-                padding: '8px', 
-                border: '1px solid #ccc', 
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            >
-              <option value="">Select column</option>
-              {commonColumns.map(col => (
-                <option key={col} value={col}>{col}</option>
-              ))}
-            </select>
+            <div style={{ flex: 1, maxWidth: '300px' }}>
+              <Dropdown
+                value={column}
+                onChange={(value) => updateByColumn(index, value)}
+                options={byColumnOptions}
+                placeholder="Select column"
+              />
+            </div>
             <button
               onClick={() => removeByColumn(index)}
               style={{
@@ -264,7 +339,7 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
                 backgroundColor: '#dc3545',
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
+                borderRadius: '6px',
                 cursor: 'pointer',
                 fontSize: '14px'
               }}
@@ -278,13 +353,13 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
           onClick={addByColumn}
           disabled={inputs.length < 2 || commonColumns.length === 0}
           style={{
-            padding: '12px 24px',
+            padding: '10px 20px',
             backgroundColor: (inputs.length === 2 && commonColumns.length > 0) ? '#007bff' : '#6c757d',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
             cursor: (inputs.length === 2 && commonColumns.length > 0) ? 'pointer' : 'not-allowed',
-            fontSize: '15px',
+            fontSize: '14px',
             fontWeight: '500'
           }}
         >
@@ -292,7 +367,7 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
         </button>
 
         {(inputs.length < 2 || commonColumns.length === 0) && (
-          <div style={{ marginTop: '10px', fontSize: '14px', color: '#6c757d', fontStyle: 'italic' }}>
+          <div style={{ marginTop: '10px', fontSize: '13px', color: '#6c757d', fontStyle: 'italic' }}>
             {inputs.length < 2 
               ? 'Please select exactly 2 input sources before adding join columns'
               : 'No common columns available for joining'
@@ -301,14 +376,14 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
         )}
       </div>
 
-      {/* Suffixes Section */}
+      {/* Suffixes Section - Side by Side */}
       <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
-          Column Name Suffixes (for conflicting column names):
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px', color: '#374151' }}>
+          Column Name Suffixes:
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '500px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', fontWeight: '500' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '500', color: '#6b7280' }}>
               Left Table Suffix:
             </label>
             <input
@@ -318,15 +393,20 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
               placeholder="e.g. _x"
               style={{
                 width: '100%',
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                backgroundColor: '#fff',
+                transition: 'border-color 0.2s ease',
+                outline: 'none'
               }}
+              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+              onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
             />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', fontWeight: '500' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '500', color: '#6b7280' }}>
               Right Table Suffix:
             </label>
             <input
@@ -336,11 +416,16 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
               placeholder="e.g. _y"
               style={{
                 width: '100%',
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                backgroundColor: '#fff',
+                transition: 'border-color 0.2s ease',
+                outline: 'none'
               }}
+              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+              onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
             />
           </div>
         </div>
@@ -350,6 +435,24 @@ export default function JoinEditor({ step, onUpdate, onBatchUpdate, availableInp
           </div>
         )}
       </div>
+
+      {/* Hovered Input Preview */}
+      {hoveredInput && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          right: '20px',
+          transform: 'translateY(-50%)',
+          zIndex: 1001,
+          maxWidth: '320px'
+        }}>
+          <ColumnsPreview 
+            columns={hoveredInput.schema} 
+            title={`${hoveredInput.inputStep.id} (${hoveredInput.inputStep.op})`}
+            isVisible={true}
+          />
+        </div>
+      )}
     </div>
   );
 }
