@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { deriveSchema } from "../utils/DeriveSchema";
 import Dropdown from "../components/Dropdown";
-import ColumnsPreview from "../components/ColumnsPreview";
+import WindowedColumnsPreview from "../components/WindowedColumnsPreview";
 
 export default function FilterEditor({
   step,
@@ -182,13 +182,12 @@ export default function FilterEditor({
         </div>
 
         {/* Available Boolean Columns Preview */}
-        {currentSchema.length > 0 && (
-          <ColumnsPreview
-            columns={currentSchema.filter((col) => col.dtype === "bool")}
-            title="Available boolean columns"
-            isVisible={true}
-          />
-        )}
+        <WindowedColumnsPreview
+          columns={currentSchema}
+          title="Available boolean columns"
+          isVisible={currentSchema.length > 0}
+          filterCondition={(col) => col.dtype === "bool"}
+        />
       </div>
 
       {/* Scrollable Conditions Container */}

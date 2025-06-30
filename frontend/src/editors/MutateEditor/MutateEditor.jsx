@@ -4,7 +4,7 @@ import ExpressionBuilder from "./ExpressionBuilder";
 import { deriveSchema } from "../../utils/DeriveSchema";
 import generateId from "../../utils/GenerateId";
 import Dropdown from "../../components/Dropdown";
-import ColumnsPreview from "../../components/ColumnsPreview";
+import WindowedColumnsPreview from "../../components/WindowedColumnsPreview";
 
 export default function MutateEditor({
   step,
@@ -47,12 +47,8 @@ export default function MutateEditor({
   const [cols, setCols] = useState(() => initializeColumnsWithIds(step.cols));
   const [validationErrors, setValidationErrors] = useState({});
   const [hoveredInput, setHoveredInput] = useState(null);
-  const [columnWindowStart, setColumnWindowStart] = useState(0);
-  const [showAllColumnsModal, setShowAllColumnsModal] = useState(false);
   const [editingExpressionId, setEditingExpressionId] = useState(null); // Track which expression is being edited in modal
   const validationTimeouts = useRef({});
-
-  const COLUMNS_PER_WINDOW = 4;
 
   // Get schema for the selected input
   const getInputSchema = () => {
@@ -356,13 +352,7 @@ export default function MutateEditor({
       icon: input.op === "source" ? "📋" : "🔧",
     })) || [];
 
-  // Get columns for current window
-  const windowedColumns = currentSchema.slice(
-    columnWindowStart,
-    columnWindowStart + COLUMNS_PER_WINDOW,
-  );
-  const totalWindows = Math.ceil(currentSchema.length / COLUMNS_PER_WINDOW);
-  const currentWindow = Math.floor(columnWindowStart / COLUMNS_PER_WINDOW) + 1;
+  
 
   // Handle input hover for columns preview
   const handleInputHover = (option) => {
@@ -447,177 +437,11 @@ export default function MutateEditor({
         </div>
 
         {/* Available Columns Preview - only when input is selected */}
-        {(step.input || hoveredInput) && currentSchema.length > 0 ? (
-          <div style={{ flex: "1", minWidth: "280px", maxWidth: "350px" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "8px",
-              }}
-            >
-              <span
-                style={{
-                  fontWeight: "600",
-                  fontSize: "14px",
-                  color: "#374151",
-                }}
-              >
-                📊 Available columns ({currentSchema.length})
-              </span>
-              <button
-                onClick={() => setShowAllColumnsModal(true)}
-                style={{
-                  padding: "4px 12px",
-                  background: "rgba(59, 130, 246, 0.1)",
-                  color: "#3b82f6",
-                  border: "1px solid rgba(59, 130, 246, 0.2)",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                }}
-              >
-                View All
-              </button>
-            </div>
-
-            {/* Windowed Column Display */}
-            <div
-              style={{
-                background: "rgba(248, 250, 252, 0.8)",
-                border: "1px solid rgba(203, 213, 225, 0.4)",
-                borderRadius: "8px",
-                padding: "12px",
-              }}
-            >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: "8px",
-                  marginBottom: windowedColumns.length > 0 ? "12px" : "0",
-                }}
-              >
-                {windowedColumns.map((col) => (
-                  <div
-                    key={col.name}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "6px 10px",
-                      background: "rgba(255, 255, 255, 0.8)",
-                      border: "1px solid rgba(203, 213, 225, 0.3)",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                    }}
-                  >
-                    <span style={{ fontWeight: "500", color: "#374151" }}>
-                      {col.name}
-                    </span>
-                    <span
-                      style={{
-                        color:
-                          col.dtype === "str"
-                            ? "#10b981"
-                            : col.dtype === "numeric" || col.dtype === "int64"
-                              ? "#3b82f6"
-                              : col.dtype === "bool"
-                                ? "#f59e0b"
-                                : "#6b7280",
-                        fontSize: "11px",
-                      }}
-                    >
-                      {col.dtype}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Navigation */}
-              {totalWindows > 1 && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    fontSize: "12px",
-                    color: "#6b7280",
-                  }}
-                >
-                  <button
-                    onClick={() =>
-                      setColumnWindowStart(
-                        Math.max(0, columnWindowStart - COLUMNS_PER_WINDOW),
-                      )
-                    }
-                    disabled={columnWindowStart === 0}
-                    style={{
-                      padding: "4px 8px",
-                      background:
-                        columnWindowStart === 0 ? "#f3f4f6" : "#e5e7eb",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor:
-                        columnWindowStart === 0 ? "not-allowed" : "pointer",
-                      fontSize: "11px",
-                    }}
-                  >
-                    ← Prev
-                  </button>
-                  <span>
-                    {currentWindow} of {totalWindows}
-                  </span>
-                  <button
-                    onClick={() =>
-                      setColumnWindowStart(
-                        Math.min(
-                          currentSchema.length - COLUMNS_PER_WINDOW,
-                          columnWindowStart + COLUMNS_PER_WINDOW,
-                        ),
-                      )
-                    }
-                    disabled={
-                      columnWindowStart + COLUMNS_PER_WINDOW >=
-                      currentSchema.length
-                    }
-                    style={{
-                      padding: "4px 8px",
-                      background:
-                        columnWindowStart + COLUMNS_PER_WINDOW >=
-                        currentSchema.length
-                          ? "#f3f4f6"
-                          : "#e5e7eb",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor:
-                        columnWindowStart + COLUMNS_PER_WINDOW >=
-                        currentSchema.length
-                          ? "not-allowed"
-                          : "pointer",
-                      fontSize: "11px",
-                    }}
-                  >
-                    Next →
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div
-            style={{
-              flex: "1",
-              minWidth: "280px",
-              maxWidth: "350px",
-              height: "150px", // Adjust height as needed
-              visibility: "hidden", // Make it invisible
-            }}
-          >
-            {/* This div acts as a placeholder to maintain layout */}
-          </div>
-        )}
+        <WindowedColumnsPreview
+          columns={currentSchema}
+          title="Available columns"
+          isVisible={(step.input || hoveredInput) && currentSchema.length > 0}
+        />
       </div>
 
       {/* Scrollable Column Definitions Container */}
@@ -894,133 +718,7 @@ export default function MutateEditor({
         )}
       </div>
 
-      {/* All Columns Modal using React Portal */}
-      {showAllColumnsModal &&
-        createPortal(
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0, 0, 0, 0.7)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 9999,
-              padding: "20px",
-            }}
-            onClick={() => setShowAllColumnsModal(false)}
-          >
-            <div
-              style={{
-                background: "white",
-                borderRadius: "16px",
-                padding: "32px",
-                width: "95vw",
-                height: "90vh",
-                maxWidth: "1200px",
-                display: "flex",
-                flexDirection: "column",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "24px",
-                  borderBottom: "2px solid rgba(229, 231, 235, 0.8)",
-                  paddingBottom: "16px",
-                }}
-              >
-                <h2 style={{ margin: 0, color: "#1f2937", fontSize: "24px" }}>
-                  📊 All Available Columns ({currentSchema.length})
-                </h2>
-                <button
-                  onClick={() => setShowAllColumnsModal(false)}
-                  style={{
-                    padding: "12px 20px",
-                    background: "#ef4444",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    fontSize: "16px",
-                    fontWeight: "600",
-                  }}
-                >
-                  ✕ Close
-                </button>
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  overflow: "auto",
-                  paddingRight: "8px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(auto-fill, minmax(280px, 1fr))",
-                    gap: "16px",
-                  }}
-                >
-                  {currentSchema.map((col) => (
-                    <div
-                      key={col.name}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "16px 20px",
-                        background: "rgba(248, 250, 252, 0.8)",
-                        border: "2px solid rgba(203, 213, 225, 0.3)",
-                        borderRadius: "12px",
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontWeight: "600",
-                          color: "#374151",
-                          fontSize: "15px",
-                        }}
-                      >
-                        {col.name}
-                      </span>
-                      <span
-                        style={{
-                          color:
-                            col.dtype === "str"
-                              ? "#10b981"
-                              : col.dtype === "numeric" || col.dtype === "int64"
-                                ? "#3b82f6"
-                                : col.dtype === "bool"
-                                  ? "#f59e0b"
-                                  : "#6b7280",
-                          fontSize: "14px",
-                          fontWeight: "600",
-                          padding: "4px 8px",
-                          background: "rgba(255, 255, 255, 0.8)",
-                          borderRadius: "6px",
-                        }}
-                      >
-                        {col.dtype}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      
 
       {/* Expression Editing Modal using React Portal */}
       {editingExpressionId &&
