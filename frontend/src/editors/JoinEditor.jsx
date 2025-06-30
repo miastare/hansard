@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { deriveSchema } from "../utils/DeriveSchema";
 import Dropdown from "../components/Dropdown";
 import WindowedColumnsPreview from "../components/WindowedColumnsPreview";
@@ -117,13 +117,13 @@ export default function JoinEditor({
     updateByColumns(newByColumns);
   };
 
-  // Prepare dropdown options
-  const inputOptions =
+  // Prepare dropdown options (memoized to prevent unnecessary re-renders)
+  const inputOptions = useMemo(() =>
     availableInputs?.map((input) => ({
       value: input.id,
       label: `${input.id} (${input.op})`,
       icon: input.op === "source" ? "📋" : "🔧",
-    })) || [];
+    })) || [], [availableInputs]);
 
   const joinTypeOptions = [
     { value: "inner", label: "Inner Join", icon: "🔗" },
@@ -134,7 +134,15 @@ export default function JoinEditor({
 
   // Handle input hover for columns preview
   const handleInputHover = useCallback((option) => {
-    if (option && availableInputs) {
+    if (!option) {
+      setHoveredInput(prev => (prev ? null : prev));
+      return;
+    }
+
+    setHoveredInput(prev => {
+      // Prevent unnecessary updates if hovering the same option
+      if (prev?.inputStep?.id === option.value) return prev;
+      
       const inputStep = availableInputs.find((s) => s.id === option.value);
       if (inputStep) {
         let schema = [];
@@ -146,14 +154,13 @@ export default function JoinEditor({
         } else {
           schema = deriveSchema(inputStep, availableInputs, tableSchemas);
         }
-        setHoveredInput({
+        return {
           inputStep,
           schema: Array.isArray(schema) ? schema : [],
-        });
+        };
       }
-    } else {
-      setHoveredInput(null);
-    }
+      return null;
+    });
   }, [availableInputs, tableSchemas]);
 
   // Collapsible section component
