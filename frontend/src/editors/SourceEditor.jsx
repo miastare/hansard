@@ -90,9 +90,10 @@ export default function SourceEditor({ step, onChange, tableSchemas, requestSche
         alignItems: 'flex-start', 
         gap: '20px', 
         marginBottom: '24px',
-        flexShrink: 0
+        flexShrink: 0,
+        position: 'relative'
       }}>
-        <div style={{ flex: '0 0 300px' }}>
+        <div style={{ flex: '0 0 300px', position: 'relative' }}>
           <label style={{ 
             display: 'block', 
             marginBottom: '8px', 
@@ -102,18 +103,20 @@ export default function SourceEditor({ step, onChange, tableSchemas, requestSche
           }}>
             📋 Select table:
           </label>
-          <Dropdown
-            value={table}
-            onChange={updateStep}
-            options={tableOptions}
-            placeholder="Select a table"
-            onHover={handleTableHover}
-          />
+          <div style={{ position: 'relative', zIndex: 100 }}>
+            <Dropdown
+              value={table}
+              onChange={updateStep}
+              options={tableOptions}
+              placeholder="Select a table"
+              onHover={handleTableHover}
+            />
+          </div>
         </div>
 
-        {/* Columns Preview */}
-        {currentSchema.length > 0 && (
-          <div style={{ flex: '1', minWidth: '300px' }}>
+        {/* Selected Table Columns Preview - only when table is selected */}
+        {table && currentSchema.length > 0 && (
+          <div style={{ flex: '1', minWidth: '280px', maxWidth: '350px' }}>
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -225,64 +228,69 @@ export default function SourceEditor({ step, onChange, tableSchemas, requestSche
             </div>
           </div>
         )}
+      </div>
 
-        {/* Hovered Table Schema Preview */}
-        {hoveredTable && (
-          <div style={{
-            position: 'absolute',
-            zIndex: 1000,
-            marginTop: '60px',
-            background: 'rgba(248, 250, 252, 0.9)',
-            border: '1px solid rgba(203, 213, 225, 0.6)',
-            borderRadius: '12px',
-            padding: '16px',
-            backdropFilter: 'blur(10px)',
-            maxWidth: '300px'
+      {/* Hovered Table Schema Preview - positioned outside the flex container */}
+      {hoveredTable && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          right: '20px',
+          transform: 'translateY(-50%)',
+          zIndex: 1001,
+          background: 'rgba(248, 250, 252, 0.95)',
+          border: '2px solid rgba(203, 213, 225, 0.6)',
+          borderRadius: '12px',
+          padding: '16px',
+          backdropFilter: 'blur(15px)',
+          maxWidth: '320px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
+        }}>
+          <div style={{ 
+            fontWeight: '600', 
+            fontSize: '14px', 
+            color: '#374151',
+            marginBottom: '12px'
           }}>
-            <div style={{ 
-              fontWeight: '600', 
-              fontSize: '14px', 
-              color: '#374151',
-              marginBottom: '12px'
-            }}>
-              📊 {hoveredTable.table} ({hoveredTable.schema.length} columns)
-            </div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr',
-              gap: '4px',
-              maxHeight: '200px',
-              overflowY: 'auto'
-            }}>
-              {hoveredTable.schema.slice(0, 10).map(col => (
-                <div key={col.name} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '4px 8px',
-                  background: 'rgba(255, 255, 255, 0.7)',
-                  borderRadius: '4px',
+            📊 {hoveredTable.table} ({hoveredTable.schema.length} columns)
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: '4px',
+            maxHeight: '300px',
+            overflowY: 'auto'
+          }}>
+            {hoveredTable.schema.slice(0, 15).map(col => (
+              <div key={col.name} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '6px 10px',
+                background: 'rgba(255, 255, 255, 0.8)',
+                borderRadius: '6px',
+                fontSize: '12px',
+                border: '1px solid rgba(203, 213, 225, 0.3)'
+              }}>
+                <span style={{ fontWeight: '500', color: '#374151' }}>{col.name}</span>
+                <span style={{ 
+                  color: col.dtype === 'str' ? '#10b981' : 
+                         col.dtype === 'numeric' || col.dtype === 'int64' ? '#3b82f6' : 
+                         col.dtype === 'bool' ? '#f59e0b' : '#6b7280',
                   fontSize: '11px'
                 }}>
-                  <span style={{ fontWeight: '500', color: '#374151' }}>{col.name}</span>
-                  <span style={{ 
-                    color: col.dtype === 'str' ? '#10b981' : 
-                           col.dtype === 'numeric' || col.dtype === 'int64' ? '#3b82f6' : 
-                           col.dtype === 'bool' ? '#f59e0b' : '#6b7280'
-                  }}>
-                    {col.dtype}
-                  </span>
-                </div>
-              ))}
-              {hoveredTable.schema.length > 10 && (
-                <div style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic' }}>
-                  ... and {hoveredTable.schema.length - 10} more
-                </div>
-              )}
-            </div>
+                  {col.dtype}
+                </span>
+              </div>
+            ))}
+            {hoveredTable.schema.length > 15 && (
+              <div style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic', padding: '4px' }}>
+                ... and {hoveredTable.schema.length - 15} more
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Scrollable Content Area */}
       <div style={{ 
