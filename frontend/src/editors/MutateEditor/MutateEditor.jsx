@@ -850,7 +850,8 @@ export default function MutateEditor({
         style={{
           flexShrink: 0,
           borderTop: "1px solid rgba(203, 213, 225, 0.3)",
-          paddingTop: "16px",
+          paddingTop: "6px",
+          marginBottom: "10px",
           background: "rgba(255, 255, 255, 0.95)",
           backdropFilter: "blur(10px)",
         }}
@@ -898,124 +899,132 @@ export default function MutateEditor({
       </div>
 
       {/* All Columns Modal using React Portal */}
-      {showAllColumnsModal && createPortal(
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0, 0, 0, 0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "20px",
-          }}
-          onClick={() => setShowAllColumnsModal(false)}
-        >
+      {showAllColumnsModal &&
+        createPortal(
           <div
             style={{
-              background: "white",
-              borderRadius: "16px",
-              padding: "32px",
-              width: "95vw",
-              height: "90vh",
-              maxWidth: "1200px",
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.7)",
               display: "flex",
-              flexDirection: "column",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "20px",
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setShowAllColumnsModal(false)}
           >
             <div
               style={{
+                background: "white",
+                borderRadius: "16px",
+                padding: "32px",
+                width: "95vw",
+                height: "90vh",
+                maxWidth: "1200px",
                 display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "24px",
-                borderBottom: "2px solid rgba(229, 231, 235, 0.8)",
-                paddingBottom: "16px",
+                flexDirection: "column",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
               }}
-            >
-              <h2 style={{ margin: 0, color: "#1f2937", fontSize: "24px" }}>
-                📊 All Available Columns ({currentSchema.length})
-              </h2>
-              <button
-                onClick={() => setShowAllColumnsModal(false)}
-                style={{
-                  padding: "12px 20px",
-                  background: "#ef4444",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "16px",
-                  fontWeight: "600",
-                }}
-              >
-                ✕ Close
-              </button>
-            </div>
-            <div
-              style={{
-                flex: 1,
-                overflow: "auto",
-                paddingRight: "8px",
-              }}
+              onClick={(e) => e.stopPropagation()}
             >
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                  gap: "16px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "24px",
+                  borderBottom: "2px solid rgba(229, 231, 235, 0.8)",
+                  paddingBottom: "16px",
                 }}
               >
-                {currentSchema.map((col) => (
-                  <div
-                    key={col.name}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "16px 20px",
-                      background: "rgba(248, 250, 252, 0.8)",
-                      border: "2px solid rgba(203, 213, 225, 0.3)",
-                      borderRadius: "12px",
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    <span style={{ fontWeight: "600", color: "#374151", fontSize: "15px" }}>
-                      {col.name}
-                    </span>
-                    <span
+                <h2 style={{ margin: 0, color: "#1f2937", fontSize: "24px" }}>
+                  📊 All Available Columns ({currentSchema.length})
+                </h2>
+                <button
+                  onClick={() => setShowAllColumnsModal(false)}
+                  style={{
+                    padding: "12px 20px",
+                    background: "#ef4444",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "16px",
+                    fontWeight: "600",
+                  }}
+                >
+                  ✕ Close
+                </button>
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  overflow: "auto",
+                  paddingRight: "8px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(280px, 1fr))",
+                    gap: "16px",
+                  }}
+                >
+                  {currentSchema.map((col) => (
+                    <div
+                      key={col.name}
                       style={{
-                        color:
-                          col.dtype === "str"
-                            ? "#10b981"
-                            : col.dtype === "numeric" || col.dtype === "int64"
-                              ? "#3b82f6"
-                              : col.dtype === "bool"
-                                ? "#f59e0b"
-                                : "#6b7280",
-                        fontSize: "14px",
-                        fontWeight: "600",
-                        padding: "4px 8px",
-                        background: "rgba(255, 255, 255, 0.8)",
-                        borderRadius: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "16px 20px",
+                        background: "rgba(248, 250, 252, 0.8)",
+                        border: "2px solid rgba(203, 213, 225, 0.3)",
+                        borderRadius: "12px",
+                        transition: "all 0.2s ease",
                       }}
                     >
-                      {col.dtype}
-                    </span>
-                  </div>
-                ))}
+                      <span
+                        style={{
+                          fontWeight: "600",
+                          color: "#374151",
+                          fontSize: "15px",
+                        }}
+                      >
+                        {col.name}
+                      </span>
+                      <span
+                        style={{
+                          color:
+                            col.dtype === "str"
+                              ? "#10b981"
+                              : col.dtype === "numeric" || col.dtype === "int64"
+                                ? "#3b82f6"
+                                : col.dtype === "bool"
+                                  ? "#f59e0b"
+                                  : "#6b7280",
+                          fontSize: "14px",
+                          fontWeight: "600",
+                          padding: "4px 8px",
+                          background: "rgba(255, 255, 255, 0.8)",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        {col.dtype}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
