@@ -145,7 +145,7 @@ export default function SourceEditor({
         </div>
 
         {/* Selected Table Columns Preview - only when table is selected */}
-        {(table || hoveredTable) && currentSchema.length > 0 && (
+        {(table || hoveredTable) && currentSchema.length > 0 ? (
           <div style={{ flex: "1", minWidth: "280px", maxWidth: "350px" }}>
             <div
               style={{
@@ -302,6 +302,18 @@ export default function SourceEditor({
                 </div>
               )}
             </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              flex: "1",
+              minWidth: "280px",
+              maxWidth: "350px",
+              height: "150px", // Adjust height as needed
+              visibility: "hidden", // Make it invisible
+            }}
+          >
+            {/* This div acts as a placeholder to maintain layout */}
           </div>
         )}
       </div>
