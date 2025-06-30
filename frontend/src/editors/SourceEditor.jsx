@@ -47,7 +47,9 @@ export default function SourceEditor({ step, onChange, tableSchemas, requestSche
     }
   }, [table]);
 
-  const selectedSchema = tableSchemas?.[table];
+  // Get schema for display - prioritize selected table, fallback to hovered table
+  const displayTable = table || hoveredTable?.table;
+  const selectedSchema = tableSchemas?.[displayTable];
   const currentSchema = selectedSchema?.cols || selectedSchema || [];
 
   // Get columns for current window
@@ -115,7 +117,7 @@ export default function SourceEditor({ step, onChange, tableSchemas, requestSche
         </div>
 
         {/* Selected Table Columns Preview - only when table is selected */}
-        {table && currentSchema.length > 0 && (
+        {(table || hoveredTable) && currentSchema.length > 0 && (
           <div style={{ flex: '1', minWidth: '280px', maxWidth: '350px' }}>
             <div style={{ 
               display: 'flex', 
@@ -231,66 +233,7 @@ export default function SourceEditor({ step, onChange, tableSchemas, requestSche
       </div>
 
       {/* Hovered Table Schema Preview - positioned outside the flex container */}
-      {hoveredTable && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          right: '20px',
-          transform: 'translateY(-50%)',
-          zIndex: 1001,
-          background: 'rgba(248, 250, 252, 0.95)',
-          border: '2px solid rgba(203, 213, 225, 0.6)',
-          borderRadius: '12px',
-          padding: '16px',
-          backdropFilter: 'blur(15px)',
-          maxWidth: '320px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
-        }}>
-          <div style={{ 
-            fontWeight: '600', 
-            fontSize: '14px', 
-            color: '#374151',
-            marginBottom: '12px'
-          }}>
-            📊 {hoveredTable.table} ({hoveredTable.schema.length} columns)
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr',
-            gap: '4px',
-            maxHeight: '300px',
-            overflowY: 'auto'
-          }}>
-            {hoveredTable.schema.slice(0, 15).map(col => (
-              <div key={col.name} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '6px 10px',
-                background: 'rgba(255, 255, 255, 0.8)',
-                borderRadius: '6px',
-                fontSize: '12px',
-                border: '1px solid rgba(203, 213, 225, 0.3)'
-              }}>
-                <span style={{ fontWeight: '500', color: '#374151' }}>{col.name}</span>
-                <span style={{ 
-                  color: col.dtype === 'str' ? '#10b981' : 
-                         col.dtype === 'numeric' || col.dtype === 'int64' ? '#3b82f6' : 
-                         col.dtype === 'bool' ? '#f59e0b' : '#6b7280',
-                  fontSize: '11px'
-                }}>
-                  {col.dtype}
-                </span>
-              </div>
-            ))}
-            {hoveredTable.schema.length > 15 && (
-              <div style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic', padding: '4px' }}>
-                ... and {hoveredTable.schema.length - 15} more
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* REMOVED - as requested */}
 
       {/* Scrollable Content Area */}
       <div style={{ 
