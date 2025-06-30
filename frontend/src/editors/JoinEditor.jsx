@@ -133,7 +133,7 @@ export default function JoinEditor({
   ];
 
   // Handle input hover for columns preview
-  const handleInputHover = (option) => {
+  const handleInputHover = useCallback((option) => {
     if (option && availableInputs) {
       const inputStep = availableInputs.find((s) => s.id === option.value);
       if (inputStep) {
@@ -154,7 +154,7 @@ export default function JoinEditor({
     } else {
       setHoveredInput(null);
     }
-  };
+  }, [availableInputs, tableSchemas]);
 
   // Collapsible section component
   const CollapsibleSection = ({ title, isExpanded, onToggle, children }) => (
