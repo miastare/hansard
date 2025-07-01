@@ -95,9 +95,10 @@
   border-radius: 5px;
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s ease-out;
   position: relative;
   border-top: 7px solid rgb(111 98 194);
+  overflow: hidden;
 }
 
 .stepCard::before {
@@ -236,6 +237,8 @@
 /* Card Body */
 .cardBody {
   padding: 0 24px 24px 24px;
+  overflow: hidden;
+  transition: height 0.3s ease-out, opacity 0.3s ease-out;
   animation: expandCard 0.3s ease-out;
 }
 

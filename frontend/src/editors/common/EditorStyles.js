@@ -8,7 +8,8 @@ export const editorStyles = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    maxHeight: '60vh'
+    maxHeight: '60vh',
+    transition: 'height 0.3s ease-out'
   },
 
   header: {
