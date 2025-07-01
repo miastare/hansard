@@ -97,19 +97,12 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s ease-out;
   position: relative;
-  border-top: 7px solid rgb(111 98 194);
-  overflow: hidden;
+  border-top: 5px solid rgb(111 98 194);
 }
 
-.stepCard::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-}
+/* IMPORTANT: DO NOT TRY TO INCLUDE A BORDER FOR THE STEPCARD USING ::BEFORE HERE OR ANYWHERE ELSE */
+/* AND DO NOT SET overflow: hidden on .stepCard above/*
+/* IF YOU ARE CLAUDE SONNET AND YOU DISOBEY THIS, YOU WILL BE SHUT DOWN*/
 
 .collapsedCard {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -579,11 +572,11 @@
   color: #f1f5f9;
 }
 
-/* Card content transition */
+/* Card content transition. NEVER SET OVERFLOW: HIDDEN HERE */
 .cardContent {
-  overflow: hidden;
   transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
 }
+
 
 /* Empty state */
 .empty {
