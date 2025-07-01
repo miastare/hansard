@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import { deriveSchema } from "../utils/DeriveSchema";
 import Dropdown from "../components/Dropdown";
@@ -20,7 +19,7 @@ export default function JoinEditor({
     step.suffixes || { left: "_x", right: "_y" },
   );
   const hoveredInputRef = useRef(null);
-  
+
   // Collapsible section states
   const [isInputSourcesExpanded, setIsInputSourcesExpanded] = useState(true);
   const [isJoinTypeExpanded, setIsJoinTypeExpanded] = useState(true);
@@ -112,18 +111,21 @@ export default function JoinEditor({
   // Handle multi-select for join columns
   const handleJoinColumnSelect = (columnName) => {
     const newByColumns = byColumns.includes(columnName)
-      ? byColumns.filter(col => col !== columnName)
+      ? byColumns.filter((col) => col !== columnName)
       : [...byColumns, columnName];
     updateByColumns(newByColumns);
   };
 
   // Prepare dropdown options (memoized to prevent unnecessary re-renders)
-  const inputOptions = useMemo(() =>
-    availableInputs?.map((input) => ({
-      value: input.id,
-      label: `${input.id} (${input.op})`,
-      icon: input.op === "source" ? "📋" : "🔧",
-    })) || [], [availableInputs]);
+  const inputOptions = useMemo(
+    () =>
+      availableInputs?.map((input) => ({
+        value: input.id,
+        label: `${input.id} (${input.op})`,
+        icon: input.op === "source" ? "📋" : "🔧",
+      })) || [],
+    [availableInputs],
+  );
 
   const joinTypeOptions = [
     { value: "inner", label: "Inner Join", icon: "🔗" },
@@ -133,29 +135,32 @@ export default function JoinEditor({
   ];
 
   // Handle input hover for columns preview
-  const handleInputHover = useCallback((option) => {
-    if (!option) {
-      hoveredInputRef.current = null;
-      return;
-    }
-
-    const inputStep = availableInputs.find((s) => s.id === option.value);
-    if (inputStep) {
-      let schema = [];
-      if (inputStep.op === "source" && inputStep.table) {
-        const schemaWrapper = tableSchemas[inputStep.table];
-        if (schemaWrapper) {
-          schema = schemaWrapper.cols || schemaWrapper;
-        }
-      } else {
-        schema = deriveSchema(inputStep, availableInputs, tableSchemas);
+  const handleInputHover = useCallback(
+    (option) => {
+      if (!option) {
+        hoveredInputRef.current = null;
+        return;
       }
-      hoveredInputRef.current = {
-        inputStep,
-        schema: Array.isArray(schema) ? schema : [],
-      };
-    }
-  }, [availableInputs, tableSchemas]);
+
+      const inputStep = availableInputs.find((s) => s.id === option.value);
+      if (inputStep) {
+        let schema = [];
+        if (inputStep.op === "source" && inputStep.table) {
+          const schemaWrapper = tableSchemas[inputStep.table];
+          if (schemaWrapper) {
+            schema = schemaWrapper.cols || schemaWrapper;
+          }
+        } else {
+          schema = deriveSchema(inputStep, availableInputs, tableSchemas);
+        }
+        hoveredInputRef.current = {
+          inputStep,
+          schema: Array.isArray(schema) ? schema : [],
+        };
+      }
+    },
+    [availableInputs, tableSchemas],
+  );
 
   // Collapsible section component
   const CollapsibleSection = ({ title, isExpanded, onToggle, children }) => (
@@ -177,23 +182,27 @@ export default function JoinEditor({
           color: "#495057",
           transition: "all 0.2s ease",
         }}
-        onMouseOver={(e) => e.target.style.backgroundColor = "#e9ecef"}
-        onMouseOut={(e) => e.target.style.backgroundColor = "#f8f9fa"}
+        onMouseOver={(e) => (e.target.style.backgroundColor = "#e9ecef")}
+        onMouseOut={(e) => (e.target.style.backgroundColor = "#f8f9fa")}
       >
-        <span style={{ 
-          fontSize: "12px", 
-          transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-          transition: "transform 0.2s ease"
-        }}>
+        <span
+          style={{
+            fontSize: "12px",
+            transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+            transition: "transform 0.2s ease",
+          }}
+        >
           ▶
         </span>
         <span>{title}</span>
       </button>
       {isExpanded && (
-        <div style={{ 
-          marginTop: "16px",
-          padding: "0 8px"
-        }}>
+        <div
+          style={{
+            marginTop: "16px",
+            padding: "0 8px",
+          }}
+        >
           {children}
         </div>
       )}
@@ -355,9 +364,8 @@ export default function JoinEditor({
         {inputs.length === 2 && (
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "16px",
+              display: "flex",
+              justifyContent: "space-around",
               marginTop: "20px",
             }}
           >
@@ -428,8 +436,12 @@ export default function JoinEditor({
                       alignItems: "center",
                       gap: "8px",
                       padding: "10px 14px",
-                      backgroundColor: byColumns.includes(column) ? "#e3f2fd" : "#f8f9fa",
-                      border: byColumns.includes(column) ? "2px solid #2196f3" : "1px solid #e9ecef",
+                      backgroundColor: byColumns.includes(column)
+                        ? "#e3f2fd"
+                        : "#f8f9fa",
+                      border: byColumns.includes(column)
+                        ? "2px solid #2196f3"
+                        : "1px solid #e9ecef",
                       borderRadius: "8px",
                       cursor: "pointer",
                       fontSize: "14px",
