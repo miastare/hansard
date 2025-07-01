@@ -237,9 +237,11 @@
 /* Card Body */
 .cardBody {
   padding: 0 24px 24px 24px;
-  overflow: hidden;
-  transition: height 0.3s ease-out, opacity 0.3s ease-out;
-  animation: expandCard 0.3s ease-out;
+}
+
+/* Card Content */
+.cardContent {
+  padding: 0 24px 24px 24px;
 }
 
 @keyframes expandCard {
