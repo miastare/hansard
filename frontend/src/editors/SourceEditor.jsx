@@ -159,9 +159,6 @@ export default function SourceEditor({
         )}
       </div>
 
-      {/* Hovered Table Schema Preview - positioned outside the flex container */}
-      {/* REMOVED - as requested */}
-
       {/* Scrollable Content Area */}
       <div
         style={{
