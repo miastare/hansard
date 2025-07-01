@@ -188,6 +188,8 @@ export default function DSLBuilder() {
               <StepCard
                 key={step.id}
                 step={step}
+                stepIndex={stepIndex}
+                totalSteps={steps.length}
                 onUpdate={(updatedStep) => updateStep(stepIndex, updatedStep)}
                 onDelete={(stepId) => removeStep(stepIndex)}
                 availableInputs={availableInputs}

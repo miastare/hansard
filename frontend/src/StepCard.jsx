@@ -14,9 +14,15 @@ export default function StepCard({
   onDelete, 
   availableInputs, 
   tableSchemas, 
-  requestSchema 
+  requestSchema,
+  stepIndex,
+  totalSteps
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+
+  // Calculate z-index: earlier steps get higher z-index
+  // Base z-index of 1000, with each earlier step getting +10
+  const dynamicZIndex = 1000 + (totalSteps - stepIndex) * 10;
 
   const handleUpdate = (field, value) => {
     console.log(`STEP CARD: Updating step ${step.id} field ${field} to:`, value);
@@ -115,7 +121,10 @@ export default function StepCard({
   };
 
   return (
-    <div className={`${styles.card} ${styles.stepCard}`}>
+    <div 
+      className={`${styles.card} ${styles.stepCard}`}
+      style={{ zIndex: dynamicZIndex }}
+    >
       <div className={styles.cardHeader} onClick={() => setIsExpanded(!isExpanded)}>
         <div className={styles.stepInfo}>
           <h3 className={styles.stepTitle}>
