@@ -170,14 +170,8 @@ export default function StepCard({
         </div>
       </div>
 
-      <div
-        className={styles.cardContent}
-        style={{
-          maxHeight: isExpanded ? "60vh" : "0",
-          transition: "max-height 0.3s ease-out, opacity 0.3s ease-out",
-          opacity: isExpanded ? 1 : 0,
-          padding: isExpanded ? "0 24px 24px 24px" : "0 24px 0 24px",
-        }}
+      <div 
+        className={`${styles.cardContent} ${isExpanded ? styles.cardContentExpanded : styles.cardContentCollapsed}`}
       >
         {renderEditor()}
       </div>
