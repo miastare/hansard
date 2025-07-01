@@ -3,6 +3,53 @@ import { deriveSchema } from "../utils/DeriveSchema";
 import Dropdown from "../components/Dropdown";
 import WindowedColumnsPreview from "../components/WindowedColumnsPreview";
 
+// Collapsible section component - moved outside to prevent remounting
+const CollapsibleSection = ({ title, isExpanded, onToggle, children }) => (
+  <div style={{ marginBottom: "20px" }}>
+    <button
+      onClick={() => onToggle(!isExpanded)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        width: "100%",
+        padding: "12px 16px",
+        backgroundColor: "#f8f9fa",
+        border: "1px solid #e9ecef",
+        borderRadius: "8px",
+        cursor: "pointer",
+        fontSize: "14px",
+        fontWeight: "600",
+        color: "#495057",
+        transition: "all 0.2s ease",
+      }}
+      onMouseOver={(e) => (e.target.style.backgroundColor = "#e9ecef")}
+      onMouseOut={(e) => (e.target.style.backgroundColor = "#f8f9fa")}
+    >
+      <span
+        style={{
+          fontSize: "12px",
+          transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+          transition: "transform 0.2s ease",
+        }}
+      >
+        ▶
+      </span>
+      <span>{title}</span>
+    </button>
+    {isExpanded && (
+      <div
+        style={{
+          marginTop: "16px",
+          padding: "0 8px",
+        }}
+      >
+        {children}
+      </div>
+    )}
+  </div>
+);
+
 export default function JoinEditor({
   step,
   onUpdate,
@@ -162,52 +209,7 @@ export default function JoinEditor({
     [availableInputs, tableSchemas],
   );
 
-  // Collapsible section component
-  const CollapsibleSection = ({ title, isExpanded, onToggle, children }) => (
-    <div style={{ marginBottom: "20px" }}>
-      <button
-        onClick={() => onToggle(!isExpanded)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          width: "100%",
-          padding: "12px 16px",
-          backgroundColor: "#f8f9fa",
-          border: "1px solid #e9ecef",
-          borderRadius: "8px",
-          cursor: "pointer",
-          fontSize: "14px",
-          fontWeight: "600",
-          color: "#495057",
-          transition: "all 0.2s ease",
-        }}
-        onMouseOver={(e) => (e.target.style.backgroundColor = "#e9ecef")}
-        onMouseOut={(e) => (e.target.style.backgroundColor = "#f8f9fa")}
-      >
-        <span
-          style={{
-            fontSize: "12px",
-            transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-            transition: "transform 0.2s ease",
-          }}
-        >
-          ▶
-        </span>
-        <span>{title}</span>
-      </button>
-      {isExpanded && (
-        <div
-          style={{
-            marginTop: "16px",
-            padding: "0 8px",
-          }}
-        >
-          {children}
-        </div>
-      )}
-    </div>
-  );
+  
 
   return (
     <div
