@@ -540,7 +540,6 @@ export default function JoinEditor({
               onChange={(e) => updateSuffixes("left", e.target.value)}
               placeholder="e.g. _x"
               style={{
-                width: "100%",
                 padding: "10px 14px",
                 border: "1px solid #d1d5db",
                 borderRadius: "8px",
@@ -578,7 +577,6 @@ export default function JoinEditor({
               onChange={(e) => updateSuffixes("right", e.target.value)}
               placeholder="e.g. _y"
               style={{
-                width: "100%",
                 padding: "10px 14px",
                 border: "1px solid #d1d5db",
                 borderRadius: "8px",
