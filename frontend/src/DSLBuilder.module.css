@@ -95,11 +95,21 @@
   border-radius: 5px;
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s ease-out;
   position: relative;
-  border-top: 5px solid rgb(111 98 194);
+  border-top: 7px solid rgb(111 98 194);
+  overflow: hidden;
 }
 
+.stepCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+}
 
 .collapsedCard {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
