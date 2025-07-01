@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { deriveSchema } from '../utils/DeriveSchema';
+import { createPortal } from 'react-dom';
 
 const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, tableSchemas }) => {
+  const [showGroupingModal, setShowGroupingModal] = useState(false);
+  
   console.log('🔢 AGGREGATE EDITOR: Rendering with step:', step);
   console.log('🔢 AGGREGATE EDITOR: Available inputs:', availableInputs);
 
@@ -128,41 +131,39 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
           <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
             Group By Columns:
           </label>
-          <div style={{ 
-            border: '1px solid #ddd', 
-            borderRadius: '4px', 
-            padding: '8px',
-            maxHeight: '150px',
-            overflowY: 'auto'
-          }}>
-            {availableColumns.map(col => (
-              <div key={col.name} style={{ marginBottom: '4px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={(step.group || []).includes(col.name)}
-                    onChange={() => handleGroupToggle(col.name)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  <span style={{ flex: 1 }}>
-                    {col.name}
-                  </span>
-                  <span style={{ 
-                    fontSize: '12px', 
-                    color: '#666',
-                    fontStyle: 'italic'
-                  }}>
-                    ({col.dtype})
-                  </span>
-                </label>
-              </div>
-            ))}
-          </div>
-          {(step.group || []).length > 0 && (
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-              Selected: {(step.group || []).join(', ')}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
+            <button
+              onClick={() => setShowGroupingModal(true)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              {(step.group || []).length >= 1 ? 'Edit grouping columns' : 'Add grouping columns'}
+            </button>
+            <div style={{
+              flex: 1,
+              padding: '8px 12px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              backgroundColor: '#f9f9f9',
+              fontSize: '14px',
+              color: (step.group || []).length === 0 ? '#666' : '#333',
+              fontStyle: (step.group || []).length === 0 ? 'italic' : 'normal',
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              {(step.group || []).length === 0 
+                ? 'No grouping columns selected'
+                : (step.group || []).join(', ')
+              }
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -319,6 +320,158 @@ const AggregateEditor = ({ step, onUpdate, onBatchUpdate, availableInputs, table
             )}
           </div>
         </div>
+      )}
+
+      {/* Grouping Columns Modal */}
+      {showGroupingModal && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10000
+          }}
+          onClick={() => setShowGroupingModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+              maxHeight: '80vh',
+              maxWidth: '600px',
+              width: '90vw',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{
+              padding: '20px',
+              borderBottom: '1px solid #eee',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '20px', color: '#333' }}>
+                Select Grouping Columns
+              </h3>
+              <button
+                onClick={() => setShowGroupingModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#999',
+                  padding: '5px'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{
+              padding: '20px',
+              overflowY: 'auto',
+              flex: 1
+            }}>
+              <div style={{
+                display: 'grid',
+                gap: '8px'
+              }}>
+                {availableColumns.map(col => (
+                  <div
+                    key={col.name}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      backgroundColor: (step.group || []).includes(col.name) ? '#e3f2fd' : '#fff',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onClick={() => handleGroupToggle(col.name)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={(step.group || []).includes(col.name)}
+                      onChange={() => handleGroupToggle(col.name)}
+                      style={{ marginRight: '12px' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ 
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        color: '#333'
+                      }}>
+                        {col.name}
+                      </div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#666',
+                        marginTop: '2px'
+                      }}>
+                        Type: {col.dtype}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {(step.group || []).length > 0 && (
+                <div style={{
+                  marginTop: '20px',
+                  padding: '12px',
+                  backgroundColor: '#f0f8ff',
+                  border: '1px solid #b3d9ff',
+                  borderRadius: '6px'
+                }}>
+                  <strong style={{ fontSize: '14px', color: '#333' }}>
+                    Selected ({(step.group || []).length}):
+                  </strong>
+                  <div style={{ fontSize: '14px', marginTop: '4px', color: '#666' }}>
+                    {(step.group || []).join(', ')}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '20px',
+              borderTop: '1px solid #eee',
+              textAlign: 'right'
+            }}>
+              <button
+                onClick={() => setShowGroupingModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
