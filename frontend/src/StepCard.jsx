@@ -163,8 +163,6 @@ export default function StepCard({
         className={styles.cardContent}
         style={{
           maxHeight: isExpanded ? '60vh' : '0',
-          overflow: 'hidden',
-          transition: 'max-height 0.3s ease-out, opacity 0.3s ease-out',
           opacity: isExpanded ? 1 : 0,
           padding: isExpanded ? '0 24px 24px 24px' : '0 24px 0 24px'
         }}

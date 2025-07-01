@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Dropdown from "../components/Dropdown";
 import WindowedColumnsPreview from "../components/WindowedColumnsPreview";
+import styles from "./SourceEditor.module.css";
 
 const AVAILABLE_TABLES = [
   "interest_df",
@@ -89,43 +90,18 @@ export default function SourceEditor({
   };
 
   return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        maxHeight: "60vh",
-      }}
-    >
-      <h4 style={{ margin: "0 0 24px 0", color: "#2d3748", fontSize: "18px" }}>
+    <div className={styles.container}>
+      <h4 className={styles.title}>
         Source Table
       </h4>
 
       {/* Table Selection Row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "20px",
-          marginBottom: "24px",
-          flexShrink: 0,
-          position: "relative",
-          justifyContent: "space-around",
-        }}
-      >
-        <div style={{ flex: "0 0 300px", position: "relative" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "600",
-              fontSize: "14px",
-              color: "#374151",
-            }}
-          >
+      <div className={styles.selectionRow}>
+        <div className={styles.dropdownContainer}>
+          <label className={styles.label}>
             📋 Select table:
           </label>
-          <div style={{ position: "relative" }}>
+          <div className={styles.dropdownWrapper}>
             <Dropdown
               value={table}
               onChange={updateStep}
@@ -138,91 +114,34 @@ export default function SourceEditor({
 
         {/* Selected Table Columns Preview - only when table is selected */}
         {(table || hoveredTable) && currentSchema.length > 0 ? (
-          <WindowedColumnsPreview
-            columns={currentSchema}
-            title={`Table columns`}
-            isVisible={true}
-            columnsPerWindow={4}
-          />
+          <div className={styles.columnsPreview}>
+            <WindowedColumnsPreview
+              columns={currentSchema}
+              title={`Table columns`}
+              isVisible={true}
+              columnsPerWindow={4}
+            />
+          </div>
         ) : (
-          <div
-            style={{
-              flex: "1",
-              minWidth: "280px",
-              maxWidth: "350px",
-              height: "150px", // Adjust height as needed
-              visibility: "hidden", // Make it invisible
-            }}
-          >
+          <div className={styles.columnsPreview} style={{ visibility: "hidden" }}>
             {/* This div acts as a placeholder to maintain layout */}
           </div>
         )}
       </div>
 
-      {/* Hovered Table Schema Preview - positioned outside the flex container */}
-      {/* REMOVED - as requested */}
-
       {/* Scrollable Content Area */}
-      <div
-        style={{
-          flex: "1",
-          overflowY: "auto",
-          paddingRight: "8px",
-        }}
-      >
+      <div className={styles.scrollableContent}>
         {previewData && previewData.length > 0 && (
-          <div
-            style={{
-              marginBottom: "20px",
-              border: "2px solid rgba(203, 213, 225, 0.4)",
-              borderRadius: "12px",
-              backgroundColor: "#fff",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding: "16px 20px",
-                background: "rgba(248, 250, 252, 0.8)",
-                borderBottom: "1px solid rgba(203, 213, 225, 0.3)",
-                fontWeight: "600",
-                color: "#374151",
-              }}
-            >
+          <div className={styles.previewSection}>
+            <div className={styles.previewHeader}>
               📋 Preview (first 3 rows)
             </div>
-            <div
-              style={{
-                padding: "20px",
-                overflow: "auto",
-                maxHeight: "300px",
-              }}
-            >
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: "13px",
-                }}
-              >
-                <thead>
-                  <tr
-                    style={{
-                      background: "rgba(248, 250, 252, 0.5)",
-                      borderBottom: "2px solid rgba(203, 213, 225, 0.3)",
-                    }}
-                  >
+            <div className={styles.previewTable}>
+              <table className={styles.table}>
+                <thead className={styles.tableHead}>
+                  <tr>
                     {Object.keys(previewData[0]).map((col) => (
-                      <th
-                        key={col}
-                        style={{
-                          padding: "12px 16px",
-                          textAlign: "left",
-                          fontWeight: "600",
-                          color: "#374151",
-                        }}
-                      >
+                      <th key={col} className={styles.tableHeader}>
                         {col}
                       </th>
                     ))}
@@ -230,24 +149,9 @@ export default function SourceEditor({
                 </thead>
                 <tbody>
                   {previewData.map((row, i) => (
-                    <tr
-                      key={i}
-                      style={{
-                        borderBottom: "1px solid rgba(203, 213, 225, 0.2)",
-                      }}
-                    >
+                    <tr key={i} className={styles.tableRow}>
                       {Object.values(row).map((val, j) => (
-                        <td
-                          key={j}
-                          style={{
-                            padding: "12px 16px",
-                            maxWidth: "200px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            color: "#6b7280",
-                          }}
-                        >
+                        <td key={j} className={styles.tableCell}>
                           {val !== null && val !== undefined
                             ? String(val)
                             : "—"}
@@ -261,8 +165,6 @@ export default function SourceEditor({
           </div>
         )}
       </div>
-
-      
     </div>
   );
 }
