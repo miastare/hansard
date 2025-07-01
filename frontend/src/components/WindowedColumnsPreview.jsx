@@ -11,6 +11,7 @@ export default function WindowedColumnsPreview({
 }) {
   const [columnWindowStart, setColumnWindowStart] = useState(0);
   const [showAllColumnsModal, setShowAllColumnsModal] = useState(false);
+  const [showWindowedColumns, setShowWindowedColumns] = useState(true);
 
   if (!isVisible || !columns || columns.length === 0) {
     return null;
@@ -60,20 +61,36 @@ export default function WindowedColumnsPreview({
         >
           📊 {title} ({filteredColumns.length})
         </span>
-        <button
-          onClick={() => setShowAllColumnsModal(true)}
-          style={{
-            padding: "4px 12px",
-            background: "rgba(59, 130, 246, 0.1)",
-            color: "#3b82f6",
-            border: "1px solid rgba(59, 130, 246, 0.2)",
-            borderRadius: "6px",
-            fontSize: "12px",
-            cursor: "pointer",
-          }}
-        >
-          View All
-        </button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button
+            onClick={() => setShowWindowedColumns(!showWindowedColumns)}
+            style={{
+              padding: "4px 12px",
+              background: showWindowedColumns ? "rgba(239, 68, 68, 0.1)" : "rgba(34, 197, 94, 0.1)",
+              color: showWindowedColumns ? "#ef4444" : "#22c55e",
+              border: showWindowedColumns ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid rgba(34, 197, 94, 0.2)",
+              borderRadius: "6px",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            {showWindowedColumns ? "Hide Some" : "View Some"}
+          </button>
+          <button
+            onClick={() => setShowAllColumnsModal(true)}
+            style={{
+              padding: "4px 12px",
+              background: "rgba(59, 130, 246, 0.1)",
+              color: "#3b82f6",
+              border: "1px solid rgba(59, 130, 246, 0.2)",
+              borderRadius: "6px",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            View All
+          </button>
+        </div>
       </div>
 
       {/* Windowed Column Display */}
@@ -82,7 +99,11 @@ export default function WindowedColumnsPreview({
           background: "rgba(248, 250, 252, 0.8)",
           border: "1px solid rgba(203, 213, 225, 0.4)",
           borderRadius: "8px",
-          padding: "12px",
+          padding: showWindowedColumns ? "12px" : "0",
+          height: showWindowedColumns ? "auto" : "0",
+          overflow: "hidden",
+          transition: "all 0.3s ease-in-out",
+          opacity: showWindowedColumns ? 1 : 0,
         }}
       >
         <div
