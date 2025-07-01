@@ -209,8 +209,6 @@ export default function JoinEditor({
     [availableInputs, tableSchemas],
   );
 
-  
-
   return (
     <div
       style={{
@@ -474,20 +472,6 @@ export default function JoinEditor({
                   </label>
                 ))}
               </div>
-              {byColumns.length > 0 && (
-                <div
-                  style={{
-                    marginTop: "12px",
-                    padding: "8px 12px",
-                    backgroundColor: "#e8f5e8",
-                    borderRadius: "6px",
-                    fontSize: "13px",
-                    color: "#2e7d32",
-                  }}
-                >
-                  Selected: {byColumns.join(", ")}
-                </div>
-              )}
             </div>
           ) : (
             <div
