@@ -125,7 +125,7 @@ export default function SourceEditor({
           >
             📋 Select table:
           </label>
-          <div style={{ position: "relative", zIndex: 100 }}>
+          <div style={{ position: "relative", zIndex: 10000 }}>
             <Dropdown
               value={table}
               onChange={updateStep}
