@@ -1,15 +1,16 @@
+
 import React, { useState } from "react";
 import WeightEditModal from "./WeightEditModal";
 
-const DivisionBox = ({ division, onChange, onRemove, index }) => {
+const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
 
   const updateDivisionId = (newId) => {
-    onChange(index, { ...division, id: newId });
+    onChange(internalId, { ...division, id: newId });
   };
 
   const updateWeights = (newWeights) => {
-    onChange(index, { ...division, weights: newWeights });
+    onChange(internalId, { ...division, weights: newWeights });
   };
 
   const defaultWeights = { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 };
@@ -96,7 +97,7 @@ const DivisionBox = ({ division, onChange, onRemove, index }) => {
         </button>
 
         <button
-          onClick={() => onRemove(index)}
+          onClick={() => onRemove(internalId)}
           style={{
             padding: "10px",
             backgroundColor: "#ef4444",
