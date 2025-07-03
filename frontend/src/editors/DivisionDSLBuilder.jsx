@@ -14,7 +14,8 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
   const [divisions, setDivisions] = useState(null);
   const [contributions, setContributions] = useState(null);
   const [error, setError] = useState(null);
-
+  console.log("divisions", divisions);
+  console.log("contributions", contributions);
   const handleComplete = () => {
     console.log("Generated DSL:", JSON.stringify(dsl, null, 2));
     onDSLComplete?.(dsl);
@@ -23,21 +24,23 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
 
   const isValidDSL = (dslNode) => {
     if (!dslNode || !dslNode.op) return false;
-    
+
     if (LEAF_OPS.includes(dslNode.op)) {
       return dslNode.args?.pattern && dslNode.args.pattern.trim() !== "";
     }
-    
+
     if (dslNode.op === "not") {
       return isValidDSL(dslNode.args);
     }
-    
+
     if (dslNode.op === "and" || dslNode.op === "or") {
-      return Array.isArray(dslNode.args) && 
-             dslNode.args.length >= 2 && 
-             dslNode.args.every(arg => isValidDSL(arg));
+      return (
+        Array.isArray(dslNode.args) &&
+        dslNode.args.length >= 2 &&
+        dslNode.args.every((arg) => isValidDSL(arg))
+      );
     }
-    
+
     return false;
   };
 
@@ -48,10 +51,10 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
     setContributions(null);
 
     try {
-      const response = await fetch('/api/divisions_from_dsl', {
-        method: 'POST',
+      const response = await fetch("/api/divisions_from_dsl", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ dsl }),
       });
@@ -62,7 +65,7 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
 
       const data = await response.json();
       console.log("Backend response:", data);
-      
+
       // data is expected to be [divisions_dict, contributions_dict]
       const divisionsData = data[0];
       const contributionsData = data[1];
@@ -192,7 +195,13 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
               paddingTop: "24px",
             }}
           >
-            <h3 style={{ margin: "0 0 20px 0", color: "#1f2937", fontSize: "20px" }}>
+            <h3
+              style={{
+                margin: "0 0 20px 0",
+                color: "#1f2937",
+                fontSize: "20px",
+              }}
+            >
               📊 Search Results
             </h3>
 
@@ -209,7 +218,8 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
                     color: "#047857",
                   }}
                 >
-                  Found <strong>{Object.keys(divisions).length}</strong> matching divisions
+                  Found <strong>{Object.keys(divisions).length}</strong>{" "}
+                  matching divisions
                 </div>
 
                 <div style={{ maxHeight: "400px", overflowY: "auto" }}>
@@ -232,16 +242,44 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
                           borderRadius: "8px 8px 0 0",
                         }}
                       >
-                        <h4 style={{ margin: "0 0 8px 0", color: "#111827", fontSize: "16px" }}>
+                        <h4
+                          style={{
+                            margin: "0 0 8px 0",
+                            color: "#111827",
+                            fontSize: "16px",
+                          }}
+                        >
                           {division.division_title}
                         </h4>
-                        <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
-                          📅 {new Date(division.division_date_time).toLocaleString()}
+                        <div
+                          style={{
+                            fontSize: "14px",
+                            color: "#6b7280",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          📅{" "}
+                          {new Date(
+                            division.division_date_time,
+                          ).toLocaleString()}
                         </div>
-                        <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
-                          ✅ Ayes: <strong>{division.ayes}</strong> | ❌ Noes: <strong>{division.noes}</strong>
+                        <div
+                          style={{
+                            fontSize: "14px",
+                            color: "#6b7280",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          ✅ Ayes: <strong>{division.ayes}</strong> | ❌ Noes:{" "}
+                          <strong>{division.noes}</strong>
                         </div>
-                        <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "#6b7280",
+                            marginBottom: "8px",
+                          }}
+                        >
                           🆔 Division ID: <strong>{divisionId}</strong>
                         </div>
                         <a
@@ -259,68 +297,92 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
                       </div>
 
                       {/* Associated Contributions */}
-                      {contributions && contributions[division.debate_id] && contributions[division.debate_id].length > 0 ? (
+                      {contributions &&
+                      contributions[division.debate_id] &&
+                      contributions[division.debate_id].length > 0 ? (
                         <div style={{ padding: "16px" }}>
-                          <h5 style={{ margin: "0 0 12px 0", color: "#374151", fontSize: "14px" }}>
-                            💬 Related Contributions ({contributions[division.debate_id].length})
+                          <h5
+                            style={{
+                              margin: "0 0 12px 0",
+                              color: "#374151",
+                              fontSize: "14px",
+                            }}
+                          >
+                            💬 Related Contributions (
+                            {contributions[division.debate_id].length})
                           </h5>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                            {contributions[division.debate_id].map((contribution, idx) => (
-                              <div
-                                key={idx}
-                                style={{
-                                  padding: "12px",
-                                  backgroundColor: "#f8fafc",
-                                  border: "1px solid #e2e8f0",
-                                  borderRadius: "6px",
-                                  fontSize: "13px",
-                                }}
-                              >
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "12px",
+                            }}
+                          >
+                            {contributions[division.debate_id].map(
+                              (contribution, idx) => (
                                 <div
+                                  key={idx}
                                   style={{
-                                    marginBottom: "8px",
-                                    fontStyle: "italic",
-                                    color: "#475569",
-                                    lineHeight: "1.4",
+                                    padding: "12px",
+                                    backgroundColor: "#f8fafc",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: "6px",
+                                    fontSize: "13px",
                                   }}
                                 >
-                                  "{contribution.value}"
+                                  <div
+                                    style={{
+                                      marginBottom: "8px",
+                                      fontStyle: "italic",
+                                      color: "#475569",
+                                      lineHeight: "1.4",
+                                    }}
+                                  >
+                                    "{contribution.value}"
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      flexWrap: "wrap",
+                                      gap: "12px",
+                                      fontSize: "12px",
+                                      color: "#64748b",
+                                    }}
+                                  >
+                                    <span>
+                                      <strong>👤 {contribution.name}</strong>
+                                    </span>
+                                    <span>🏛️ {contribution.party}</span>
+                                    <span>📍 {contribution.constituency}</span>
+                                    {contribution.context_url && (
+                                      <a
+                                        href={contribution.context_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                          color: "#3b82f6",
+                                          textDecoration: "none",
+                                        }}
+                                      >
+                                        🔗 Source
+                                      </a>
+                                    )}
+                                  </div>
                                 </div>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexWrap: "wrap",
-                                    gap: "12px",
-                                    fontSize: "12px",
-                                    color: "#64748b",
-                                  }}
-                                >
-                                  <span><strong>👤 {contribution.name}</strong></span>
-                                  <span>🏛️ {contribution.party}</span>
-                                  <span>📍 {contribution.constituency}</span>
-                                  {contribution.context_url && (
-                                    <a
-                                      href={contribution.context_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      style={{ color: "#3b82f6", textDecoration: "none" }}
-                                    >
-                                      🔗 Source
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                              ),
+                            )}
                           </div>
                         </div>
                       ) : (
                         <div style={{ padding: "16px" }}>
-                          <p style={{ 
-                            margin: 0, 
-                            fontSize: "14px", 
-                            color: "#6b7280",
-                            fontStyle: "italic"
-                          }}>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "14px",
+                              color: "#6b7280",
+                              fontStyle: "italic",
+                            }}
+                          >
                             No matching contributions found for this division.
                           </p>
                         </div>
