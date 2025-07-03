@@ -64,7 +64,8 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
       console.log("Backend response:", data);
       
       // data is expected to be [divisions_dict, contributions_dict]
-      const [divisionsData, contributionsData] = data;
+      const divisionsData = data[0];
+      const contributionsData = data[1];
       setDivisions(divisionsData);
       setContributions(contributionsData);
     } catch (err) {
