@@ -241,6 +241,9 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
                         <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
                           ✅ Ayes: <strong>{division.ayes}</strong> | ❌ Noes: <strong>{division.noes}</strong>
                         </div>
+                        <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
+                          🆔 Division ID: <strong>{divisionId}</strong>
+                        </div>
                         <a
                           href={division.context_url}
                           target="_blank"
@@ -256,7 +259,7 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
                       </div>
 
                       {/* Associated Contributions */}
-                      {contributions && contributions[division.debate_id] && (
+                      {contributions && contributions[division.debate_id] && contributions[division.debate_id].length > 0 ? (
                         <div style={{ padding: "16px" }}>
                           <h5 style={{ margin: "0 0 12px 0", color: "#374151", fontSize: "14px" }}>
                             💬 Related Contributions ({contributions[division.debate_id].length})
@@ -309,6 +312,17 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
                               </div>
                             ))}
                           </div>
+                        </div>
+                      ) : (
+                        <div style={{ padding: "16px" }}>
+                          <p style={{ 
+                            margin: 0, 
+                            fontSize: "14px", 
+                            color: "#6b7280",
+                            fontStyle: "italic"
+                          }}>
+                            No matching contributions found for this division.
+                          </p>
                         </div>
                       )}
                     </div>
