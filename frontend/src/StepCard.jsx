@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import {
-  SourceEditor,
-  FilterEditor,
-  MutateEditor,
-  AggregateEditor,
-  JoinEditor,
-} from "./editors";
+import { 
+  SourceEditor, 
+  FilterEditor, 
+  MutateEditor, 
+  AggregateEditor, 
+  JoinEditor, 
+  DivisionVotesEditor,
+  BaseEditor 
+} from './editors';
 import styles from "./DSLBuilder.module.css";
 
 export default function StepCard({
@@ -97,33 +99,22 @@ export default function StepCard({
             tableSchemas={tableSchemas || {}}
           />
         );
-      case "division_votes":
+      case 'division_votes':
         return (
-          <div className={styles.editorContent}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                <span className={styles.labelText}>Division IDs:</span>
-                <input
-                  type="text"
-                  value={(step.division_ids || []).join(", ")}
-                  onChange={(e) =>
-                    handleUpdate(
-                      "division_ids",
-                      e.target.value.split(", ").map(Number).filter(Boolean),
-                    )
-                  }
-                  placeholder="Enter comma-separated division IDs"
-                  className={styles.input}
-                />
-              </label>
-            </div>
-          </div>
+          <DivisionVotesEditor
+            step={step}
+            onUpdate={onUpdate}
+          />
         );
       default:
         return (
-          <div className={styles.editorContent}>
-            <p>Unknown operation: {step.op}</p>
-          </div>
+          <BaseEditor
+            step={step}
+            onUpdate={onUpdate}
+            availableInputs={availableInputs}
+            tableSchemas={tableSchemas}
+            requestSchema={requestSchema}
+          />
         );
     }
   };
