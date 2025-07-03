@@ -159,6 +159,23 @@ def find_divisions_from_dsl(dsl: Dict, max_rows_per_debate: int = 3, n_debates: 
         ]
 
     """
+    def clean_text_for_http(text):
+        """Clean text to ensure it's safe for HTTP responses."""
+        if text is None:
+            return ""
+        # Convert to string and replace problematic Unicode characters
+        text = str(text)
+        # Replace em dash and other problematic characters
+        text = text.replace('\u2014', '-')  # em dash
+        text = text.replace('\u2013', '-')  # en dash
+        text = text.replace('\u2018', "'")  # left single quote
+        text = text.replace('\u2019', "'")  # right single quote
+        text = text.replace('\u201c', '"')  # left double quote
+        text = text.replace('\u201d', '"')  # right double quote
+        # Encode to Latin-1 compatible characters, replacing any remaining problematic ones
+        text = text.encode('ascii', 'replace').decode('ascii')
+        return text
+
     # 1️⃣  Evaluate the DSL against *con_df*
     mask = get_boolean_series_from_dsl(dsl, con_df)
     filtered = con_df.loc[mask,CONTRIB_COLS]
@@ -166,24 +183,27 @@ def find_divisions_from_dsl(dsl: Dict, max_rows_per_debate: int = 3, n_debates: 
     # 2️⃣  Short‑circuit if no match
     relevant_debates = filtered["debate_id"].unique()
     if len(relevant_debates) == 0:
-
         return empty_dicts
 
     relevant_debates_sample = random.sample(list(relevant_debates), k = n_debates)
 
     # 3️⃣  Look up divisions tied to the debates we just found
-    divisions = (
+    divisions_df = (
         div_df.loc[
             div_df["debate_id"].isin(relevant_debates_sample),
             DIV_COLS,
         ]
         .reset_index(drop=True)
-        .set_index('division_id')
-        .to_dict(orient = 'index')
     )
+    
+    # Clean text fields in divisions
+    for text_col in ['division_title', 'context_url']:
+        if text_col in divisions_df.columns:
+            divisions_df[text_col] = divisions_df[text_col].apply(clean_text_for_http)
+    
+    divisions = divisions_df.set_index('division_id').to_dict(orient='index')
 
     # 4️⃣  Pull contribution samples (≤ *max_rows_per_debate* per debate)
-
     contribution_samples_df = (
         filtered.loc[filtered['debate_id'].isin(list(relevant_debates_sample))]
         .groupby("debate_id", group_keys=False)
@@ -191,13 +211,19 @@ def find_divisions_from_dsl(dsl: Dict, max_rows_per_debate: int = 3, n_debates: 
         .reset_index(drop=True)
     )
 
-    contribution_samples_df['value'] = contribution_samples_df['value'].apply(lambda x: x[0:300])
+    # Clean text fields in contributions
+    contribution_samples_df['value'] = contribution_samples_df['value'].apply(
+        lambda x: clean_text_for_http(x)[0:300]
+    )
+    
+    for text_col in ['name', 'party', 'constituency', 'context_url']:
+        if text_col in contribution_samples_df.columns:
+            contribution_samples_df[text_col] = contribution_samples_df[text_col].apply(clean_text_for_http)
 
     contribution_samples = {
         debate_id: group.drop(columns="debate_id").to_dict(orient="records")
         for debate_id, group in contribution_samples_df.groupby("debate_id")
     }
-
 
     return divisions, contribution_samples
 
@@ -213,6 +239,20 @@ def find_division_from_id_and_house(division_id, house):
      'context_url': 'https://hansard.parliament.uk/Commons/2024-01-09/debates/21A6D6D0-27DD-4AD6-BA98-6176B0864827/nhs-dentistry#division-49230'
      }
     '''
+    def clean_text_for_http(text):
+        """Clean text to ensure it's safe for HTTP responses."""
+        if text is None:
+            return ""
+        text = str(text)
+        text = text.replace('\u2014', '-')  # em dash
+        text = text.replace('\u2013', '-')  # en dash
+        text = text.replace('\u2018', "'")  # left single quote
+        text = text.replace('\u2019', "'")  # right single quote
+        text = text.replace('\u201c', '"')  # left double quote
+        text = text.replace('\u201d', '"')  # right double quote
+        text = text.encode('ascii', 'replace').decode('ascii')
+        return text
+    
     if house == 1:
         filter_house = 'Commons Chamber'
     else:
@@ -221,7 +261,14 @@ def find_division_from_id_and_house(division_id, house):
         "division_id == @division_id & location == @filter_house"
     )[DIV_COLS]
 
-    return found_div.iloc[0].to_dict()
+    result = found_div.iloc[0].to_dict()
+    
+    # Clean text fields
+    for key, value in result.items():
+        if isinstance(value, str):
+            result[key] = clean_text_for_http(value)
+    
+    return result
 
 
 # ---------------------------------------------------------------------------
