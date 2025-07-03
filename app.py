@@ -41,7 +41,15 @@ def find_divisions_from_dsl_endpoint():
     dsl = data.get("dsl")
     if dsl is None:
         abort(400)
-    return find_divisions_from_dsl(dsl)
+    
+    try:
+        divisions, contributions = find_divisions_from_dsl(dsl)
+        result = [divisions, contributions]
+        print(f"BACKEND: Returning divisions count: {len(divisions)}, contributions keys: {list(contributions.keys())}")
+        return jsonify(result)
+    except Exception as e:
+        print(f"BACKEND ERROR: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.get("/api/schema/<table>")
