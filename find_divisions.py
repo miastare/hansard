@@ -8,7 +8,7 @@ import random
 # ---------------------------------------------------------------------------
 # 📁  DATA SOURCES
 # ---------------------------------------------------------------------------
-# Adjust the paths as needed.  These two CSVs are expected to contain:
+# These two CSVs are expected to contain:
 #   con_df – a flat list of contributions, at least the columns:
 #            debate_id (int), value (str), name, gender, party,
 #            age_proxy, constituency, context_url

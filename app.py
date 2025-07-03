@@ -5,15 +5,44 @@ from flask_cors import CORS, cross_origin
 from flask.helpers import send_from_directory
 
 from dsl_supporter import dfs
-
+from find_divisions import find_divisions_from_dsl, find_division_from_id_and_house
 
 app = Flask(__name__)
 cors = CORS(app)
+
 
 @app.route('/api/run', methods=['POST'])
 @cross_origin()
 def run():
     return jsonify(run_pipeline(request.get_json(), app.config['DFS']))
+
+
+@app.post("/api/divisions_from_id_and_house")
+@cross_origin()
+def find_divisions_from_id_and_house_endpoint():
+    data = request.get_json()
+    division_id = data.get("division_id")
+    house = data.get("house")
+    if division_id is None or house is None:
+        abort(400)
+
+    if division_id is not int:
+        abort(400)
+
+    if house not in [1, 2]:
+        abort(400)
+    return find_division_from_id_and_house(division_id, house)
+
+
+@app.post("/api/divisions_from_dsl")
+@cross_origin()
+def find_divisions_from_dsl_endpoint():
+    data = request.get_json()
+    dsl = data.get("dsl")
+    if dsl is None:
+        abort(400)
+    return find_divisions_from_dsl(dsl)
+
 
 @app.get("/api/schema/<table>")
 def schema(table: str):
@@ -39,6 +68,7 @@ def schema(table: str):
     print(f"BACKEND: Returning schema for {table}: {result}")
     return result
 
+
 @app.get("/api/preview/<table>")
 def preview(table: str):
     n = int(request.args.get("n", 5))
@@ -47,7 +77,7 @@ def preview(table: str):
     df = dfs[table].head(n)
     return df.to_dict(orient="records")
 
+
 if __name__ == '__main__':
     app.config['DFS'] = dfs
     app.run(debug=True, host='0.0.0.0', port=4005)
-
