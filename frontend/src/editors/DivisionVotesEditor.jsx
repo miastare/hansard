@@ -63,93 +63,326 @@ const Modal = ({ isOpen, onClose, children }) => {
   );
 };
 
-const DivisionLine = ({ divisionId, onChange, onRemove, index }) => {
+const WeightEditModal = ({ isOpen, onClose, weights, onSave, divisionId }) => {
+  const [editWeights, setEditWeights] = useState(weights);
+
+  React.useEffect(() => {
+    setEditWeights(weights);
+  }, [weights, isOpen]);
+
+  const handleSave = () => {
+    onSave(editWeights);
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div style={{ padding: '40px' }}>
+        <h2 style={{ marginBottom: '30px', color: '#2d3748' }}>
+          Set Weights for Division {divisionId || 'New Division'}
+        </h2>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '24px',
+          maxWidth: '600px'
+        }}>
+          {Object.entries(editWeights).map(([voteType, weight]) => (
+            <div key={voteType} style={{
+              padding: '20px',
+              border: '2px solid #e5e7eb',
+              borderRadius: '12px',
+              backgroundColor: '#f9fafb'
+            }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '12px',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#374151',
+                textTransform: 'capitalize'
+              }}>
+                {voteType.toLowerCase().replace('notrec', 'Abstain').replace('ineligible', 'Ineligible to Vote')}:
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                value={weight}
+                onChange={(e) => setEditWeights({
+                  ...editWeights,
+                  [voteType]: parseFloat(e.target.value) || 0
+                })}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '2px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '500'
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div style={{
+          marginTop: '40px',
+          display: 'flex',
+          gap: '16px',
+          justifyContent: 'flex-end'
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#6b7280',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '500'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '500'
+            }}
+          >
+            Save Weights
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+const DivisionBox = ({ division, onChange, onRemove, index }) => {
+  const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
+
+  const updateDivisionId = (newId) => {
+    onChange(index, { ...division, id: newId });
+  };
+
+  const updateWeights = (newWeights) => {
+    onChange(index, { ...division, weights: newWeights });
+  };
+
+  const defaultWeights = { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 };
+  const weights = division.weights || defaultWeights;
+
   return (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '8px 0',
-      borderBottom: '1px solid #e5e7eb'
+      border: '2px solid #e5e7eb',
+      borderRadius: '12px',
+      padding: '20px',
+      backgroundColor: '#fff',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      marginBottom: '16px'
     }}>
-      <input
-        type="text"
-        value={divisionId}
-        onChange={(e) => onChange(index, e.target.value)}
-        placeholder="Enter division ID"
-        style={{
-          flex: 1,
-          padding: '8px 12px',
-          border: '1px solid #d1d5db',
-          borderRadius: '6px',
-          fontSize: '14px'
-        }}
+      {/* Header with Division ID input and main actions */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '16px'
+      }}>
+        <div style={{ flex: 1 }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '6px',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#374151'
+          }}>
+            Division ID:
+          </label>
+          <input
+            type="text"
+            value={division.id || ''}
+            onChange={(e) => updateDivisionId(e.target.value)}
+            placeholder="Enter division ID"
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '2px solid #d1d5db',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+        
+        <button
+          style={{
+            padding: '10px 16px',
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            marginTop: '20px'
+          }}
+        >
+          Use this division
+        </button>
+        
+        <button
+          onClick={() => setIsWeightModalOpen(true)}
+          style={{
+            padding: '10px 16px',
+            backgroundColor: '#8b5cf6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            marginTop: '20px'
+          }}
+        >
+          Set Weights
+        </button>
+        
+        <button
+          onClick={() => onRemove(index)}
+          style={{
+            padding: '10px',
+            backgroundColor: '#ef4444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            marginTop: '20px'
+          }}
+        >
+          🗑️
+        </button>
+      </div>
+
+      {/* Weights Display */}
+      <div style={{
+        backgroundColor: '#f9fafb',
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '16px'
+      }}>
+        <h4 style={{
+          margin: '0 0 12px 0',
+          fontSize: '14px',
+          fontWeight: '600',
+          color: '#374151'
+        }}>
+          Current Weights:
+        </h4>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '12px'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Aye</div>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: '#059669' }}>{weights.AYE}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>No</div>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: '#dc2626' }}>{weights.NO}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Abstain</div>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: '#6b7280' }}>{weights.NOTREC}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Ineligible</div>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: '#9ca3af' }}>{weights.INELIGIBLE}</div>
+          </div>
+        </div>
+      </div>
+
+      <WeightEditModal
+        isOpen={isWeightModalOpen}
+        onClose={() => setIsWeightModalOpen(false)}
+        weights={weights}
+        onSave={updateWeights}
+        divisionId={division.id}
       />
-      <button
-        style={{
-          padding: '8px 16px',
-          backgroundColor: '#3b82f6',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontSize: '14px'
-        }}
-      >
-        Use this division
-      </button>
-      <button
-        onClick={() => onRemove(index)}
-        style={{
-          padding: '8px',
-          backgroundColor: '#ef4444',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontSize: '16px'
-        }}
-      >
-        🗑️
-      </button>
     </div>
   );
 };
 
 export default function DivisionVotesEditor({ step, onUpdate }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFindModalOpen, setIsFindModalOpen] = useState(false);
   
-  // Convert division_ids array to individual divisions, or start with one empty division
+  // Convert division_ids array to division objects with weights
   const divisions = step.division_ids && step.division_ids.length > 0 
-    ? step.division_ids 
-    : [''];
+    ? step.division_ids.map(id => ({
+        id: id,
+        weights: step.weights || { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 }
+      }))
+    : [{ id: '', weights: { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 } }];
 
-  const updateDivision = (index, value) => {
+  const updateDivision = (index, newDivision) => {
     const newDivisions = [...divisions];
-    newDivisions[index] = value;
+    newDivisions[index] = newDivision;
+    
+    // Update step with new division IDs
+    const divisionIds = newDivisions
+      .map(div => div.id)
+      .filter(id => id && id.trim() !== '');
+    
     onUpdate({
       ...step,
-      division_ids: newDivisions.filter(id => id.trim() !== '')
+      division_ids: divisionIds,
+      weights: newDivisions[0]?.weights || { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 }
     });
   };
 
   const removeDivision = (index) => {
     const newDivisions = divisions.filter((_, i) => i !== index);
-    // Ensure at least one empty division remains
+    
+    // Ensure at least one division remains
     if (newDivisions.length === 0) {
-      newDivisions.push('');
+      newDivisions.push({ id: '', weights: { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 } });
     }
+    
+    const divisionIds = newDivisions
+      .map(div => div.id)
+      .filter(id => id && id.trim() !== '');
+    
     onUpdate({
       ...step,
-      division_ids: newDivisions.filter(id => id.trim() !== '')
+      division_ids: divisionIds,
+      weights: newDivisions[0]?.weights || { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 }
     });
   };
 
   const addDivision = () => {
-    const newDivisions = [...divisions, ''];
+    const newDivisions = [...divisions, { 
+      id: '', 
+      weights: divisions[0]?.weights || { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 }
+    }];
+    
+    const divisionIds = newDivisions
+      .map(div => div.id)
+      .filter(id => id && id.trim() !== '');
+    
     onUpdate({
       ...step,
-      division_ids: newDivisions.filter(id => id.trim() !== '')
+      division_ids: divisionIds,
+      weights: newDivisions[0]?.weights || { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 }
     });
   };
 
@@ -157,16 +390,6 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
     onUpdate({
       ...step,
       house: parseInt(house)
-    });
-  };
-
-  const updateWeights = (voteType, weight) => {
-    onUpdate({
-      ...step,
-      weights: {
-        ...step.weights,
-        [voteType]: parseFloat(weight)
-      }
     });
   };
 
@@ -203,118 +426,70 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
         </select>
       </div>
 
-      {/* Division IDs Section */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px'
-        }}>
-          <label style={{
-            fontWeight: '600',
-            fontSize: '14px',
-            color: '#374151'
-          }}>
-            Division IDs:
-          </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={addDivision}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              + Add Division
-            </button>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#8b5cf6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              Find Divisions
-            </button>
-          </div>
-        </div>
-
-        <div style={{
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
-          padding: '16px',
-          backgroundColor: '#f9fafb'
-        }}>
-          {divisions.map((divisionId, index) => (
-            <DivisionLine
-              key={index}
-              divisionId={divisionId}
-              onChange={updateDivision}
-              onRemove={removeDivision}
-              index={index}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Vote Weights Section */}
-      <div style={{ marginBottom: '24px' }}>
-        <label style={{
-          display: 'block',
-          marginBottom: '16px',
+      {/* Header with Add Division and Find Divisions buttons */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px'
+      }}>
+        <h5 style={{
+          margin: 0,
           fontWeight: '600',
-          fontSize: '14px',
+          fontSize: '16px',
           color: '#374151'
         }}>
-          Vote Weights:
-        </label>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '16px',
-          maxWidth: '400px'
-        }}>
-          {Object.entries(step.weights || { AYE: 1, NO: -1, NOTREC: 0 }).map(([voteType, weight]) => (
-            <div key={voteType}>
-              <label style={{
-                display: 'block',
-                marginBottom: '4px',
-                fontSize: '12px',
-                fontWeight: '500',
-                color: '#6b7280'
-              }}>
-                {voteType}:
-              </label>
-              <input
-                type="number"
-                value={weight}
-                onChange={(e) => updateWeights(voteType, e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '6px 8px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-          ))}
+          Divisions:
+        </h5>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={addDivision}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            + Add Division
+          </button>
+          <button
+            onClick={() => setIsFindModalOpen(true)}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#8b5cf6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            Find Divisions
+          </button>
         </div>
       </div>
 
-      {/* Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+      {/* Division Boxes */}
+      <div>
+        {divisions.map((division, index) => (
+          <DivisionBox
+            key={index}
+            division={division}
+            onChange={updateDivision}
+            onRemove={removeDivision}
+            index={index}
+          />
+        ))}
+      </div>
+
+      {/* Find Divisions Modal */}
+      <Modal isOpen={isFindModalOpen} onClose={() => setIsFindModalOpen(false)}>
         <div style={{
           padding: '40px',
           display: 'flex',
