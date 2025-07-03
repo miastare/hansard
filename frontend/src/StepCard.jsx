@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { 
-  SourceEditor, 
-  FilterEditor, 
-  MutateEditor, 
-  AggregateEditor, 
-  JoinEditor, 
+import {
+  SourceEditor,
+  FilterEditor,
+  MutateEditor,
+  AggregateEditor,
+  JoinEditor,
   DivisionVotesEditor,
-  BaseEditor 
-} from './editors';
+  BaseEditor,
+} from "./editors";
 import styles from "./DSLBuilder.module.css";
 
 export default function StepCard({
@@ -99,13 +99,8 @@ export default function StepCard({
             tableSchemas={tableSchemas || {}}
           />
         );
-      case 'division_votes':
-        return (
-          <DivisionVotesEditor
-            step={step}
-            onUpdate={onUpdate}
-          />
-        );
+      case "division_votes":
+        return <DivisionVotesEditor step={step} onUpdate={onUpdate} />;
       default:
         return (
           <BaseEditor
@@ -164,7 +159,7 @@ export default function StepCard({
       <div
         className={styles.cardContent}
         style={{
-          maxHeight: isExpanded ? "60vh" : "0",
+          maxHeight: isExpanded ? "none" : "0",
           opacity: isExpanded ? 1 : 0,
           padding: isExpanded ? "0 24px 24px 24px" : "0 24px 0 24px",
           pointerEvents: isExpanded ? "auto" : "none",
