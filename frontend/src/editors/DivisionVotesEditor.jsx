@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../components/Modal';
 import DivisionBox from '../components/DivisionBox';
+import DSLBuilder from './DSLBuilder';
 
 export default function DivisionVotesEditor({ step, onUpdate }) {
   const [isFindModalOpen, setIsFindModalOpen] = useState(false);
@@ -191,19 +192,15 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
       </div>
 
       {/* Find Divisions Modal */}
-      <Modal isOpen={isFindModalOpen} onClose={() => setIsFindModalOpen(false)}>
-        <div style={{
-          padding: '40px',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100%',
-          fontSize: '24px',
-          color: '#6b7280'
-        }}>
-          This is a modal
-        </div>
-      </Modal>
+      <DSLBuilder
+        isOpen={isFindModalOpen}
+        onClose={() => setIsFindModalOpen(false)}
+        onDSLComplete={(dsl) => {
+          console.log('DSL completed:', dsl);
+          // TODO: In the future, this will call the backend endpoint
+          // For now, just close the modal
+        }}
+      />
     </div>
   );
 }
