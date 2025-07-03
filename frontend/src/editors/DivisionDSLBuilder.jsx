@@ -67,10 +67,17 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
       console.log("Backend response:", data);
 
       // data is expected to be [divisions_dict, contributions_dict]
-      const divisionsData = data[0];
-      const contributionsData = data[1];
-      setDivisions(divisionsData);
-      setContributions(contributionsData);
+      if (Array.isArray(data) && data.length === 2) {
+        const divisionsData = data[0];
+        const contributionsData = data[1];
+        console.log("Divisions data:", divisionsData);
+        console.log("Contributions data:", contributionsData);
+        setDivisions(divisionsData);
+        setContributions(contributionsData);
+      } else {
+        console.error("Unexpected data format:", data);
+        setError("Unexpected response format from server");
+      }
     } catch (err) {
       console.error("Error fetching divisions:", err);
       setError(err.message);
