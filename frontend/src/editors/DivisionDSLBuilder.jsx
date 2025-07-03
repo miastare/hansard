@@ -10,11 +10,69 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
     op: "contains",
     args: { pattern: "", column: "value" },
   });
+  const [loading, setLoading] = useState(false);
+  const [divisions, setDivisions] = useState(null);
+  const [contributions, setContributions] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleComplete = () => {
     console.log("Generated DSL:", JSON.stringify(dsl, null, 2));
     onDSLComplete?.(dsl);
     onClose();
+  };
+
+  const isValidDSL = (dslNode) => {
+    if (!dslNode || !dslNode.op) return false;
+    
+    if (LEAF_OPS.includes(dslNode.op)) {
+      return dslNode.args?.pattern && dslNode.args.pattern.trim() !== "";
+    }
+    
+    if (dslNode.op === "not") {
+      return isValidDSL(dslNode.args);
+    }
+    
+    if (dslNode.op === "and" || dslNode.op === "or") {
+      return Array.isArray(dslNode.args) && 
+             dslNode.args.length >= 2 && 
+             dslNode.args.every(arg => isValidDSL(arg));
+    }
+    
+    return false;
+  };
+
+  const handleRetrieveDivisions = async () => {
+    setLoading(true);
+    setError(null);
+    setDivisions(null);
+    setContributions(null);
+
+    try {
+      const response = await fetch('/api/divisions_from_dsl', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ dsl }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Backend response:", data);
+      
+      // data is expected to be [divisions_dict, contributions_dict]
+      const [divisionsData, contributionsData] = data;
+      setDivisions(divisionsData);
+      setContributions(contributionsData);
+    } catch (err) {
+      console.error("Error fetching divisions:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,6 +99,22 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
             🔍 Build Division Search Query
           </h2>
           <div style={{ display: "flex", gap: "12px" }}>
+            <button
+              onClick={handleRetrieveDivisions}
+              disabled={!isValidDSL(dsl) || loading}
+              style={{
+                padding: "12px 20px",
+                background: isValidDSL(dsl) && !loading ? "#3b82f6" : "#9ca3af",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: isValidDSL(dsl) && !loading ? "pointer" : "not-allowed",
+                fontSize: "16px",
+                fontWeight: "600",
+              }}
+            >
+              {loading ? "🔄 Searching..." : "🔍 Retrieve Matching Divisions"}
+            </button>
             <button
               onClick={handleComplete}
               style={{
@@ -91,6 +165,175 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
         </div>
 
         <DSLExpressionBuilder expr={dsl} onChange={setDsl} modalDepth={0} />
+
+        {/* Error Display */}
+        {error && (
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "16px",
+              backgroundColor: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: "8px",
+              color: "#dc2626",
+            }}
+          >
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {/* Results Display */}
+        {(divisions || contributions) && (
+          <div
+            style={{
+              marginTop: "24px",
+              borderTop: "2px solid rgba(229, 231, 235, 0.8)",
+              paddingTop: "24px",
+            }}
+          >
+            <h3 style={{ margin: "0 0 20px 0", color: "#1f2937", fontSize: "20px" }}>
+              📊 Search Results
+            </h3>
+
+            {divisions && Object.keys(divisions).length > 0 ? (
+              <div>
+                <div
+                  style={{
+                    marginBottom: "16px",
+                    padding: "12px",
+                    backgroundColor: "#ecfdf5",
+                    border: "1px solid #10b981",
+                    borderRadius: "6px",
+                    fontSize: "14px",
+                    color: "#047857",
+                  }}
+                >
+                  Found <strong>{Object.keys(divisions).length}</strong> matching divisions
+                </div>
+
+                <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+                  {Object.entries(divisions).map(([divisionId, division]) => (
+                    <div
+                      key={divisionId}
+                      style={{
+                        marginBottom: "20px",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        backgroundColor: "#ffffff",
+                      }}
+                    >
+                      {/* Division Header */}
+                      <div
+                        style={{
+                          padding: "16px",
+                          backgroundColor: "#f9fafb",
+                          borderBottom: "1px solid #e5e7eb",
+                          borderRadius: "8px 8px 0 0",
+                        }}
+                      >
+                        <h4 style={{ margin: "0 0 8px 0", color: "#111827", fontSize: "16px" }}>
+                          {division.division_title}
+                        </h4>
+                        <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
+                          📅 {new Date(division.division_date_time).toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
+                          ✅ Ayes: <strong>{division.ayes}</strong> | ❌ Noes: <strong>{division.noes}</strong>
+                        </div>
+                        <a
+                          href={division.context_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: "12px",
+                            color: "#3b82f6",
+                            textDecoration: "none",
+                          }}
+                        >
+                          🔗 View in Hansard
+                        </a>
+                      </div>
+
+                      {/* Associated Contributions */}
+                      {contributions && contributions[division.debate_id] && (
+                        <div style={{ padding: "16px" }}>
+                          <h5 style={{ margin: "0 0 12px 0", color: "#374151", fontSize: "14px" }}>
+                            💬 Related Contributions ({contributions[division.debate_id].length})
+                          </h5>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                            {contributions[division.debate_id].map((contribution, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  padding: "12px",
+                                  backgroundColor: "#f8fafc",
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: "6px",
+                                  fontSize: "13px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    marginBottom: "8px",
+                                    fontStyle: "italic",
+                                    color: "#475569",
+                                    lineHeight: "1.4",
+                                  }}
+                                >
+                                  "{contribution.value}"
+                                </div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: "12px",
+                                    fontSize: "12px",
+                                    color: "#64748b",
+                                  }}
+                                >
+                                  <span><strong>👤 {contribution.name}</strong></span>
+                                  <span>🏛️ {contribution.party}</span>
+                                  <span>📍 {contribution.constituency}</span>
+                                  {contribution.context_url && (
+                                    <a
+                                      href={contribution.context_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: "#3b82f6", textDecoration: "none" }}
+                                    >
+                                      🔗 Source
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : divisions && Object.keys(divisions).length === 0 ? (
+              <div
+                style={{
+                  padding: "20px",
+                  backgroundColor: "#fffbeb",
+                  border: "1px solid #f59e0b",
+                  borderRadius: "8px",
+                  textAlign: "center",
+                  color: "#92400e",
+                }}
+              >
+                <strong>No matching divisions found</strong>
+                <br />
+                <span style={{ fontSize: "14px" }}>
+                  Try adjusting your search criteria or using different terms.
+                </span>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
     </Modal>
   );
