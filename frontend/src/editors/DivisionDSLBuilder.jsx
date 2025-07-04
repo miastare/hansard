@@ -70,7 +70,7 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
       console.log("Backend response length:", data?.length);
 
       // Check if response is an error object
-      if (data && typeof data === 'object' && data.error) {
+      if (data && typeof data === "object" && data.error) {
         console.error("Backend error:", data.error);
         setError(`Backend error: ${data.error}`);
         return;
@@ -84,18 +84,32 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
         console.log("Divisions data type:", typeof divisionsData);
         console.log("Contributions data:", contributionsData);
         console.log("Contributions data type:", typeof contributionsData);
-        
-        if (typeof divisionsData === 'object' && typeof contributionsData === 'object') {
+
+        if (
+          typeof divisionsData === "object" &&
+          typeof contributionsData === "object"
+        ) {
           setDivisions(divisionsData);
           setContributions(contributionsData);
         } else {
-          console.error("Invalid data types - divisions:", typeof divisionsData, "contributions:", typeof contributionsData);
+          console.error(
+            "Invalid data types - divisions:",
+            typeof divisionsData,
+            "contributions:",
+            typeof contributionsData,
+          );
           setError("Invalid data types returned from server");
         }
       } else {
         console.error("Unexpected data format:", data);
-        console.error("Expected array of length 2, got:", typeof data, Array.isArray(data) ? `length ${data.length}` : "not an array");
-        setError(`Unexpected response format from server. Expected array of length 2, got ${typeof data} ${Array.isArray(data) ? `with length ${data.length}` : 'not an array'}`);
+        console.error(
+          "Expected array of length 2, got:",
+          typeof data,
+          Array.isArray(data) ? `length ${data.length}` : "not an array",
+        );
+        setError(
+          `Unexpected response format from server. Expected array of length 2, got ${typeof data} ${Array.isArray(data) ? `with length ${data.length}` : "not an array"}`,
+        );
       }
     } catch (err) {
       console.error("Error fetching divisions:", err);
@@ -279,47 +293,54 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
                         </h4>
                         <div
                           style={{
-                            fontSize: "14px",
-                            color: "#6b7280",
-                            marginBottom: "8px",
+                            display: "flex",
+                            justifyContent: "space-between",
                           }}
                         >
-                          📅{" "}
-                          {new Date(
-                            division.division_date_time,
-                          ).toLocaleString()}
+                          <div
+                            style={{
+                              fontSize: "14px",
+                              color: "#6b7280",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            📅{" "}
+                            {new Date(
+                              division.division_date_time,
+                            ).toLocaleString()}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "14px",
+                              color: "#6b7280",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            ✅ Ayes: <strong>{division.ayes}</strong> | ❌ Noes:{" "}
+                            <strong>{division.noes}</strong>
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "14px",
+                              color: "#6b7280",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            🆔 Division ID: <strong>{divisionId}</strong>
+                          </div>
+                          <a
+                            href={division.context_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              fontSize: "14px",
+                              color: "#3b82f6",
+                              textDecoration: "none",
+                            }}
+                          >
+                            🔗 View in Hansard
+                          </a>
                         </div>
-                        <div
-                          style={{
-                            fontSize: "14px",
-                            color: "#6b7280",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          ✅ Ayes: <strong>{division.ayes}</strong> | ❌ Noes:{" "}
-                          <strong>{division.noes}</strong>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#6b7280",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          🆔 Division ID: <strong>{divisionId}</strong>
-                        </div>
-                        <a
-                          href={division.context_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            fontSize: "12px",
-                            color: "#3b82f6",
-                            textDecoration: "none",
-                          }}
-                        >
-                          🔗 View in Hansard
-                        </a>
                       </div>
 
                       {/* Associated Contributions */}
