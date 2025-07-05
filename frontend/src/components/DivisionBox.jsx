@@ -3,7 +3,7 @@ import WeightEditModal from "./WeightEditModal";
 
 const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
-  const [house, setHouse] = useState("Commons"); // Added house state
+  const [house, setHouse] = useState(division.house || "Commons");
 
   const updateDivisionId = (newId) => {
     onChange(internalId, { ...division, id: newId });
@@ -16,7 +16,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
   // Function to update the house
   const updateHouse = (newHouse) => {
     setHouse(newHouse);
-    onChange(internalId, { ...division, house: newHouse }); // save to the division object
+    onChange(internalId, { ...division, house: newHouse });
   };
 
   const defaultWeights = { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 };
@@ -83,8 +83,8 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             House:
           </label>
           <select
-            value={house}
-            onChange={(e) => updateHouse(e.target.value)}
+            value={division.house || 1}
+            onChange={(e) => updateHouse(parseInt(e.target.value))}
             style={{
               width: "100%",
               padding: "10px 12px",
@@ -94,8 +94,8 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
               backgroundColor: "white",
             }}
           >
-            <option value="Commons">Commons</option>
-            <option value="Lords">Lords</option>
+            <option value={1}>Commons</option>
+            <option value={2}>Lords</option>
           </select>
         </div>
 
@@ -230,7 +230,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
           </div>
         </div>
 
-        {/* Additional Info Placeholder */}
+        {/* Division Metadata Display */}
         <div
           style={{
             flex: 0.5,
@@ -238,14 +238,59 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             backgroundColor: "#f9fafb",
             border: "1px solid #e5e7eb",
             borderRadius: "8px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "14px",
-            color: "#6b7280",
+            fontSize: "12px",
+            color: "#374151",
           }}
         >
-          to populate
+          {division.metadata ? (
+            <div>
+              <div
+                style={{
+                  fontWeight: "600",
+                  marginBottom: "8px",
+                  fontSize: "13px",
+                  color: "#111827",
+                }}
+              >
+                {division.metadata.division_title}
+              </div>
+              <div style={{ marginBottom: "4px" }}>
+                📅 {new Date(division.metadata.division_date_time).toLocaleDateString()}
+              </div>
+              <div style={{ marginBottom: "4px" }}>
+                ✅ Ayes: <strong>{division.metadata.ayes}</strong> | ❌ Noes: <strong>{division.metadata.noes}</strong>
+              </div>
+              {division.metadata.context_url && (
+                <div>
+                  <a
+                    href={division.metadata.context_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: "#3b82f6",
+                      textDecoration: "none",
+                      fontSize: "11px",
+                    }}
+                  >
+                    🔗 View in Hansard
+                  </a>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "#6b7280",
+                fontStyle: "italic",
+              }}
+            >
+              Division details will appear here when found
+            </div>
+          )}
         </div>
       </div>
 

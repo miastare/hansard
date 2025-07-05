@@ -5,7 +5,7 @@ import Modal from "../components/Modal";
 const LOGICAL_OPS = ["and", "or", "not"];
 const LEAF_OPS = ["contains", "icontains", "regex"];
 
-export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
+export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete, onAddDivision }) {
   const [dsl, setDsl] = useState({
     op: "contains",
     args: { pattern: "", column: "value" },
@@ -268,15 +268,57 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
                           borderRadius: "8px 8px 0 0",
                         }}
                       >
-                        <h4
+                        <div
                           style={{
-                            margin: "0 0 8px 0",
-                            color: "#111827",
-                            fontSize: "16px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            marginBottom: "8px",
                           }}
                         >
-                          {division.division_title}
-                        </h4>
+                          <h4
+                            style={{
+                              margin: "0",
+                              color: "#111827",
+                              fontSize: "16px",
+                              flex: 1,
+                            }}
+                          >
+                            {division.division_title}
+                          </h4>
+                          {onAddDivision && (
+                            <button
+                              onClick={() => {
+                                const house = division.location === "Commons Chamber" ? 1 : 2;
+                                onAddDivision({
+                                  id: divisionId,
+                                  house: house,
+                                  metadata: {
+                                    division_title: division.division_title,
+                                    division_date_time: division.division_date_time,
+                                    ayes: division.ayes,
+                                    noes: division.noes,
+                                    context_url: division.context_url,
+                                  },
+                                });
+                              }}
+                              style={{
+                                padding: "8px 16px",
+                                backgroundColor: "#10b981",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontSize: "12px",
+                                fontWeight: "600",
+                                marginLeft: "12px",
+                                flexShrink: 0,
+                              }}
+                            >
+                              Use this division
+                            </button>
+                          )}
+                        </div>
                         <div
                           style={{
                             display: "flex",

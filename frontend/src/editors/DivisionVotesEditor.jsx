@@ -13,7 +13,9 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
       return step.division_ids.map((id, index) => ({
         internalId: index + 1,
         id: id,
+        house: step.houses?.[index] || 1,
         weights: step.weights || { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 },
+        metadata: step.division_metadata?.[index] || null,
       }));
     }
     return [
@@ -22,6 +24,7 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
         id: "",
         house: 1,
         weights: { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 },
+        metadata: null,
       },
     ];
   };
@@ -40,6 +43,14 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
       .map((div) => div.id)
       .filter((id) => id && id.trim() !== "");
 
+    const houses = newDivisions
+      .filter((div) => div.id && div.id.trim() !== "")
+      .map((div) => div.house || 1);
+
+    const divisionMetadata = newDivisions
+      .filter((div) => div.id && div.id.trim() !== "")
+      .map((div) => div.metadata || null);
+
     // Use weights from the first division, or default weights
     const weights = newDivisions[0]?.weights || {
       AYE: 1,
@@ -51,6 +62,8 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
     onUpdate({
       ...step,
       division_ids: divisionIds,
+      houses: houses,
+      division_metadata: divisionMetadata,
       weights: weights,
     });
   };
@@ -75,6 +88,7 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
           id: "",
           house: 1,
           weights: { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 },
+          metadata: null,
         },
       ];
       setNextId(nextId + 1);
@@ -84,17 +98,18 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
     syncToStep(newDivisions);
   };
 
-  const addDivision = () => {
+  const addDivision = (divisionData = null) => {
     const newDivision = {
       internalId: nextId,
-      id: "",
-      house: 1,
+      id: divisionData?.id || "",
+      house: divisionData?.house || 1,
       weights: divisions[0]?.weights || {
         AYE: 1,
         NO: -1,
         NOTREC: 0,
         INELIGIBLE: 0,
       },
+      metadata: divisionData?.metadata || null,
     };
 
     const newDivisions = [...divisions, newDivision];
@@ -183,8 +198,10 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
         onClose={() => setIsFindModalOpen(false)}
         onDSLComplete={(dsl) => {
           console.log("DSL completed:", dsl);
-          // TODO: In the future, this will call the backend endpoint
-          // For now, just close the modal
+        }}
+        onAddDivision={(divisionData) => {
+          addDivision(divisionData);
+          setIsFindModalOpen(false);
         }}
       />
     </div>
