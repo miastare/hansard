@@ -306,16 +306,7 @@ def find_division_from_id_and_house(division_id, house):
         return result
     except Exception as e:
         print(f"FIND_DIVISION ERROR: Error processing division data: {str(e)}")
-        return {"error": f"Error processing division data: {str(e)}"}_id & location == @filter_house")[DIV_COLS]
-
-    result = found_div.iloc[0].to_dict()
-
-    # Clean text fields
-    for key, value in result.items():
-        if isinstance(value, str):
-            result[key] = clean_text_for_http(value)
-
-    return result
+        return {"error": f"Error processing division data: {str(e)}"}
 
 
 # ---------------------------------------------------------------------------
