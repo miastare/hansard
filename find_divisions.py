@@ -249,6 +249,7 @@ def find_division_from_id_and_house(division_id, house):
      'context_url': 'https://hansard.parliament.uk/Commons/2024-01-09/debates/21A6D6D0-27DD-4AD6-BA98-6176B0864827/nhs-dentistry#division-49230'
      }
     '''
+    print(f"FIND_DIVISION: Looking for division_id={division_id} (type: {type(division_id)}) in house={house}")
 
     def clean_text_for_http(text):
         """Clean text to ensure it's safe for HTTP responses."""
@@ -264,12 +265,48 @@ def find_division_from_id_and_house(division_id, house):
         text = text.encode('ascii', 'replace').decode('ascii')
         return text
 
+    # Convert division_id to int if it's a string
+    try:
+        division_id = int(division_id)
+        print(f"FIND_DIVISION: Converted division_id to int: {division_id}")
+    except (ValueError, TypeError):
+        print(f"FIND_DIVISION ERROR: Could not convert division_id to int: {division_id}")
+        return {"error": f"Invalid division_id: {division_id}"}
+
     if house == 1:
         filter_house = 'Commons Chamber'
     else:
         filter_house = 'Lords Chamber'
-    found_div = div_df.query(
-        "division_id == @division_id & location == @filter_house")[DIV_COLS]
+    
+    print(f"FIND_DIVISION: Filtering for house='{filter_house}'")
+    print(f"FIND_DIVISION: Available columns in div_df: {list(div_df.columns)}")
+    print(f"FIND_DIVISION: div_df shape: {div_df.shape}")
+    
+    # Check if the division exists
+    matching_divisions = div_df.query("division_id == @division_id and location == @filter_house")
+    print(f"FIND_DIVISION: Found {len(matching_divisions)} matching divisions")
+    
+    if len(matching_divisions) == 0:
+        print(f"FIND_DIVISION ERROR: No division found for division_id={division_id} in house='{filter_house}'")
+        return {"error": f"Division {division_id} not found in {filter_house}"}
+    
+    found_div = matching_divisions.iloc[0]
+    print(f"FIND_DIVISION: Found division: {found_div.to_dict()}")
+    
+    try:
+        result = {
+            'division_id': int(found_div['division_id']),
+            'division_date_time': str(found_div['division_date_time']),
+            'division_title': clean_text_for_http(found_div['division_title']),
+            'ayes': int(found_div['ayes']) if pd.notna(found_div['ayes']) else 0,
+            'noes': int(found_div['noes']) if pd.notna(found_div['noes']) else 0,
+            'context_url': str(found_div['context_url']) if pd.notna(found_div['context_url']) else ""
+        }
+        print(f"FIND_DIVISION: Returning result: {result}")
+        return result
+    except Exception as e:
+        print(f"FIND_DIVISION ERROR: Error processing division data: {str(e)}")
+        return {"error": f"Error processing division data: {str(e)}"}_id & location == @filter_house")[DIV_COLS]
 
     result = found_div.iloc[0].to_dict()
 

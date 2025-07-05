@@ -23,14 +23,21 @@ def find_divisions_from_id_and_house_endpoint():
     data = request.get_json()
     division_id = data.get("division_id")
     house = data.get("house")
+    print(f"BACKEND: divisions_from_id_and_house called with division_id={division_id}, house={house}")
+    
     if division_id is None or house is None:
+        print(f"BACKEND ERROR: Missing required fields - division_id={division_id}, house={house}")
         abort(400)
 
-    if division_id is not int:
+    # Fix the type check
+    if not isinstance(division_id, (int, str)):
+        print(f"BACKEND ERROR: Invalid division_id type: {type(division_id)}")
         abort(400)
 
     if house not in [1, 2]:
+        print(f"BACKEND ERROR: Invalid house value: {house}")
         abort(400)
+    
     return find_division_from_id_and_house(division_id, house)
 
 

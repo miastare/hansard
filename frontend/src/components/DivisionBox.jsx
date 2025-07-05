@@ -27,32 +27,49 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
       return;
     }
 
+    console.log("FRONTEND: Fetching division details", {
+      division_id: division.id,
+      house: division.house,
+      division_id_type: typeof division.id
+    });
+
     setIsLoading(true);
     try {
+      const requestBody = {
+        division_id: division.id,
+        house: division.house,
+      };
+      
+      console.log("FRONTEND: Sending request to /api/division_by_id with body:", requestBody);
+
       const response = await fetch("/api/division_by_id", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          division_id: division.id,
-          house: division.house,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log("FRONTEND: Response status:", response.status);
+      console.log("FRONTEND: Response headers:", Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error("FRONTEND: HTTP error response:", errorText);
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
       const divisionData = await response.json();
+      console.log("FRONTEND: Received division data:", divisionData);
 
       if (divisionData.error) {
+        console.error("FRONTEND: API returned error:", divisionData.error);
         alert(`Error: ${divisionData.error}`);
         return;
       }
 
       // Update the division with the fetched metadata
-      onChange(internalId, {
+      const updatedDivision = {
         ...division,
         metadata: {
           division_title: divisionData.division_title,
@@ -61,9 +78,12 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
           noes: divisionData.noes,
           context_url: divisionData.context_url,
         },
-      });
+      };
+      
+      console.log("FRONTEND: Updating division with metadata:", updatedDivision);
+      onChange(internalId, updatedDivision);
     } catch (error) {
-      console.error("Error fetching division details:", error);
+      console.error("FRONTEND: Error fetching division details:", error);
       alert(`Failed to fetch division details: ${error.message}`);
     } finally {
       setIsLoading(false);
