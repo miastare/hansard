@@ -1,0 +1,109 @@
+
+.modal {
+  padding: 32px;
+  min-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 2px solid rgba(229, 231, 235, 0.8);
+  padding-bottom: 16px;
+}
+
+.title {
+  margin: 0;
+  color: #1f2937;
+  font-size: 24px;
+}
+
+.headerButtons {
+  display: flex;
+  gap: 12px;
+}
+
+.retrieveButton {
+  padding: 12px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.retrieveButton:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  padding: 12px 20px;
+  background: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.info {
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #f0f9ff;
+  border: 1px solid #0ea5e9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #0c4a6e;
+}
+
+.error {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+}
+
+.results {
+  margin-top: 24px;
+  border-top: 2px solid rgba(229, 231, 235, 0.8);
+  padding-top: 24px;
+}
+
+.resultsTitle {
+  margin: 0 0 20px 0;
+  color: #1f2937;
+  font-size: 20px;
+}
+
+.successMessage {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #047857;
+}
+
+.divisionsContainer {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.noResults {
+  padding: 20px;
+  background-color: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  text-align: center;
+  color: #92400e;
+}

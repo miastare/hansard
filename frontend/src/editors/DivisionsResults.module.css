@@ -1,0 +1,28 @@
+
+.successMessage {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #047857;
+}
+
+.divisionsContainer {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.noResults {
+  padding: 20px;
+  background-color: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  text-align: center;
+  color: #92400e;
+}
+
+.noResultsHint {
+  font-size: 14px;
+}

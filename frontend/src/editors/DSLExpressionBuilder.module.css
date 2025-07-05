@@ -1,0 +1,136 @@
+
+.container {
+  padding: 20px;
+  border: 2px solid #3b82f6;
+  border-radius: 10px;
+  background-color: #f8f9ff;
+}
+
+.operationType {
+  margin-bottom: 15px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  min-width: 150px;
+}
+
+.input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.hint {
+  font-size: 12px;
+  color: #666;
+}
+
+.conditionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.editButton {
+  padding: 4px 8px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  margin-right: 5px;
+}
+
+.addButton {
+  padding: 4px 8px;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.removeButton {
+  padding: 4px 8px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.summary {
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #495057;
+  border: 1px solid #e9ecef;
+}
+
+.condition {
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #fff;
+}
+
+.conditionItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.conditionTitle {
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.modalContent {
+  padding: 20px;
+  min-width: 500px;
+}
+
+.modalTitle {
+  margin-bottom: 20px;
+}
+
+.modalSubtitle {
+  font-size: 14px;
+  color: #666;
+  font-weight: normal;
+}
+
+.modalFooter {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.doneButton {
+  padding: 10px 20px;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}

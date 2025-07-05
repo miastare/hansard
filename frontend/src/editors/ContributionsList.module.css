@@ -1,0 +1,54 @@
+
+.container {
+  padding: 16px;
+}
+
+.title {
+  margin: 0 0 12px 0;
+  color: #374151;
+  font-size: 14px;
+}
+
+.contributionsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contribution {
+  padding: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.value {
+  margin-bottom: 8px;
+  font-style: italic;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.link {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.noContributions {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  font-style: italic;
+}
