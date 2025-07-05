@@ -13,11 +13,11 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
     onChange(internalId, { ...division, weights: newWeights });
   };
 
-    // Function to update the house
-    const updateHouse = (newHouse) => {
-      setHouse(newHouse);
-      onChange(internalId, { ...division, house: newHouse }); // save to the division object
-    };
+  // Function to update the house
+  const updateHouse = (newHouse) => {
+    setHouse(newHouse);
+    onChange(internalId, { ...division, house: newHouse }); // save to the division object
+  };
 
   const defaultWeights = { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 };
   const weights = division.weights || defaultWeights;
@@ -69,35 +69,35 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
           />
         </div>
 
-          {/* House Selection Dropdown */}
-          <div style={{ flex: 0.5 }}>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "6px",
-                fontSize: "14px",
-                fontWeight: "600",
-                color: "#374151",
-              }}
-            >
-              House:
-            </label>
-            <select
-              value={house}
-              onChange={(e) => updateHouse(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "2px solid #d1d5db",
-                borderRadius: "8px",
-                fontSize: "14px",
-                backgroundColor: "white",
-              }}
-            >
-              <option value="Commons">Commons</option>
-              <option value="Lords">Lords</option>
-            </select>
-          </div>
+        {/* House Selection Dropdown */}
+        <div style={{ flex: 0.5 }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "6px",
+              fontSize: "14px",
+              fontWeight: "600",
+              color: "#374151",
+            }}
+          >
+            House:
+          </label>
+          <select
+            value={house}
+            onChange={(e) => updateHouse(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              border: "2px solid #d1d5db",
+              borderRadius: "8px",
+              fontSize: "14px",
+              backgroundColor: "white",
+            }}
+          >
+            <option value="Commons">Commons</option>
+            <option value="Lords">Lords</option>
+          </select>
+        </div>
 
         <button
           style={{
@@ -160,7 +160,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
         {/* Weights Display */}
         <div
           style={{
-            flex: 0.6,
+            flex: 0.5,
             padding: "12px",
             backgroundColor: "#f8fafc",
             border: "1px solid #e2e8f0",
@@ -222,7 +222,9 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
               <div>{weights.NOTREC}</div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontWeight: "600", color: "#9ca3af" }}>INELIGIBLE</div>
+              <div style={{ fontWeight: "600", color: "#9ca3af" }}>
+                INELIGIBLE
+              </div>
               <div>{weights.INELIGIBLE}</div>
             </div>
           </div>
@@ -231,7 +233,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
         {/* Additional Info Placeholder */}
         <div
           style={{
-            flex: 0.4,
+            flex: 0.5,
             padding: "12px",
             backgroundColor: "#f9fafb",
             border: "1px solid #e5e7eb",
