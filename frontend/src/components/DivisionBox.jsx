@@ -5,6 +5,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
   const [house, setHouse] = useState(division.house || "Commons");
   const [isLoading, setIsLoading] = useState(false);
+  const [showDisabledMessage, setShowDisabledMessage] = useState(false);
 
   const updateDivisionId = (newId) => {
     onChange(internalId, { ...division, id: newId });
@@ -18,6 +19,14 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
   const updateHouse = (newHouse) => {
     setHouse(newHouse);
     onChange(internalId, { ...division, house: newHouse });
+  };
+
+  // Function to handle clicks on disabled fields
+  const handleDisabledFieldClick = () => {
+    if (division.metadata !== null) {
+      setShowDisabledMessage(true);
+      setTimeout(() => setShowDisabledMessage(false), 3000);
+    }
   };
 
   // Function to fetch division details by ID and house
@@ -129,6 +138,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             type="text"
             value={division.id || ""}
             onChange={(e) => updateDivisionId(e.target.value)}
+            onClick={handleDisabledFieldClick}
             placeholder="Enter division ID"
             disabled={division.metadata !== null}
             title={
@@ -139,11 +149,12 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             style={{
               width: "calc(100% - 24px)",
               padding: "10px 12px",
-              border: "2px solid #d1d5db",
+              border: division.metadata !== null ? "2px solid #ef4444" : "2px solid #d1d5db",
               borderRadius: "8px",
               fontSize: "14px",
-              backgroundColor: division.metadata !== null ? "#f9fafb" : "white",
+              backgroundColor: division.metadata !== null ? "#fef2f2" : "white",
               cursor: division.metadata !== null ? "not-allowed" : "text",
+              opacity: division.metadata !== null ? 0.7 : 1,
             }}
           />
         </div>
@@ -164,6 +175,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
           <select
             value={division.house || 1}
             onChange={(e) => updateHouse(parseInt(e.target.value))}
+            onClick={handleDisabledFieldClick}
             disabled={division.metadata !== null}
             title={
               division.metadata !== null
@@ -173,11 +185,12 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             style={{
               width: "100%",
               padding: "10px 12px",
-              border: "2px solid #d1d5db",
+              border: division.metadata !== null ? "2px solid #ef4444" : "2px solid #d1d5db",
               borderRadius: "8px",
               fontSize: "14px",
-              backgroundColor: division.metadata !== null ? "#f9fafb" : "white",
+              backgroundColor: division.metadata !== null ? "#fef2f2" : "white",
               cursor: division.metadata !== null ? "not-allowed" : "pointer",
+              opacity: division.metadata !== null ? 0.7 : 1,
             }}
           >
             <option value={1}>Commons</option>
@@ -186,7 +199,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
         </div>
 
         <button
-          onClick={fetchDivisionDetails}
+          onClick={division.metadata !== null ? handleDisabledFieldClick : fetchDivisionDetails}
           disabled={
             isLoading ||
             !division.id ||
@@ -205,10 +218,10 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
               !division.id ||
               !division.id.trim() ||
               division.metadata !== null
-                ? "#9ca3af"
+                ? "#ef4444"
                 : "#3b82f6",
             color: "white",
-            border: "none",
+            border: division.metadata !== null ? "2px solid #dc2626" : "none",
             borderRadius: "8px",
             cursor:
               isLoading ||
@@ -220,6 +233,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             fontSize: "14px",
             fontWeight: "500",
             marginTop: "20px",
+            opacity: division.metadata !== null ? 0.8 : 1,
           }}
         >
           {isLoading ? "Loading..." : "Use this division"}
@@ -241,6 +255,27 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
           🗑️
         </button>
       </div>
+
+      {/* Error message for disabled field interactions */}
+      {showDisabledMessage && (
+        <div
+          style={{
+            padding: "8px 12px",
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fecaca",
+            borderRadius: "6px",
+            color: "#dc2626",
+            fontSize: "13px",
+            fontWeight: "500",
+            marginBottom: "12px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
+          ⚠️ Division details are locked. Delete and recreate this division to modify its settings.
+        </div>
+      )}
 
       {/* Weights Display and Additional Info */}
       <div
