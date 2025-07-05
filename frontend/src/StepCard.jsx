@@ -159,7 +159,7 @@ export default function StepCard({
       <div
         className={styles.cardContent}
         style={{
-          maxHeight: isExpanded ? "none" : "0",
+          maxHeight: isExpanded ? "1000px" : "0",
           opacity: isExpanded ? 1 : 0,
           padding: isExpanded ? "0 24px 24px 24px" : "0 24px 0 24px",
           pointerEvents: isExpanded ? "auto" : "none",
