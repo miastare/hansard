@@ -4,6 +4,7 @@ import WeightEditModal from "./WeightEditModal";
 const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
   const [house, setHouse] = useState(division.house || "Commons");
+  const [isLoading, setIsLoading] = useState(false);
 
   const updateDivisionId = (newId) => {
     onChange(internalId, { ...division, id: newId });
@@ -17,6 +18,56 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
   const updateHouse = (newHouse) => {
     setHouse(newHouse);
     onChange(internalId, { ...division, house: newHouse });
+  };
+
+  // Function to fetch division details by ID and house
+  const fetchDivisionDetails = async () => {
+    if (!division.id || !division.id.trim()) {
+      alert("Please enter a Division ID first");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/division_by_id", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          division_id: division.id,
+          house: division.house,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const divisionData = await response.json();
+
+      if (divisionData.error) {
+        alert(`Error: ${divisionData.error}`);
+        return;
+      }
+
+      // Update the division with the fetched metadata
+      onChange(internalId, {
+        ...division,
+        metadata: {
+          division_title: divisionData.division_title,
+          division_date_time: divisionData.division_date_time,
+          ayes: divisionData.ayes,
+          noes: divisionData.noes,
+          context_url: divisionData.context_url,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching division details:", error);
+      alert(`Failed to fetch division details: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const defaultWeights = { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 };
@@ -100,19 +151,38 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
         </div>
 
         <button
+          onClick={fetchDivisionDetails}
+          disabled={
+            isLoading ||
+            !division.id ||
+            !division.id.trim() ||
+            division.metadata !== null
+          }
           style={{
             padding: "10px 16px",
-            backgroundColor: "#3b82f6",
+            backgroundColor:
+              isLoading ||
+              !division.id ||
+              !division.id.trim() ||
+              division.metadata !== null
+                ? "#9ca3af"
+                : "#3b82f6",
             color: "white",
             border: "none",
             borderRadius: "8px",
-            cursor: "pointer",
+            cursor:
+              isLoading ||
+              !division.id ||
+              !division.id.trim() ||
+              division.metadata !== null
+                ? "not-allowed"
+                : "pointer",
             fontSize: "14px",
             fontWeight: "500",
             marginTop: "20px",
           }}
         >
-          Use this division
+          {isLoading ? "Loading..." : "Use this division"}
         </button>
 
         <button

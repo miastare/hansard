@@ -41,7 +41,7 @@ def find_divisions_from_dsl_endpoint():
     dsl = data.get("dsl")
     if dsl is None:
         abort(400)
-    
+
     try:
         divisions, contributions = find_divisions_from_dsl(dsl)
         result = [divisions, contributions]
@@ -50,6 +50,27 @@ def find_divisions_from_dsl_endpoint():
     except Exception as e:
         print(f"BACKEND ERROR: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/division_by_id', methods=['POST'])
+def division_by_id():
+    try:
+        data = request.get_json()
+        division_id = data.get('division_id')
+        house = data.get('house')
+
+        print(f"BACKEND: Fetching division {division_id} from house {house}")
+
+        if not division_id or house is None:
+            return jsonify({'error': 'Division ID and house are required'}), 400
+
+        division_data = find_division_from_id_and_house(division_id, house)
+
+        print(f"BACKEND: Found division: {division_data}")
+
+        return jsonify(division_data)
+    except Exception as e:
+        print(f"BACKEND ERROR: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.get("/api/schema/<table>")
