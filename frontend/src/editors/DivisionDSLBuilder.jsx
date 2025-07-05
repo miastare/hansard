@@ -374,7 +374,10 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
                                     backgroundColor: "#f8fafc",
                                     border: "1px solid #e2e8f0",
                                     borderRadius: "6px",
-                                    fontSize: "13px",
+                                    fontSize: "14px",
+                                    maxWidth: "500px",
+                                    marginLeft: "auto",
+                                    marginRight: "auto",
                                   }}
                                 >
                                   <div
