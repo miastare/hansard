@@ -159,21 +159,7 @@ export default function DivisionDSLBuilder({ isOpen, onClose, onDSLComplete }) {
             >
               {loading ? "🔄 Searching..." : "🔍 Retrieve Matching Divisions"}
             </button>
-            <button
-              onClick={handleComplete}
-              style={{
-                padding: "12px 20px",
-                background: "#10b981",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: "600",
-              }}
-            >
-              ✓ Use This Query
-            </button>
+
             <button
               onClick={onClose}
               style={{
