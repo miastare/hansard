@@ -18,34 +18,38 @@ import random
 # ---------------------------------------------------------------------------
 #con_df_raw = pd.read_csv("./output/contributions_2024.csv")
 div_df = pd.read_csv("./output/divisions_2024.csv")
-con_df = pd.read_csv("./output/contributions_filtered_2024.csv") #con_df_raw.loc[con_df_raw['debate_id'].isin(div_df['debate_id'])]
+con_df = pd.read_csv(
+    "./output/contributions_filtered_2024.csv"
+)  #con_df_raw.loc[con_df_raw['debate_id'].isin(div_df['debate_id'])]
 
 CONTRIB_COLS = [
-        "debate_id",
-        "value",
-        "name",
-        "gender",
-        "party",
-        "age_proxy",
-        "constituency",
-        "context_url",
-    ]
+    "debate_id",
+    "value",
+    "name",
+    "gender",
+    "party",
+    "age_proxy",
+    "constituency",
+    "context_url",
+]
 
 DIV_COLS = [
-        "division_id",
-        "division_date_time",
-        "division_title",
-        "ayes",
-        "noes",
-        "context_url",
-        "debate_id"
-    ]
+    "division_id",
+    "division_date_time",
+    "division_title",
+    "ayes",
+    "noes",
+    "context_url",
+    "debate_id",
+    "location"  #e.g. 'Commons Chamber'
+]
 
 empty_dicts = ({}, {})
 
 # ---------------------------------------------------------------------------
 # 🧮  DSL → BOOL SERIES
 # ---------------------------------------------------------------------------
+
 
 def _eval_node(node: Dict, df: pd.DataFrame) -> pd.Series:
     """Recursively evaluate *node* against *df* and return a boolean Series.
@@ -81,7 +85,8 @@ def _eval_node(node: Dict, df: pd.DataFrame) -> pd.Series:
         if not isinstance(node.get("args"), (list, tuple)):
             raise ValueError(f"'{op}' expects a list under 'args'.")
         parts = [_eval_node(child, df) for child in node["args"]]
-        return np.logical_and.reduce(parts) if op == "and" else np.logical_or.reduce(parts)
+        return np.logical_and.reduce(
+            parts) if op == "and" else np.logical_or.reduce(parts)
 
     if op == "not":
         return ~_eval_node(node["args"], df)
@@ -92,7 +97,8 @@ def _eval_node(node: Dict, df: pd.DataFrame) -> pd.Series:
         pattern = leaf.get("pattern")
         column = leaf.get("column")
         if column != "value":
-            raise ValueError("Only 'value' column is allowed in this DSL variant.")
+            raise ValueError(
+                "Only 'value' column is allowed in this DSL variant.")
         if pattern is None:
             raise ValueError("Leaf DSL node missing 'pattern'.")
 
@@ -100,7 +106,9 @@ def _eval_node(node: Dict, df: pd.DataFrame) -> pd.Series:
         if op == "regex":
             return series.str.contains(pattern, regex=True, na=False)
         # contains / icontains → use str.contains with or without case flag
-        return series.str.contains(re.escape(pattern), case=(op == "contains"), na=False)
+        return series.str.contains(re.escape(pattern),
+                                   case=(op == "contains"),
+                                   na=False)
 
     raise ValueError(f"Unknown operation '{op}'.")
 
@@ -114,11 +122,15 @@ def get_boolean_series_from_dsl(dsl: Dict, df: pd.DataFrame) -> pd.Series:
         mask = pd.Series(mask, index=df.index)
     return mask
 
+
 # ---------------------------------------------------------------------------
 # 🔍  MAIN PUBLIC API
 # ---------------------------------------------------------------------------
 
-def find_divisions_from_dsl(dsl: Dict, max_rows_per_debate: int = 3, n_debates: int = 3) -> Tuple[dict, dict]:
+
+def find_divisions_from_dsl(dsl: Dict,
+                            max_rows_per_debate: int = 3,
+                            n_debates: int = 3) -> Tuple[dict, dict]:
     """Return divisions and sample contributions matching *dsl*.
 
     Parameters
@@ -159,6 +171,7 @@ def find_divisions_from_dsl(dsl: Dict, max_rows_per_debate: int = 3, n_debates: 
         ]
 
     """
+
     def clean_text_for_http(text):
         """Clean text to ensure it's safe for HTTP responses."""
         if text is None:
@@ -178,47 +191,44 @@ def find_divisions_from_dsl(dsl: Dict, max_rows_per_debate: int = 3, n_debates: 
 
     # 1️⃣  Evaluate the DSL against *con_df*
     mask = get_boolean_series_from_dsl(dsl, con_df)
-    filtered = con_df.loc[mask,CONTRIB_COLS]
+    filtered = con_df.loc[mask, CONTRIB_COLS]
 
     # 2️⃣  Short‑circuit if no match
     relevant_debates = filtered["debate_id"].unique()
     if len(relevant_debates) == 0:
         return empty_dicts
 
-    relevant_debates_sample = random.sample(list(relevant_debates), k = n_debates)
+    relevant_debates_sample = random.sample(list(relevant_debates),
+                                            k=n_debates)
 
     # 3️⃣  Look up divisions tied to the debates we just found
-    divisions_df = (
-        div_df.loc[
-            div_df["debate_id"].isin(relevant_debates_sample),
-            DIV_COLS,
-        ]
-        .reset_index(drop=True)
-    )
-    
+    divisions_df = (div_df.loc[
+        div_df["debate_id"].isin(relevant_debates_sample),
+        DIV_COLS,
+    ].reset_index(drop=True))
+
     # Clean text fields in divisions
     for text_col in ['division_title', 'context_url']:
         if text_col in divisions_df.columns:
-            divisions_df[text_col] = divisions_df[text_col].apply(clean_text_for_http)
-    
+            divisions_df[text_col] = divisions_df[text_col].apply(
+                clean_text_for_http)
+
     divisions = divisions_df.set_index('division_id').to_dict(orient='index')
 
     # 4️⃣  Pull contribution samples (≤ *max_rows_per_debate* per debate)
-    contribution_samples_df = (
-        filtered.loc[filtered['debate_id'].isin(list(relevant_debates_sample))]
-        .groupby("debate_id", group_keys=False)
-        .head(max_rows_per_debate)
-        .reset_index(drop=True)
-    )
+    contribution_samples_df = (filtered.loc[filtered['debate_id'].isin(
+        list(relevant_debates_sample))].groupby(
+            "debate_id",
+            group_keys=False).head(max_rows_per_debate).reset_index(drop=True))
 
     # Clean text fields in contributions
     contribution_samples_df['value'] = contribution_samples_df['value'].apply(
-        lambda x: clean_text_for_http(x)[0:300]
-    )
-    
+        lambda x: clean_text_for_http(x)[0:300])
+
     for text_col in ['name', 'party', 'constituency', 'context_url']:
         if text_col in contribution_samples_df.columns:
-            contribution_samples_df[text_col] = contribution_samples_df[text_col].apply(clean_text_for_http)
+            contribution_samples_df[text_col] = contribution_samples_df[
+                text_col].apply(clean_text_for_http)
 
     contribution_samples = {
         debate_id: group.drop(columns="debate_id").to_dict(orient="records")
@@ -239,6 +249,7 @@ def find_division_from_id_and_house(division_id, house):
      'context_url': 'https://hansard.parliament.uk/Commons/2024-01-09/debates/21A6D6D0-27DD-4AD6-BA98-6176B0864827/nhs-dentistry#division-49230'
      }
     '''
+
     def clean_text_for_http(text):
         """Clean text to ensure it's safe for HTTP responses."""
         if text is None:
@@ -252,22 +263,21 @@ def find_division_from_id_and_house(division_id, house):
         text = text.replace('\u201d', '"')  # right double quote
         text = text.encode('ascii', 'replace').decode('ascii')
         return text
-    
+
     if house == 1:
         filter_house = 'Commons Chamber'
     else:
         filter_house = 'Lords Chamber'
     found_div = div_df.query(
-        "division_id == @division_id & location == @filter_house"
-    )[DIV_COLS]
+        "division_id == @division_id & location == @filter_house")[DIV_COLS]
 
     result = found_div.iloc[0].to_dict()
-    
+
     # Clean text fields
     for key, value in result.items():
         if isinstance(value, str):
             result[key] = clean_text_for_http(value)
-    
+
     return result
 
 
@@ -277,17 +287,24 @@ def find_division_from_id_and_house(division_id, house):
 if __name__ == "__main__":
     # Tiny smoke test – replace with real patterns as needed.
     toy_dsl = {
-        "op": "and",
+        "op":
+        "and",
         "args": [
             {
                 "op": "contains",
-                "args": {"pattern": "menopause", "column": "value"},
+                "args": {
+                    "pattern": "menopause",
+                    "column": "value"
+                },
             },
             {
                 "op": "not",
                 "args": {
                     "op": "icontains",
-                    "args": {"pattern": "period", "column": "value"},
+                    "args": {
+                        "pattern": "period",
+                        "column": "value"
+                    },
                 },
             },
         ],
@@ -296,4 +313,3 @@ if __name__ == "__main__":
     divs, contribs = find_divisions_from_dsl(toy_dsl)
     print("Divisions →", len(divs))
     print("Sample contributions →", len(contribs))
-
