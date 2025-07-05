@@ -39,7 +39,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
     console.log("FRONTEND: Fetching division details", {
       division_id: division.id,
       house: division.house,
-      division_id_type: typeof division.id
+      division_id_type: typeof division.id,
     });
 
     setIsLoading(true);
@@ -48,8 +48,11 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
         division_id: division.id,
         house: division.house,
       };
-      
-      console.log("FRONTEND: Sending request to /api/division_by_id with body:", requestBody);
+
+      console.log(
+        "FRONTEND: Sending request to /api/division_by_id with body:",
+        requestBody,
+      );
 
       const response = await fetch("/api/division_by_id", {
         method: "POST",
@@ -60,12 +63,17 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
       });
 
       console.log("FRONTEND: Response status:", response.status);
-      console.log("FRONTEND: Response headers:", Object.fromEntries(response.headers.entries()));
+      console.log(
+        "FRONTEND: Response headers:",
+        Object.fromEntries(response.headers.entries()),
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error("FRONTEND: HTTP error response:", errorText);
-        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        throw new Error(
+          `HTTP error! status: ${response.status}, body: ${errorText}`,
+        );
       }
 
       const divisionData = await response.json();
@@ -88,8 +96,11 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
           context_url: divisionData.context_url,
         },
       };
-      
-      console.log("FRONTEND: Updating division with metadata:", updatedDivision);
+
+      console.log(
+        "FRONTEND: Updating division with metadata:",
+        updatedDivision,
+      );
       onChange(internalId, updatedDivision);
     } catch (error) {
       console.error("FRONTEND: Error fetching division details:", error);
@@ -101,6 +112,12 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
 
   const defaultWeights = { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 };
   const weights = division.weights || defaultWeights;
+
+  const forbidChanges =
+    isLoading ||
+    !division.id ||
+    !division.id.trim() ||
+    division.metadata !== null;
 
   return (
     <div
@@ -149,10 +166,13 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             style={{
               width: "calc(100% - 24px)",
               padding: "10px 12px",
-              border: division.metadata !== null ? "2px solid #ef4444" : "2px solid #d1d5db",
+              border:
+                division.metadata !== null
+                  ? "2px solid #a8dcab"
+                  : "2px solid #d1d5db",
               borderRadius: "8px",
               fontSize: "14px",
-              backgroundColor: division.metadata !== null ? "#fef2f2" : "white",
+              backgroundColor: division.metadata !== null ? "#a8dcab" : "white",
               cursor: division.metadata !== null ? "not-allowed" : "text",
               opacity: division.metadata !== null ? 0.7 : 1,
             }}
@@ -185,10 +205,13 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             style={{
               width: "100%",
               padding: "10px 12px",
-              border: division.metadata !== null ? "2px solid #ef4444" : "2px solid #d1d5db",
+              border:
+                division.metadata !== null
+                  ? "2px solid #a8dcab"
+                  : "2px solid #d1d5db",
               borderRadius: "8px",
               fontSize: "14px",
-              backgroundColor: division.metadata !== null ? "#fef2f2" : "white",
+              backgroundColor: division.metadata !== null ? "#a8dcab" : "white",
               cursor: division.metadata !== null ? "not-allowed" : "pointer",
               opacity: division.metadata !== null ? 0.7 : 1,
             }}
@@ -199,13 +222,12 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
         </div>
 
         <button
-          onClick={division.metadata !== null ? handleDisabledFieldClick : fetchDivisionDetails}
-          disabled={
-            isLoading ||
-            !division.id ||
-            !division.id.trim() ||
+          onClick={
             division.metadata !== null
+              ? handleDisabledFieldClick
+              : fetchDivisionDetails
           }
+          disabled={forbidChanges}
           title={
             division.metadata !== null
               ? "Division details are locked. Delete and recreate to modify."
@@ -213,27 +235,15 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
           }
           style={{
             padding: "10px 16px",
-            backgroundColor:
-              isLoading ||
-              !division.id ||
-              !division.id.trim() ||
-              division.metadata !== null
-                ? "#ef4444"
-                : "#3b82f6",
-            color: "white",
-            border: division.metadata !== null ? "2px solid #dc2626" : "none",
+            backgroundColor: forbidChanges ? "#a8dcab" : "#3b82f6",
+            color: forbidChanges ? "grey" : "white",
+            border: forbidChanges ? "2px solid #a8dcab" : "none",
             borderRadius: "8px",
-            cursor:
-              isLoading ||
-              !division.id ||
-              !division.id.trim() ||
-              division.metadata !== null
-                ? "not-allowed"
-                : "pointer",
+            cursor: forbidChanges ? "not-allowed" : "pointer",
             fontSize: "14px",
             fontWeight: "500",
             marginTop: "20px",
-            opacity: division.metadata !== null ? 0.8 : 1,
+            opacity: forbidChanges ? 0.8 : 1,
           }}
         >
           {isLoading ? "Loading..." : "Use this division"}
@@ -262,7 +272,7 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
           style={{
             padding: "8px 12px",
             backgroundColor: "#fef2f2",
-            border: "1px solid #fecaca",
+            border: "1px solid #a8dcab",
             borderRadius: "6px",
             color: "#dc2626",
             fontSize: "13px",
@@ -273,7 +283,8 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             gap: "8px",
           }}
         >
-          ⚠️ Division details are locked. Delete and recreate this division to modify its settings.
+          ⚠️ Division details are locked. Delete and recreate this division to
+          modify its settings.
         </div>
       )}
 
@@ -383,10 +394,14 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
                 {division.metadata.division_title}
               </div>
               <div style={{ marginBottom: "4px" }}>
-                📅 {new Date(division.metadata.division_date_time).toLocaleDateString()}
+                📅{" "}
+                {new Date(
+                  division.metadata.division_date_time,
+                ).toLocaleDateString()}
               </div>
               <div style={{ marginBottom: "4px" }}>
-                ✅ Ayes: <strong>{division.metadata.ayes}</strong> | ❌ Noes: <strong>{division.metadata.noes}</strong>
+                ✅ Ayes: <strong>{division.metadata.ayes}</strong> | ❌ Noes:{" "}
+                <strong>{division.metadata.noes}</strong>
               </div>
               {division.metadata.context_url && (
                 <div>
