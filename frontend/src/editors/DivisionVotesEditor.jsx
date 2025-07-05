@@ -20,6 +20,7 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
       {
         internalId: 1,
         id: "",
+        house: 1,
         weights: { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 },
       },
     ];
@@ -72,6 +73,7 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
         {
           internalId: nextId,
           id: "",
+          house: 1,
           weights: { AYE: 1, NO: -1, NOTREC: 0, INELIGIBLE: 0 },
         },
       ];
@@ -86,6 +88,7 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
     const newDivision = {
       internalId: nextId,
       id: "",
+      house: 1,
       weights: divisions[0]?.weights || {
         AYE: 1,
         NO: -1,
@@ -100,47 +103,11 @@ export default function DivisionVotesEditor({ step, onUpdate }) {
     setNextId(nextId + 1);
   };
 
-  const updateHouse = (house) => {
-    onUpdate({
-      ...step,
-      house: parseInt(house),
-    });
-  };
-
   return (
     <div style={{ padding: "20px" }}>
       <h4 style={{ margin: "0 0 20px 0", fontSize: "18px", color: "#2d3748" }}>
         🗳️ Division Votes Configuration
       </h4>
-
-      {/* House Selection */}
-      <div style={{ marginBottom: "24px" }}>
-        <label
-          style={{
-            display: "block",
-            marginBottom: "8px",
-            fontWeight: "600",
-            fontSize: "14px",
-            color: "#374151",
-          }}
-        >
-          House:
-        </label>
-        <select
-          value={step.house || 1}
-          onChange={(e) => updateHouse(e.target.value)}
-          style={{
-            padding: "8px 12px",
-            border: "1px solid #d1d5db",
-            borderRadius: "6px",
-            fontSize: "14px",
-            backgroundColor: "#fff",
-          }}
-        >
-          <option value={1}>Commons (1)</option>
-          <option value={2}>Lords (2)</option>
-        </select>
-      </div>
 
       {/* Header with Add Division and Find Divisions buttons */}
       <div
