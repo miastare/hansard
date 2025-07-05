@@ -130,12 +130,20 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             value={division.id || ""}
             onChange={(e) => updateDivisionId(e.target.value)}
             placeholder="Enter division ID"
+            disabled={division.metadata !== null}
+            title={
+              division.metadata !== null
+                ? "Division details are locked. Delete and recreate to modify."
+                : ""
+            }
             style={{
               width: "calc(100% - 24px)",
               padding: "10px 12px",
               border: "2px solid #d1d5db",
               borderRadius: "8px",
               fontSize: "14px",
+              backgroundColor: division.metadata !== null ? "#f9fafb" : "white",
+              cursor: division.metadata !== null ? "not-allowed" : "text",
             }}
           />
         </div>
@@ -156,13 +164,20 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
           <select
             value={division.house || 1}
             onChange={(e) => updateHouse(parseInt(e.target.value))}
+            disabled={division.metadata !== null}
+            title={
+              division.metadata !== null
+                ? "Division details are locked. Delete and recreate to modify."
+                : ""
+            }
             style={{
               width: "100%",
               padding: "10px 12px",
               border: "2px solid #d1d5db",
               borderRadius: "8px",
               fontSize: "14px",
-              backgroundColor: "white",
+              backgroundColor: division.metadata !== null ? "#f9fafb" : "white",
+              cursor: division.metadata !== null ? "not-allowed" : "pointer",
             }}
           >
             <option value={1}>Commons</option>
@@ -177,6 +192,11 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
             !division.id ||
             !division.id.trim() ||
             division.metadata !== null
+          }
+          title={
+            division.metadata !== null
+              ? "Division details are locked. Delete and recreate to modify."
+              : ""
           }
           style={{
             padding: "10px 16px",
@@ -203,23 +223,6 @@ const DivisionBox = ({ division, onChange, onRemove, internalId }) => {
           }}
         >
           {isLoading ? "Loading..." : "Use this division"}
-        </button>
-
-        <button
-          onClick={() => setIsWeightModalOpen(true)}
-          style={{
-            padding: "10px 16px",
-            backgroundColor: "#8b5cf6",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "500",
-            marginTop: "20px",
-          }}
-        >
-          Set Weights
         </button>
 
         <button
